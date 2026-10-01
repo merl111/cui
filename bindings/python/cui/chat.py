@@ -28,9 +28,9 @@ class _Span(C.Structure):
 class _Detail(C.Structure):
     _fields_=[('id',ID),('text',S),('detail',S),('count',U),('flags',U)]
 class _Room(C.Structure):
-    _fields_=[('id',ID),('group',S),('title',S),('detail',S),('trailing',S),('avatar_color',U),('unread',U),('flags',U),('symbol',I)]
+    _fields_=[('id',ID),('group',S),('title',S),('detail',S),('trailing',S),('avatar_color',U),('unread',U),('flags',U),('symbol',I),('avatar',P)]
 class _Message(C.Structure):
-    _fields_=[('id',ID),('author',S),('time',S),('date',S),('avatar_color',U),('flags',U),('spans',C.POINTER(_Span)),('span_count',N),('reply_author',S),('reply_text',S),('reply_id',ID),('attachments',C.POINTER(_Detail)),('attachment_count',N),('reactions',C.POINTER(_Detail)),('reaction_count',N),('poll_question',S),('options',C.POINTER(_Detail)),('option_count',N),('selected_option',I),('thread_preview',S),('thread_count',U),('thread_participants',C.POINTER(_Room)),('thread_participant_count',N),('author_color',U)]
+    _fields_=[('id',ID),('author',S),('time',S),('date',S),('avatar_color',U),('flags',U),('spans',C.POINTER(_Span)),('span_count',N),('reply_author',S),('reply_text',S),('reply_id',ID),('attachments',C.POINTER(_Detail)),('attachment_count',N),('reactions',C.POINTER(_Detail)),('reaction_count',N),('poll_question',S),('options',C.POINTER(_Detail)),('option_count',N),('selected_option',I),('thread_preview',S),('thread_count',U),('thread_participants',C.POINTER(_Room)),('thread_participant_count',N),('author_color',U),('avatar',P)]
 class _Event(C.Structure):
     _fields_=[('action',I),('id',ID),('detail_id',ID),('index',U),('modifiers',U),('text',S)]
 @dataclass
@@ -46,10 +46,10 @@ class Message:
     reply_author:str=''; reply_text:str=''; reply_id:int=0
     attachments:list=field(default_factory=list); reactions:list=field(default_factory=list)
     poll_question:str=''; options:list=field(default_factory=list); selected_option:int=-1
-    thread_preview:str=''; thread_count:int=0; thread_participants:list=field(default_factory=list); author_color:int=0
+    thread_preview:str=''; thread_count:int=0; thread_participants:list=field(default_factory=list); author_color:int=0; avatar:object=None
 @dataclass
 class Room:
-    id:int=0; group:str=''; title:str=''; detail:str=''; trailing:str=''; avatar_color:int=0; unread:int=0; flags:int=0; symbol:int=0
+    id:int=0; group:str=''; title:str=''; detail:str=''; trailing:str=''; avatar_color:int=0; unread:int=0; flags:int=0; symbol:int=0; avatar:object=None
 @dataclass
 class Event:
     action:int=NONE; id:int=0; detail_id:int=0; index:int=0; modifiers:int=0; text:str=''
@@ -60,8 +60,8 @@ def _message(v):
     spans=_array(_Span,[_Span(_s(x.text),_s(x.link),x.style) for x in v.spans])
     files,reactions,options=(_details(x) for x in (v.attachments,v.reactions,v.options))
     # ctypes retains the nested arrays through the structure's _objects graph.
-    participants=_array(_Room,[_Room(x.id,_s(x.group),_s(x.title),_s(x.detail),_s(x.trailing),x.avatar_color,x.unread,x.flags,x.symbol) for x in v.thread_participants])
-    return _Message(v.id,_s(v.author),_s(v.time),_s(v.date),v.avatar_color,v.flags,spans,len(spans),_s(v.reply_author),_s(v.reply_text),v.reply_id,files,len(files),reactions,len(reactions),_s(v.poll_question),options,len(options),v.selected_option,_s(v.thread_preview),v.thread_count,participants,len(participants),v.author_color)
+    participants=_array(_Room,[_Room(x.id,_s(x.group),_s(x.title),_s(x.detail),_s(x.trailing),x.avatar_color,x.unread,x.flags,x.symbol,x.avatar.ptr if x.avatar else None) for x in v.thread_participants])
+    return _Message(v.id,_s(v.author),_s(v.time),_s(v.date),v.avatar_color,v.flags,spans,len(spans),_s(v.reply_author),_s(v.reply_text),v.reply_id,files,len(files),reactions,len(reactions),_s(v.poll_question),options,len(options),v.selected_option,_s(v.thread_preview),v.thread_count,participants,len(participants),v.author_color,v.avatar.ptr if v.avatar else None)
 
 _bind('chat_color',U,D,D,D,D)
 _bind('chat_theme_get',I,I,C.POINTER(Theme))
@@ -121,7 +121,7 @@ class Chat:
     def set_messages(self,items):
         values=_array(_Message,[_message(v) for v in items]);return bool(lib.cui_chat_set_messages(self.ptr,values,len(values)))
     def set_rooms(self,items):
-        values=_array(_Room,[_Room(v.id,_s(v.group),_s(v.title),_s(v.detail),_s(v.trailing),v.avatar_color,v.unread,v.flags,v.symbol) for v in items]);return bool(lib.cui_chat_set_rooms(self.ptr,values,len(values)))
+        values=_array(_Room,[_Room(v.id,_s(v.group),_s(v.title),_s(v.detail),_s(v.trailing),v.avatar_color,v.unread,v.flags,v.symbol,v.avatar.ptr if v.avatar else None) for v in items]);return bool(lib.cui_chat_set_rooms(self.ptr,values,len(values)))
     def select(self,id=0):return bool(lib.cui_chat_select(self.ptr,id))
     def set_query(self,value):return bool(lib.cui_chat_set_query(self.ptr,_s(value)))
     def set_status(self,value):return bool(lib.cui_chat_set_status(self.ptr,_s(value)))

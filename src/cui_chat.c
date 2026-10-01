@@ -166,6 +166,7 @@ void cui__chat_messages_free(cui_chat_message *p, size_t n) {
   if (!p)
     return;
   for (size_t i = 0; i < n; ++i) {
+    cui_icon_release(p[i].avatar);
     free((char *)p[i].author);
     free((char *)p[i].time);
     free((char *)p[i].date);
@@ -194,6 +195,7 @@ void cui__chat_messages_free(cui_chat_message *p, size_t n) {
 void cui__chat_rooms_free(cui_chat_room *p, size_t n) {
   if (p) {
     for (size_t i = 0; i < n; ++i) {
+      cui_icon_release(p[i].avatar);
       free((char *)p[i].group);
       free((char *)p[i].title);
       free((char *)p[i].detail);
@@ -206,6 +208,7 @@ static int room_copy(cui_chat_room *next, const cui_chat_room *item) {
   if (item->symbol < CUI_SYMBOL_NONE || item->symbol >= CUI_SYMBOL_COUNT)
     return 0;
   *next = *item;
+  next->avatar = cui_icon_retain(item->avatar);
   next->group = copy(item->group, 4096);
   next->title = copy(item->title, 4096);
   next->detail = copy(item->detail, 4096);
@@ -222,6 +225,7 @@ static int message_copy(cui_chat_message *q, const cui_chat_message *p) {
     return 0;
   q->id = p->id;
   q->avatar_color = p->avatar_color;
+  q->avatar = cui_icon_retain(p->avatar);
   q->author_color = p->author_color;
   q->flags = p->flags;
   q->reply_id = p->reply_id;
@@ -328,7 +332,7 @@ static void canvas_event(cui_widget *w, const cui_canvas_event *e, void *p) {
 #else
     double delta = e->dy * 36.;
 #endif
-    cui_chat_scroll(s->root, s->offset + delta);
+    cui_chat_scroll(s->root, fmax(0., s->offset + delta));
     return;
   }
   if (e->kind == CUI_CANVAS_MOVE) {
@@ -341,7 +345,24 @@ static void canvas_event(cui_widget *w, const cui_canvas_event *e, void *p) {
           hover = s->messages[i].id;
           break;
         }
-    if (hover != s->hovered || e->id != s->hover_region) {
+    /* The raised toolbar lies above its message, possibly over another row.
+     * Its buttons and small connecting gap take precedence over row hover. */
+    for (size_t i = 0; i < s->scene.region_count; ++i) {
+      const cui_canvas_region *r = s->scene.regions + i;
+      if (r->id >= 256 && r->id % 256 >= 200 && e->x >= r->x - 4 &&
+          e->x < r->x + r->width + 4 && e->y >= r->y - 3 &&
+          e->y < r->y + r->height + 10) {
+        hover = s->scene.actions[i].id;
+        break;
+      }
+    }
+    unsigned focus = s->toolbar_focus;
+    /* Pointer navigation supersedes keyboard focus. Retain an action anchor
+     * only when leaving for its native popup; body focus must never pin it. */
+    if (e->x >= 0 || focus % 256 < 200)
+      s->toolbar_focus = 0;
+    if (hover != s->hovered || e->id != s->hover_region ||
+        focus != s->toolbar_focus) {
       s->hovered = hover;
       s->hover_region = e->id;
       s->dirty = 1;
@@ -350,12 +371,26 @@ static void canvas_event(cui_widget *w, const cui_canvas_event *e, void *p) {
   }
   if (e->kind == CUI_CANVAS_FOCUS) {
     s->focus_region = e->id;
+    s->toolbar_focus = e->id;
     s->dirty = 1;
     return;
   }
   if (e->kind == CUI_CANVAS_PRESS) {
+    /* Keep a pressed action alive until release, including after dismissing
+     * its popup. Body focus must not pin the toolbar. */
+    s->toolbar_focus = e->id >= 256 && e->id % 256 >= 200 ? e->id : 0;
+    s->dirty = 1;
     cui__chat_emit(s, (cui_chat_event){.action = CUI_CHAT_FOCUS});
     return;
+  }
+  if (e->kind == CUI_CANVAS_CONTEXT && cui__chat_message_kind(s->kind)) {
+    for (size_t i = 0; i < s->scene.region_count; ++i)
+      if (s->scene.regions[i].id == e->id) {
+        cui__chat_emit(s, (cui_chat_event){.action = CUI_CHAT_MORE,
+                                           .id = s->scene.actions[i].id,
+                                           .modifiers = e->modifiers});
+        return;
+      }
   }
   if (e->kind != CUI_CANVAS_ACTIVATE)
     return;
@@ -665,7 +700,7 @@ int cui_chat_set_rooms(cui_widget *w, const cui_chat_room *items, size_t n) {
   s->rooms = next;
   s->count = n;
   s->dirty = 1;
-  return 1;
+  return cui__chat_layout(s);
 }
 int cui_chat_select(cui_widget *w, cui_item_id id) {
   chat_state *s = cui__chat(w);
@@ -703,8 +738,10 @@ int cui_chat_set_query(cui_widget *w, const char *q) {
   if (!s || !room_kind(s->kind))
     return 0;
   int ok = set_string(s, &s->query, q);
-  if (ok)
+  if (ok) {
     s->offset = 0;
+    ok = cui__chat_layout(s);
+  }
   return ok;
 }
 int cui_chat_set_status(cui_widget *w, const char *q) {
@@ -749,7 +786,7 @@ int cui_chat_refresh(cui_widget *w, double scale) {
     s->dirty = 1;
     if (!cui__chat_layout(s))
       return 0;
-    if (bottom)
+    if (bottom && s->kind == CUI_CHAT_TIMELINE)
       s->offset = fmax(0., s->total - height);
   }
   if (!s->dirty)

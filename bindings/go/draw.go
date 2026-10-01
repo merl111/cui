@@ -36,6 +36,7 @@ const (
 	CanvasScroll
 	CanvasActivate
 	CanvasFocus
+	CanvasContext
 )
 
 type Surface struct{ ptr *C.cui_surface }

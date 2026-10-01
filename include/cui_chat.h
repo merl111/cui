@@ -138,6 +138,7 @@ typedef struct cui_chat_room {
   unsigned avatar_color, unread, flags; /* MINE marks additional active rows. */
   /* Optional space icon or header trailing-badge icon; NONE omits it. */
   cui_symbol symbol;
+  cui_icon_asset *avatar; /* Optional retained image, center-cropped and rounded. */
 } cui_chat_room;
 typedef struct cui_chat_message {
   cui_item_id id;
@@ -160,6 +161,7 @@ typedef struct cui_chat_message {
   const cui_chat_room *thread_participants; /* up to 8 identity avatars */
   size_t thread_participant_count;
   unsigned author_color; /* zero chooses an appearance default */
+  cui_icon_asset *avatar; /* Optional retained image; NULL uses initials. */
 } cui_chat_message;
 
 typedef struct cui_chat_event {

@@ -37,7 +37,7 @@ These additional captures exercise states beyond the initial screen. The thread 
 | Poll choices, vote counts, closed state and activation | `CUI_CHAT_POLL_CARD` |
 | Quoted sender and message text | `CUI_CHAT_REPLY_PREVIEW` |
 | Reply count, participant avatars and latest reply | `CUI_CHAT_THREAD_SUMMARY` |
-| Initial avatar, presence dot and square/circular presentation | `CUI_CHAT_AVATAR` |
+| Image or initial avatar, presence dot and square/circular presentation | `CUI_CHAT_AVATAR` |
 
 Each component has its own [catalog entry and native C recipe](../components/index.html#catalog-grid), including the smaller elements that can be used outside a chat timeline. Archaic is the first consumer; none of these components depends on Archaic or Matrix.
 
@@ -53,6 +53,26 @@ All fourteen kinds share `cui_chat_create(parent, kind, appearance)` and the sam
 
 The C implementation performs layout, painting, model copying, keyboard handling and pane state changes. Bindings marshal input and translate events; they do not reimplement the renderer.
 
+## Avatar images and scrolling
+
+Set `cui_chat_room.avatar` or `cui_chat_message.avatar` to a `cui_icon_asset`.
+The model setter retains the asset, including thread-participant avatars; callers
+may release their own reference after the setter succeeds. Images are centered,
+cropped and clipped to the component's round or rounded-square avatar. A null
+asset uses initials. Networking, authentication and image decoding belong to
+the application; pass decoded RGBA pixels through `cui_icon_rgba`.
+
+Rust uses `chat::Avatar { image: Some(icon), ..Default::default() }`, Python uses
+`Room(avatar=icon)` / `Message(avatar=icon)`, Go uses `ChatRoom.Avatar` /
+`ChatMessage.Avatar`, and Zig uses the imported C model's `avatar` field with
+`ui.Icon.raw`. These struct additions require recompiling CUI and its consumers
+together; do not mix an older binary with the updated bindings.
+
+Room navigation accepts mouse-wheel and touchpad scroll events and clamps at
+both ends. Updating models or refreshing the display preserves the scroll
+position where possible. Changing a query resets to the top; shrinking a list
+clamps the previous offset. The application supplies group labels and ordering.
+
 ## Presentation and application choices
 
 See [Reuse & framework comparison](component-design.md) for the AppKit, SwiftUI, WinUI, Qt and GTK comparison, current toolkit gaps, and examples of independent layout and command configuration.
@@ -62,7 +82,9 @@ See [Reuse & framework comparison](component-design.md) for the AppKit, SwiftUI,
 ## Anchored message menus
 
 Use `cui_chat_set_commands` for quick React, Reply, Thread and More buttons.
-Handle More by opening a native CUI menu at its current action region:
+Right-clicking a message also emits `CUI_CHAT_MORE` anchored to that message.
+Only the hovered message (or keyboard-focused action) shows its quick toolbar;
+it sits above the message where space permits. Handle More by opening a native CUI menu at its current action region:
 
 ```c
 cui_chat_event event;

@@ -117,6 +117,9 @@ static LRESULT CALLBACK canvas_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
   double x = GET_X_LPARAM(lp), y = GET_Y_LPARAM(lp);
   cui_canvas_event_kind kind;
   switch (msg) {
+  case WM_RBUTTONUP:
+    kind = CUI_CANVAS_CONTEXT;
+    break;
   case WM_LBUTTONDOWN:
     SetFocus(hwnd);
     SetCapture(hwnd);

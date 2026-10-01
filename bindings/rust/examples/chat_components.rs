@@ -5,6 +5,7 @@ use std::{cell::RefCell, rc::Rc};
 
 fn avatar(name: &str, color: u32) -> Avatar {
     Avatar {
+        image: None,
         name: name.into(),
         color,
         online: true,

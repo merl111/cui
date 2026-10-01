@@ -35,7 +35,7 @@ typedef struct chat_state {
   double offset, total, scale;
   int width, height, dirty, busy, editing;
   cui_item_id selected, context, hovered;
-  unsigned focus_region, hover_region, mask, focus_pane, saved_mask;
+  unsigned toolbar_focus, focus_region, hover_region, mask, focus_pane, saved_mask;
   char *query, *status, *event_text;
   cui_chat_detail *files;
   size_t file_count;

@@ -32,131 +32,131 @@
     "nebula": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "01d20384c137714810ad61e590b2cc5ca76dfbb78c36b3c48ddaadcb0c0e3cbb"
+      "image_sha256": "e16c7803e4f9e5459f5aea51fe5f2193ecf552a2f76c351157ca9faaba463559"
     },
     "daylight": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "a3718d6fad4c66fb1e187670e025e0917c0edbce323159add3deaf0e05ecd63b"
+      "image_sha256": "b32a15cd590d435dc3d5d01ff238b45cdc7a18ad9e987c3e750f4dc4fe5faaf6"
     },
     "tiles": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "1823469d3a86bee2241c87fbb3647e9e5b0d28a2122f7f55769c8839a1643297"
+      "image_sha256": "b5b4a0a29f9d9584028a702eb38bff058a3d6e6437ff07d83f24918c6837b213"
     },
     "daylight-eng": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "2ca28a36345c88ca6a788b5c004639388c45c4dc78fe90905b8ce2c28b4e8f11"
+      "image_sha256": "57e3b5808e2482b9370b570a8b77ee2752bf64129dc5410889f085d3ff69f684"
     },
     "daylight-kai": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "6683d01c6e6cd314e07f993a55b99dd1ea4b0ce92edbe635eebdaab12f548afa"
+      "image_sha256": "01433bdf93b3bfcf42a943ff4e0e372d4588994a1b6159ab337a298d084c354e"
     },
     "daylight-mhq": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "5cc7ccd5636e2588e6a2734ed727459903968525ca70c669a2dcfd63c19707f5"
+      "image_sha256": "2f1d3da3c14988670dfbf6f5272de7f21bcf40f5e9334be6337f866b1998fe61"
     },
     "nebula-thread": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "6c055977064c985ee313b722afb610964176e67184798e4c47239c29b8388a90"
+      "image_sha256": "eec953b4c50052da5c02c41024099d4bdfe867c584583b78a45ee3128526e8f8"
     },
     "nebula-call": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "bc0dbc0487fccd8ea95953e13f85ab86b0e808ca64f66d2a238b5706e2855919"
+      "image_sha256": "acbd61f3d84533886ae4a1d3bea09540d22fccec8226268b4bec2696216e4d7f"
     },
     "daylight-verification": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "6b0161e51b1cbe164071d6dbb2e9feb619de77c64a084333824a4683949c320c"
+      "image_sha256": "789e28224edeea1374848a58f8c8121db237ed2b1804973ed42b7fd24c40c903"
     },
     "daylight-people": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "f4af403b68f80084821a632d4f11b2832fc85f2decd650b00ba9ec90a364e64f"
+      "image_sha256": "9e1f0cc08e8db226906ed48ee93c083ace610ac77f5487367c8fa67ee96e998a"
     },
     "daylight-media": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "437e19de72976792b1866875633742e1d5715b5fa1eaf5640650990e3480edbd"
+      "image_sha256": "1b84f3fc659453af7d08071e46832317912b1daf210b41dcebf4ffb0456ac162"
     },
     "tiles-palette": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "94c314f6b89996209c03f6ab56afeb5c270a0dc55bdb3b397ccadae7524a4d4d"
+      "image_sha256": "dcda18194618facf51d5c99d9fa9767593f2aefd1dfd7aca787a8bc756908773"
     },
     "rust-daylight": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "8c6d94d29c6e6fff265ba8612714f182bd7c5adfa6b1907f84682cb5b07884a5"
+      "image_sha256": "dd63bf772705867ecd907000dbd58fcd9ac9a764c5b03ebe5a2ae46c31a966d0"
     },
     "rust-daylight-eng": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "6752222ac53d0217c7ef2543e4be388ff87b17bf2f5b14247c8e4753a7bc8948"
+      "image_sha256": "784fa054306ac45265d784c00fee70b8bae3aff036dfdc555c0ef84d6f3c2809"
     },
     "rust-daylight-kai": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "b4e0ff4e3914decb0af8617245de34090d479110e66a80b90add427c62f70630"
+      "image_sha256": "7f71740fbd8d53f41bfb0d078f21be306e393b2ba290be35561c71ada41aab74"
     },
     "rust-daylight-mhq": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "87922f43a33193e12d989d38c68a5aded2438314b86d24c994e5e21808cc06f6"
+      "image_sha256": "f329cc028d310fca59e6edbcdfda5f012aacfd7569f3677543401e763d29f717"
     },
     "rust-daylight-verification": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "6b0161e51b1cbe164071d6dbb2e9feb619de77c64a084333824a4683949c320c"
+      "image_sha256": "789e28224edeea1374848a58f8c8121db237ed2b1804973ed42b7fd24c40c903"
     },
     "rust-daylight-people": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "1e1625836119eeed89167c0fb78c08320245fa40d2917142a9ceed8ec59e6f88"
+      "image_sha256": "f1d82281f6608482ac62611f5f3ef10a9a43df72f55052ca729897488660e307"
     },
     "rust-daylight-media": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "239cfd5407f17359a84ed2c8b2d9a11fd1e48580b94a1133421d64dbb585c276"
+      "image_sha256": "6064239f1169e54d55d9436cb1d41eaa860bba36e73ba966df0054067cf5c5c7"
     },
     "daylight-large": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "5a199d86a2a61405b518ac29e178da1a257f966a52a2a058b13fa6a5adec1479"
+      "image_sha256": "bd3bd45014333b6890e061bda233cbd1c4c402dca153966029b9049161a77f37"
     },
     "rust-daylight-large": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "18fe6c04a654f4bc9cd60fe5b196ecb4dbdad5f37d6180bd901806c0a3f27ce4"
+      "image_sha256": "77ec89c42b932bad5954eb3613c5ee3b8d8749f5c250059d1988b59d75fb8bba"
     }
   },
   "component_sha256": {
     "bindings/rust/examples/daylight/checks.rs": "822a38f597aebec8c920606aa2d5aa1b5a200f22bfda04229306a7816d584e1f",
-    "bindings/rust/examples/daylight/fixture.rs": "9355c3200ad6e57835fcb8ee5fac3b160fa5ec8d0fc59138da329413432df988",
+    "bindings/rust/examples/daylight/fixture.rs": "847b95dd55ce6504cfbc03715f2c05ef71f17f6ba5281d94fcae5c18f5d19032",
     "bindings/rust/examples/daylight/model.rs": "e5ac57bc5ff757708eaab68f26bfc2ae03ffad2f12185e23862a9e3cc5352f6c",
     "bindings/rust/examples/daylight/overlays.rs": "9f4dc25e023f7bb789d626eb653820628ab4b9f5bbf45321f0cfbf620e9865ea",
     "bindings/rust/examples/daylight/state.rs": "b836c97754f1516d9e49ecc6ea8556c1b86bc426187e796944d1249ace6cfb1f",
     "bindings/rust/examples/daylight/ui.rs": "96c203b0cdfacd245faa8f9f0cf79b676f566f3d2e9c176b953fdb218480728d",
     "bindings/rust/examples/daylight.rs": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-    "bindings/rust/src/chat_native.rs": "8359ce5aa84a130c8e1ee8759ba758bb9646e8a2f899498fe28ff513f2967217",
+    "bindings/rust/src/chat_native.rs": "ca1bb4e7fb19f88e33478ddb7cb49d769cb08778bde9148921272be95773c818",
     "examples/chat/artwork.h": "e0bc15f15cce3785e75867f4f097fac3d4f81a046ec9c8811a2be6363d458e88",
     "examples/chat/fixture.h": "bd514e6df011d722c0211d29d05dfa82fe9d7f395232bd9d4b5c345ac365559c",
     "examples/chat/fixture.json": "0a516a3634b35a9ab0954e2af244317db4d50f16b89c7e2f510da925a53bb094",
     "examples/chat/overlays.h": "0c5f5f80cc4c13d43a83cd6e40c710dd3af32c7db59cfabe21248e77881405cf",
-    "include/cui_chat.h": "01ae556b0e17b80b1e943971b1adbce2a7f0381bd69b50248842d458cbccd873",
+    "include/cui_chat.h": "cd8b87ca0d863026f48045cb1b6df181e5a937abd4ece1daa09ab6c80d760b91",
     "include/cui_layouts.h": "7afc944081c74e3631650eccda11881ba98d6301fbca5883bb8214a559818530",
-    "src/cui_chat.c": "5f3bcf5aed56389aeff6adec2766317445616d127756956116e14c64ec3d7c97",
+    "src/cui_chat.c": "4d12a7f8c1fbf36f25bcf0055996f133b594bd17e4d2ff291bf2def0e9dfb7ce",
     "src/cui_chat_compose.c": "eba2607d6ef4145c74e16dcf9b88aaa9e300242fed908fea2b5cf53f8a79a7f6",
     "src/cui_chat_icons.h": "efe3df8fd1f152e5a504c5338d05106f3d242c9121d9874bc57fdfc76ff69130",
-    "src/cui_chat_internal.h": "cb22847da7e7d8b4ab5521131eda94658913ad9ac59b542908cca69e357c80e3",
-    "src/cui_chat_paint.c": "636243654fce1aa1c4986bbd59ddba51953dfbef42c81ca7dea485a773f8fbeb",
+    "src/cui_chat_internal.h": "3342a31e0b06bf68c6d709d219db73131b45fd50be47d1d3a6d39ae0e376220b",
+    "src/cui_chat_paint.c": "6be0b83787aca3a9e01ced058cf10a34a062906d712ea128f3c8f92eb14a7ac4",
     "src/cui_gtk.c": "47f1b15f56aaabe9003d3ca3584e3778d11d2671fa0394223228e091956791aa",
-    "src/cui_gtk_draw.c": "7cabc65bedc00ef5126a9a8602fafa6f9b80ffd10c097a2ed1bdde0206e441e1",
+    "src/cui_gtk_draw.c": "436e9dbb29f14eabdcf3e34b856f073382022b09d2f4ab10f3e4d3aace14f795",
     "src/cui_gtk_layouts.c": "e1dd0a4ada4eb6cab58486d6cc520ddd913cd123056c1293ca78c24af62f7eb2",
     "src/cui_icons.c": "0a5c5bac33753533ff652b3063326dba7e8bc60289d3ae9e7bb1c8b638965df4",
     "src/cui_layout.c": "de8162b8a4344407b6cf0e55d60fe7c93a7b868c34b9d2fcf66a643665dd28e2",

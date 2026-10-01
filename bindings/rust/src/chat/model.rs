@@ -62,6 +62,8 @@ impl Theme {
 }
 #[derive(Clone, Debug, Default)]
 pub struct Avatar {
+    /// Retained raster/vector image; None uses the name initial.
+    pub image: Option<crate::Icon>,
     pub name: String,
     pub color: u32,
     pub online: bool,

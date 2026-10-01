@@ -476,6 +476,7 @@ impl Widget {
 
 /// An immutable, independently owned native vector or raster asset.
 /// Clone retains a reference; Drop releases it. Widgets retain assigned assets.
+#[derive(Debug)]
 pub struct Icon {
     ptr: NonNull<sys::cui_icon_asset>,
     _thread: PhantomData<Rc<()>>,

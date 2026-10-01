@@ -146,6 +146,7 @@ void cui__mac_canvas_detach(NSView *view);
 - (void)mouseExited:(NSEvent *)e { if(widget->kind==CUI_CANVAS)cui__canvas_event(widget,CUI_CANVAS_MOVE,-1,-1,0,0,0);else [super mouseExited:e]; }
 - (BOOL)acceptsFirstResponder { return widget->kind==CUI_CANVAS; }
 - (void)mouseDown:(NSEvent *)e { if(widget->kind==CUI_CANVAS)cui__mac_canvas_event(widget,self,e,CUI_CANVAS_PRESS);else [super mouseDown:e]; }
+- (void)rightMouseDown:(NSEvent *)e { if(widget->kind==CUI_CANVAS)cui__mac_canvas_event(widget,self,e,CUI_CANVAS_CONTEXT);else [super rightMouseDown:e]; }
 - (void)mouseUp:(NSEvent *)e { if(widget->kind==CUI_CANVAS)cui__mac_canvas_event(widget,self,e,CUI_CANVAS_RELEASE);else [super mouseUp:e]; }
 - (void)mouseDragged:(NSEvent *)e { if(widget->kind==CUI_CANVAS)cui__mac_canvas_event(widget,self,e,CUI_CANVAS_MOVE);else [super mouseDragged:e]; }
 - (void)scrollWheel:(NSEvent *)e { if(widget->kind==CUI_CANVAS)cui__mac_canvas_event(widget,self,e,CUI_CANVAS_SCROLL);else [super scrollWheel:e]; }

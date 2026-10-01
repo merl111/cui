@@ -2,7 +2,7 @@
 import ctypes as C
 from . import lib, _bind, _s, P, I, N, D, S, Widget, Icon
 F, U = C.c_float, C.c_uint
-PRESS,RELEASE,MOVE,SCROLL,ACTIVATE,FOCUS = range(6)
+PRESS,RELEASE,MOVE,SCROLL,ACTIVATE,FOCUS,CONTEXT = range(7)
 CLEAR,SAVE,RESTORE,TRANSLATE,SCALE,CLIP,LAYER,END_LAYER,RECT,ELLIPSE,LINE,ICON,TEXT,GRADIENT,SHADOW,MATERIAL = range(16)
 class DrawCommand(C.Structure):
     _fields_=[('op',I),('p',F*8),('color',U),('color2',U),('text',S),('font',S),('icon',P)]

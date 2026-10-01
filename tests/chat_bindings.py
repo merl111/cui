@@ -36,8 +36,10 @@ with cui.App() as app:
         else: assert component.set_messages([c.Message(id=1,spans=[c.Span('Reusable')])])
         assert component.refresh()
         component.root.visible(False)
-    models=[c.Message(id=7,author='Ana',spans=[c.Span('copied nested text')],options=[c.Detail(text='One'),c.Detail(text='Two')],poll_question='Choose',thread_count=3,author_color=0x185864ff,thread_participants=[c.Room(id=8,title="Kai",avatar_color=0x29cbbfff)])]
+    image = cui.Icon.rgba(bytes([220, 45, 80, 255]) * 32, 8, 4)
+    models=[c.Message(id=7,author='Ana',avatar=image,spans=[c.Span('copied nested text')],options=[c.Detail(text='One'),c.Detail(text='Two')],poll_question='Choose',thread_count=3,author_color=0x185864ff,thread_participants=[c.Room(id=8,title="Kai",avatar_color=0x29cbbfff,avatar=image)])]
     assert timeline.set_messages(models)
+    image.close()  # The C model retains both message and participant images.
     models[0].id=99
     models[0].thread_participants[0].title="Changed after copying"
     del models

@@ -185,7 +185,8 @@ static void action(chat_state *s, unsigned id, float x, float y, float w,
   }
 }
 static void avatar(chat_state *s, float x, float y, float size,
-                   const char *name, unsigned color, unsigned flags) {
+                   const char *name, unsigned color, unsigned flags,
+                   const cui_icon_asset *image) {
   float radius = s->presentation.avatar_border_width > 0
                      ? 7
                      : (flags & CUI_CHAT_SQUARE ? size * .3f : size * .5f);
@@ -194,21 +195,39 @@ static void avatar(chat_state *s, float x, float y, float size,
            s->theme.foreground, color);
   else
     rect(s, x, y, size, size, radius, color);
-  while (*name == '#' || *name == '@' || *name == '!' || *name == ' ')
-    ++name;
-  char initial[8] = {0};
-  size_t n = 0;
-  if (*name) {
-    n = 1;
-    while (n < 7 && ((unsigned char)name[n] & 0xc0) == 0x80)
-      ++n;
-    memcpy(initial, name, n);
+  if (image) {
+    command(&s->scene, CUI_DRAW_SAVE);
+    cui_draw_command *clip = command(&s->scene, CUI_DRAW_CLIP);
+    clip->p[0] = x;
+    clip->p[1] = y;
+    clip->p[2] = clip->p[3] = size;
+    clip->p[4] = radius;
+    float factor = size / fminf(image->width, image->height);
+    cui_draw_command *c = command(&s->scene, CUI_DRAW_ICON);
+    c->p[2] = image->width * factor;
+    c->p[3] = image->height * factor;
+    c->p[0] = x + (size - c->p[2]) / 2;
+    c->p[1] = y + (size - c->p[3]) / 2;
+    c->color = s->theme.foreground;
+    c->icon = image;
+    command(&s->scene, CUI_DRAW_RESTORE);
+  } else {
+    while (*name == '#' || *name == '@' || *name == '!' || *name == ' ')
+      ++name;
+    char initial[8] = {0};
+    size_t n = 0;
+    if (*name) {
+      n = 1;
+      while (n < 7 && ((unsigned char)name[n] & 0xc0) == 0x80)
+        ++n;
+      memcpy(initial, name, n);
+    }
+    if (initial[0] >= 'a' && initial[0] <= 'z')
+      initial[0] -= 32;
+    float fs = size * .43f, tw = measure(s, initial, fs, 700);
+    text(s, x + (size - tw) / 2, y + (size - fs * 1.25f) / 2, size, fs, 700,
+         cui_chat_color(.2, .03, 265, 1), initial);
   }
-  if (initial[0] >= 'a' && initial[0] <= 'z')
-    initial[0] -= 32;
-  float fs = size * .43f, tw = measure(s, initial, fs, 700);
-  text(s, x + (size - tw) / 2, y + (size - fs * 1.25f) / 2, size, fs, 700,
-       cui_chat_color(.2, .03, 265, 1), initial);
   if (flags & CUI_CHAT_ONLINE) {
     rect(s, x + size - 9, y + size - 9, 10, 10, 5, s->theme.surface);
     rect(s, x + size - 7, y + size - 7, 6, 6, 3, s->theme.online);
@@ -418,12 +437,28 @@ static message_metrics dimensions(chat_state *s, const cui_chat_message *m) {
     x = s->width - 22 - width - 28;
   return (message_metrics){x, width, body_h, h, header, pad, av, body};
 }
+static int matches(const cui_chat_room *r, const char *query);
 int cui__chat_layout(chat_state *s) {
+  if (s->kind == CUI_CHAT_ROOMS) {
+    float y = 4;
+    const char *group = "";
+    for (size_t i = 0; i < s->count; ++i) {
+      const cui_chat_room *r = s->rooms + i;
+      if (!matches(r, s->query))
+        continue;
+      if (strcmp(group, r->group)) {
+        group = r->group;
+        y += 32;
+      }
+      y += s->presentation.room_height + 2;
+    }
+    s->total = y + 12;
+    s->offset = fmax(0., fmin(s->offset, fmax(0., s->total - s->height)));
+    return 1;
+  }
   if (s->kind != CUI_CHAT_TIMELINE)
     return 1;
-  float y = s->presentation.messages == CUI_CHAT_SOFT      ? 18
-            : s->presentation.messages == CUI_CHAT_COMPACT ? 10
-                                                           : 16;
+  float y = 40; /* Space for actions above the first message. */
   for (size_t i = 0; i < s->count; ++i) {
     message_metrics d = dimensions(s, s->messages + i);
     s->tops[i] = y;
@@ -526,21 +561,18 @@ static float poll(chat_state *s, const cui_chat_message *m, float x, float y,
 }
 static void hover_actions(chat_state *s, const cui_chat_message *m, float y,
                           unsigned base) {
-  /* Toolbar regions are emitted after this visibility check. Keep a focused
-   * toolbar visible when the pointer enters its native popup menu. */
-  int focus = s->focus_region >= base + 200 &&
-              s->focus_region < base + 200 + s->command_count;
-  for (size_t i = 0; i < s->scene.region_count; ++i)
-    if (s->scene.regions[i].id == s->focus_region &&
-        s->scene.actions[i].id == m->id)
-      focus = 1;
-  if (s->hovered != m->id && !focus)
+  int focus = s->toolbar_focus >= base && s->toolbar_focus < base + 256;
+  if (s->hovered ? s->hovered != m->id : !focus)
     return;
   int day = s->presentation.messages == CUI_CHAT_SOFT;
   size_t count = s->command_count;
   if (!count)
     return;
-  float w = count * 30 + 8, x = s->width - w - 20, y0 = fmaxf(1, y - 14);
+  float w = count * 30 + 8, x = s->width - w - 20, y0 = y - 38;
+  if (y0 < 1)
+    y0 = y + dimensions(s, m).height + 4;
+  if (y0 + 34 > s->height)
+    return;
   if (day) {
     message_metrics d = dimensions(s, m);
     x = d.x + d.width + 28 - w - 6;
@@ -649,7 +681,8 @@ static void thread_summary(chat_state *s, const cui_chat_message *m, float x,
   for (size_t i = 0; i < faces; ++i) {
     const cui_chat_room *face = m->thread_participants + i;
     rect(s, x + 8 + 16 * i, py + 17, 22, 22, 11, s->theme.surface);
-    avatar(s, x + 9 + 16 * i, py + 18, 20, face->title, face->avatar_color, 0);
+    avatar(s, x + 9 + 16 * i, py + 18, 20, face->title, face->avatar_color, 0,
+           face->avatar);
   }
   text(s, x + inset, py + (tiles ? 6 : 9), w - inset - 10, tiles ? 12 : 13, 650, s->theme.foreground,
        title);
@@ -685,7 +718,7 @@ static void message(chat_state *s, const cui_chat_message *m, size_t index,
                    !(s->messages[index + 1].flags & CUI_CHAT_CONTINUED);
   if (!outgoing && (bubble ? last_group : !(m->flags & CUI_CHAT_CONTINUED)))
     avatar(s, d.padding, bubble ? top + d.height - 28 : y, d.avatar, m->author,
-           m->avatar_color, m->flags & ~CUI_CHAT_ONLINE);
+           m->avatar_color, m->flags & ~CUI_CHAT_ONLINE, m->avatar);
   if (!(m->flags & CUI_CHAT_CONTINUED) && !outgoing &&
       s->presentation.show_sender) {
     if (!bubble) {
@@ -751,7 +784,6 @@ static void message(chat_state *s, const cui_chat_message *m, size_t index,
   py += reactions(s, m, bubble ? d.x : x, py, base);
   if (!bubble)
     thread_summary(s, m, x, py, d.width, base);
-  hover_actions(s, m, y, base);
 }
 static int matches(const cui_chat_room *r, const char *query) {
   if (!*query)
@@ -806,7 +838,7 @@ static void rooms(chat_state *s) {
       } else {
         float size = fminf(h - 8, day ? 40 : 32);
         avatar(s, x, py + (h - size) / 2, size, r->title, r->avatar_color,
-               r->flags);
+               r->flags, r->avatar);
         x += size + (day ? 12 : 10);
       }
       int preview = !tiles && h >= 44 && s->presentation.show_room_previews && *r->detail;
@@ -853,7 +885,6 @@ static void rooms(chat_state *s) {
     }
     y += h + 2;
   }
-  s->total = y + 12;
 }
 static void spaces(chat_state *s) {
   int rail = s->presentation.spaces == CUI_VERTICAL;
@@ -877,10 +908,11 @@ static void spaces(chat_state *s) {
       icon(s, r->symbol, x + (rail ? 14 : 11), y + (rail ? 14 : 8), 18,
            s->theme.muted);
     else if (rail)
-      avatar(s, x, y, 46, r->title, r->avatar_color,
-             r->flags | CUI_CHAT_SQUARE);
+      avatar(s, x, y, 46, r->title, r->avatar_color, r->flags | CUI_CHAT_SQUARE,
+             r->avatar);
     else
-      avatar(s, x + 6, y + 5, 24, r->title, r->avatar_color, CUI_CHAT_SQUARE);
+      avatar(s, x + 6, y + 5, 24, r->title, r->avatar_color, CUI_CHAT_SQUARE,
+             r->avatar);
     if (!rail)
       text(s, x + 38, y + 8, w - 44, 13, 600,
            r->id == s->selected ? s->theme.foreground : s->theme.muted,
@@ -919,7 +951,7 @@ static void header(chat_state *s) {
     text(s, detail_x, (s->height - 16) / 2, fmaxf(0, available - detail_x - trailing_width - 8),
          12, 400, s->theme.muted, r->detail);
   } else {
-    avatar(s, x, y, av, r->title, r->avatar_color, r->flags);
+    avatar(s, x, y, av, r->title, r->avatar_color, r->flags, r->avatar);
     if (*r->detail)
       text(s, x + av + 12, day ? y : y - 1, fmaxf(0, available - x - av - 24),
            day ? 18 : 16, 700, s->theme.foreground, r->title);
@@ -1031,7 +1063,7 @@ static void inspector(chat_state *s) {
                (cui_chat_event){.action=CUI_CHAT_MORE, .id=r->id}, !(r->flags&CUI_CHAT_DISABLED));
         continue;
       }
-      avatar(s, 22, y + 7, 36, r->title, r->avatar_color, r->flags);
+      avatar(s, 22, y + 7, 36, r->title, r->avatar_color, r->flags, r->avatar);
       text(s, 68, y + 8, w - 90, 13.5, 650, s->theme.foreground, r->title);
       text(s, 68, y + 28, w - 90, 11, 400, s->theme.muted, r->detail);
       if (*r->trailing) {
@@ -1048,7 +1080,7 @@ static void inspector(chat_state *s) {
     return;
   }
   avatar(s, (w - 76) / 2, 70, 76, hero->title, hero->avatar_color,
-         CUI_CHAT_SQUARE);
+         CUI_CHAT_SQUARE, hero->avatar);
   float tw = measure(s, hero->title, 18, 800);
   text(s, (w - tw) / 2, 158, w - 28, 18, 800, s->theme.foreground, hero->title);
   cui_chat_span span = {hero->detail, "", CUI_CHAT_BODY};
@@ -1096,13 +1128,14 @@ static void element(chat_state *s) {
   if (s->kind == CUI_CHAT_AVATAR) {
     const cui_chat_room *r = s->rooms;
     float size = fminf(76, fminf(s->width, s->height) - 24);
-    avatar(s, 12, 12, size, r->title, r->avatar_color, r->flags);
+    avatar(s, 12, 12, size, r->title, r->avatar_color, r->flags, r->avatar);
     return;
   }
   const cui_chat_message *m = s->messages;
   switch (s->kind) {
   case CUI_CHAT_MESSAGE:
-    message(s, m, 0, 12);
+    message(s, m, 0, 40);
+    hover_actions(s, m, 40 + date_height(s, m), 256);
     break;
   case CUI_CHAT_ATTACHMENT_CARD:
     if (m->attachment_count)
@@ -1166,6 +1199,13 @@ int cui__chat_paint(chat_state *s) {
     for (size_t i = start; i < s->count && s->tops[i] < s->offset + s->height;
          ++i)
       message(s, s->messages + i, i, s->tops[i] - (float)s->offset);
+    /* Draw actions last so adjacent rows cannot cover the raised toolbar. */
+    for (size_t i = start; i < s->count && s->tops[i] < s->offset + s->height;
+         ++i) {
+      const cui_chat_message *m = s->messages + i;
+      float y = s->tops[i] - (float)s->offset + date_height(s, m);
+      hover_actions(s, m, y, (unsigned)(i + 1) * 256);
+    }
     if (*s->status) {
       float status_y = s->count ? s->height - 20 : 24;
       if (s->count)

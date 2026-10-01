@@ -238,6 +238,14 @@ static void release(GtkGestureClick *gesture, int n, double x, double y,
   cui__canvas_event(data, CUI_CANVAS_RELEASE, x, y, 0, 0,
                     modifiers(GTK_EVENT_CONTROLLER(gesture)));
 }
+static void context_press(GtkGestureClick *gesture, int n, double x, double y,
+                          gpointer data) {
+  (void)n;
+  position(data, &x, &y);
+  cui__canvas_event(data, CUI_CANVAS_CONTEXT, x, y, 0, 0,
+                    modifiers(GTK_EVENT_CONTROLLER(gesture)));
+  gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+}
 static void motion(GtkEventControllerMotion *controller, double x, double y,
                    gpointer data) {
   (void)controller;
@@ -255,7 +263,24 @@ static gboolean scroll(GtkEventControllerScroll *controller, double dx,
       gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
   double x = 0, y = 0;
   if (event) {
-    gdk_event_get_position(event, &x, &y);
+    /* Discrete wheel events can have no position (NaN on GTK/X11).
+     * Recover it from the device instead of discarding otherwise valid input.
+     */
+    if (!gdk_event_get_position(event, &x, &y) || !isfinite(x) ||
+        !isfinite(y)) {
+      GdkSurface *surface = gdk_event_get_surface(event);
+      GdkSeat *seat =
+          surface
+              ? gdk_display_get_default_seat(gdk_surface_get_display(surface))
+              : NULL;
+      /* The event device may be a scroll-only source, which cannot answer
+       * pointer queries on X11. Query the seat's logical pointer instead. */
+      GdkDevice *device = seat ? gdk_seat_get_pointer(seat) : NULL;
+      if (!surface || !device ||
+          !gdk_surface_get_device_position(surface, device, &x, &y, NULL) ||
+          !isfinite(x) || !isfinite(y))
+        x = y = 0;
+    }
     GtkWidget *w = GTK_WIDGET(((cui_widget *)data)->native);
     graphene_point_t in = GRAPHENE_POINT_INIT((float)x, (float)y), out;
     GtkRoot *root = gtk_widget_get_root(w);
@@ -284,7 +309,15 @@ int cui__canvas_attach(cui_widget *w) {
   g_signal_connect(g_object_get_data(G_OBJECT(w->native), "resize"), "resize",
                    G_CALLBACK(region_positions), w);
   gtk_widget_set_focusable(w->native, TRUE);
+  GtkGesture *context = gtk_gesture_click_new();
+  gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(context),
+                                GDK_BUTTON_SECONDARY);
+  gtk_event_controller_set_propagation_phase(GTK_EVENT_CONTROLLER(context),
+                                             GTK_PHASE_CAPTURE);
+  g_signal_connect(context, "pressed", G_CALLBACK(context_press), w);
+  gtk_widget_add_controller(w->native, GTK_EVENT_CONTROLLER(context));
   GtkGesture *click = gtk_gesture_click_new();
+  gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), GDK_BUTTON_PRIMARY);
   g_signal_connect(click, "pressed", G_CALLBACK(press), w);
   g_signal_connect(click, "released", G_CALLBACK(release), w);
   gtk_widget_add_controller(w->native, GTK_EVENT_CONTROLLER(click));
@@ -294,6 +327,7 @@ int cui__canvas_attach(cui_widget *w) {
   gtk_widget_add_controller(w->native, move);
   GtkEventController *wheel =
       gtk_event_controller_scroll_new(GTK_EVENT_CONTROLLER_SCROLL_BOTH_AXES);
+  gtk_event_controller_set_propagation_phase(wheel, GTK_PHASE_CAPTURE);
   g_signal_connect(wheel, "scroll", G_CALLBACK(scroll), w);
   gtk_widget_add_controller(w->native, wheel);
   GtkEventController *keys = gtk_event_controller_key_new();

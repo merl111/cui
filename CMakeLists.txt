@@ -375,9 +375,11 @@ if(CUI_BUILD_BINDING_TESTS AND CUI_BUILD_TESTS AND CMAKE_SYSTEM_NAME STREQUAL "L
             ${ZIG_EXECUTABLE} build -Dexample=chat -p ${CMAKE_CURRENT_BINARY_DIR}/zig
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME python_chat COMMAND ${XVFB_RUN} -a ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/chat_bindings.py)
+    add_test(NAME chat_wheel COMMAND ${XVFB_RUN} -a ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/chat_wheel.py)
+    set_tests_properties(chat_wheel PROPERTIES SKIP_RETURN_CODE 77)
     add_test(NAME go_chat COMMAND ${XVFB_RUN} -a ${CMAKE_CURRENT_BINARY_DIR}/cui_go_chat)
     add_test(NAME zig_chat COMMAND ${XVFB_RUN} -a ${CMAKE_CURRENT_BINARY_DIR}/zig/bin/cui_zig_chat)
-    set_tests_properties(python_chat go_chat zig_chat PROPERTIES TIMEOUT 30
+    set_tests_properties(python_chat go_chat zig_chat chat_wheel PROPERTIES TIMEOUT 30
         ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/bindings/python;CUI_LIBRARY=$<TARGET_FILE:cui_shared>;GSK_RENDERER=cairo;GTK_A11Y=none")
     add_test(NAME python_drawing COMMAND ${XVFB_RUN} -a ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/examples/python/drawing.py)
     add_test(NAME go_drawing COMMAND ${XVFB_RUN} -a ${CMAKE_CURRENT_BINARY_DIR}/cui_go_drawing)

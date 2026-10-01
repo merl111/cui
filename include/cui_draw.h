@@ -63,7 +63,8 @@ typedef enum cui_canvas_event_kind {
   CUI_CANVAS_MOVE,
   CUI_CANVAS_SCROLL,
   CUI_CANVAS_ACTIVATE,
-  CUI_CANVAS_FOCUS
+  CUI_CANVAS_FOCUS,
+  CUI_CANVAS_CONTEXT /* Secondary pointer click requesting a context menu. */
 } cui_canvas_event_kind;
 typedef struct cui_canvas_event {
   cui_canvas_event_kind kind;

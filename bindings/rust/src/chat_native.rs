@@ -259,6 +259,7 @@ impl NativeChat {
                         id: i as u64 + 1,
                         title: arena.text(&a.name)?,
                         avatar_color: a.color,
+                        avatar: a.image.as_ref().map_or(std::ptr::null_mut(), |i| i.ptr.as_ptr()),
                         flags: (if a.online {
                             sys::CUI_CHAT_ONLINE as u32
                         } else {
@@ -280,6 +281,7 @@ impl NativeChat {
                 time: arena.text(&m.time)?,
                 date: arena.text(&m.date)?,
                 avatar_color: m.author.color,
+                avatar: m.author.image.as_ref().map_or(std::ptr::null_mut(), |i| i.ptr.as_ptr()),
                 flags: (if m.outgoing { 1 } else { 0 })
                     | (if m.highlighted { 2 } else { 0 })
                     | (if i > 0 && items[i - 1].author.name == m.author.name && m.date.is_empty() {
@@ -335,6 +337,7 @@ impl NativeChat {
                     detail: arena.text(&r.detail)?,
                     trailing: arena.text(&r.trailing)?,
                     avatar_color: r.avatar.color,
+                    avatar: r.avatar.image.as_ref().map_or(std::ptr::null_mut(), |i| i.ptr.as_ptr()),
                     unread: r.unread,
                     symbol: r.symbol,
                     flags: (if r.mention { 2 } else { 0 })

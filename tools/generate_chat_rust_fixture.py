@@ -14,7 +14,7 @@ def string(value):
 
 def avatar(person, square=False):
     name = person['name']
-    return ('Avatar { name: ' + string(name) + ', color: color(' + json.dumps(name)
+    return ('Avatar { image: None, name: ' + string(name) + ', color: color(' + json.dumps(name)
             + '), online: ' + str(person.get('online', False)).lower()
             + ', square: ' + str(square).lower() + ' }')
 

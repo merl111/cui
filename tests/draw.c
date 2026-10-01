@@ -267,7 +267,7 @@ static void native(void *unused) {
   GtkGestureClick *gesture = NULL;
   for (guint i = 0; i < g_list_model_get_n_items(controllers); ++i) {
     GObject *c = g_list_model_get_item(controllers, i);
-    if (GTK_IS_GESTURE_CLICK(c))
+    if (GTK_IS_GESTURE_CLICK(c) && gtk_gesture_single_get_button(GTK_GESTURE_SINGLE(c)) == GDK_BUTTON_PRIMARY)
       gesture = GTK_GESTURE_CLICK(g_object_ref(c));
     g_object_unref(c);
   }

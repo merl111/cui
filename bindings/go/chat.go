@@ -84,6 +84,7 @@ type ChatDetail struct {
 	Count, Flags uint32
 }
 type ChatMessage struct {
+    Avatar *IconAsset // Optional image, retained by the native model.
 	ID                     uint64
 	Author, Time, Date     string
 	AvatarColor, Flags     uint32
@@ -100,6 +101,7 @@ type ChatMessage struct {
 	AuthorColor            uint32
 }
 type ChatRoom struct {
+    Avatar *IconAsset // Optional image, retained by the native model.
 	ID                             uint64
 	Group, Title, Detail, Trailing string
 	AvatarColor, Unread, Flags     uint32
@@ -169,7 +171,7 @@ func (a *chatArena) rooms(items []ChatRoom) *C.cui_chat_room {
 	p := (*C.cui_chat_room)(a.alloc(uintptr(len(items)), C.sizeof_cui_chat_room))
 	values := unsafe.Slice(p, len(items))
 	for i, v := range items {
-		values[i] = C.cui_chat_room{id: C.cui_item_id(v.ID), group: a.text(v.Group), title: a.text(v.Title), detail: a.text(v.Detail), trailing: a.text(v.Trailing), avatar_color: C.uint(v.AvatarColor), unread: C.uint(v.Unread), flags: C.uint(v.Flags), symbol: C.cui_symbol(v.Symbol)}
+		values[i] = C.cui_chat_room{id: C.cui_item_id(v.ID), group: a.text(v.Group), title: a.text(v.Title), detail: a.text(v.Detail), trailing: a.text(v.Trailing), avatar_color: C.uint(v.AvatarColor), unread: C.uint(v.Unread), flags: C.uint(v.Flags), symbol: C.cui_symbol(v.Symbol), avatar: v.Avatar.raw()}
 	}
 	return p
 }
@@ -191,7 +193,7 @@ func (c ChatComponent) SetMessages(items []ChatMessage) bool {
 		for j, s := range m.Spans {
 			sv[j] = C.cui_chat_span{text: a.text(s.Text), link: a.text(s.Link), style: C.cui_chat_span_style(s.Style)}
 		}
-		values[i] = C.cui_chat_message{id: C.cui_item_id(m.ID), author: a.text(m.Author), time: a.text(m.Time), date: a.text(m.Date), avatar_color: C.uint(m.AvatarColor), flags: C.uint(m.Flags), spans: spans, span_count: C.size_t(len(m.Spans)), reply_author: a.text(m.ReplyAuthor), reply_text: a.text(m.ReplyText), reply_id: C.cui_item_id(m.ReplyID), attachments: a.details(m.Attachments), attachment_count: C.size_t(len(m.Attachments)), reactions: a.details(m.Reactions), reaction_count: C.size_t(len(m.Reactions)), poll_question: a.text(m.PollQuestion), options: a.details(m.Options), option_count: C.size_t(len(m.Options)), selected_option: C.int(m.SelectedOption), thread_preview: a.text(m.ThreadPreview), thread_count: C.uint(m.ThreadCount), thread_participants: a.rooms(m.ThreadParticipants), thread_participant_count: C.size_t(len(m.ThreadParticipants)), author_color: C.uint(m.AuthorColor)}
+		values[i] = C.cui_chat_message{id: C.cui_item_id(m.ID), author: a.text(m.Author), time: a.text(m.Time), date: a.text(m.Date), avatar_color: C.uint(m.AvatarColor), flags: C.uint(m.Flags), spans: spans, span_count: C.size_t(len(m.Spans)), reply_author: a.text(m.ReplyAuthor), reply_text: a.text(m.ReplyText), reply_id: C.cui_item_id(m.ReplyID), attachments: a.details(m.Attachments), attachment_count: C.size_t(len(m.Attachments)), reactions: a.details(m.Reactions), reaction_count: C.size_t(len(m.Reactions)), poll_question: a.text(m.PollQuestion), options: a.details(m.Options), option_count: C.size_t(len(m.Options)), selected_option: C.int(m.SelectedOption), thread_preview: a.text(m.ThreadPreview), thread_count: C.uint(m.ThreadCount), thread_participants: a.rooms(m.ThreadParticipants), thread_participant_count: C.size_t(len(m.ThreadParticipants)), author_color: C.uint(m.AuthorColor), avatar: m.Avatar.raw()}
 	}
 	return C.cui_chat_set_messages(c.Root.ptr, ptr, C.size_t(len(items))) != 0
 }

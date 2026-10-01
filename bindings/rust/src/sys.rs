@@ -166,9 +166,9 @@ impl Default for cui_chat_command { fn default()->Self { unsafe { std::mem::zero
 impl Default for cui_chat_span { fn default()->Self { unsafe { std::mem::zeroed() } } }
 #[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_chat_detail {pub id: cui_item_id,pub text: *const c_char,pub detail: *const c_char,pub count: c_uint,pub flags: c_uint,}
 impl Default for cui_chat_detail { fn default()->Self { unsafe { std::mem::zeroed() } } }
-#[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_chat_room {pub id: cui_item_id,pub group: *const c_char,pub title: *const c_char,pub detail: *const c_char,pub trailing: *const c_char,pub avatar_color: c_uint,pub unread: c_uint,pub flags: c_uint,pub symbol: cui_symbol,}
+#[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_chat_room {pub id: cui_item_id,pub group: *const c_char,pub title: *const c_char,pub detail: *const c_char,pub trailing: *const c_char,pub avatar_color: c_uint,pub unread: c_uint,pub flags: c_uint,pub symbol: cui_symbol,pub avatar: *mut cui_icon_asset,}
 impl Default for cui_chat_room { fn default()->Self { unsafe { std::mem::zeroed() } } }
-#[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_chat_message {pub id: cui_item_id,pub author: *const c_char,pub time: *const c_char,pub date: *const c_char,pub avatar_color: c_uint,pub flags: c_uint,pub spans: *const cui_chat_span,pub span_count: usize,pub reply_author: *const c_char,pub reply_text: *const c_char,pub reply_id: cui_item_id,pub attachments: *const cui_chat_detail,pub attachment_count: usize,pub reactions: *const cui_chat_detail,pub reaction_count: usize,pub poll_question: *const c_char,pub options: *const cui_chat_detail,pub option_count: usize,pub selected_option: c_int,pub thread_preview: *const c_char,pub thread_count: c_uint,pub thread_participants: *const cui_chat_room,pub thread_participant_count: usize,pub author_color: c_uint,}
+#[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_chat_message {pub id: cui_item_id,pub author: *const c_char,pub time: *const c_char,pub date: *const c_char,pub avatar_color: c_uint,pub flags: c_uint,pub spans: *const cui_chat_span,pub span_count: usize,pub reply_author: *const c_char,pub reply_text: *const c_char,pub reply_id: cui_item_id,pub attachments: *const cui_chat_detail,pub attachment_count: usize,pub reactions: *const cui_chat_detail,pub reaction_count: usize,pub poll_question: *const c_char,pub options: *const cui_chat_detail,pub option_count: usize,pub selected_option: c_int,pub thread_preview: *const c_char,pub thread_count: c_uint,pub thread_participants: *const cui_chat_room,pub thread_participant_count: usize,pub author_color: c_uint,pub avatar: *mut cui_icon_asset,}
 impl Default for cui_chat_message { fn default()->Self { unsafe { std::mem::zeroed() } } }
 #[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_chat_event {pub action: cui_chat_action,pub id: cui_item_id,pub detail_id: cui_item_id,pub index: c_uint,pub modifiers: c_uint,pub text: *const c_char,}
 impl Default for cui_chat_event { fn default()->Self { unsafe { std::mem::zeroed() } } }
@@ -228,6 +228,7 @@ pub const CUI_CANVAS_MOVE: cui_canvas_event_kind = 2;
 pub const CUI_CANVAS_SCROLL: cui_canvas_event_kind = 3;
 pub const CUI_CANVAS_ACTIVATE: cui_canvas_event_kind = 4;
 pub const CUI_CANVAS_FOCUS: cui_canvas_event_kind = 5;
+pub const CUI_CANVAS_CONTEXT: cui_canvas_event_kind = 6;
 pub type cui_draw_capability = c_int;
 pub const CUI_DRAW_ALPHA: cui_draw_capability = 1;
 pub const CUI_DRAW_GROUPS: cui_draw_capability = 2;

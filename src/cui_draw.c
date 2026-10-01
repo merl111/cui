@@ -336,7 +336,11 @@ int cui_canvas_focus_region(cui_widget *w, unsigned id) {
     return 0;
   for (size_t i = 0; i < s->count; ++i)
     if (s->regions[i].id == id && s->regions[i].enabled) {
-      cui__canvas_focus(w, id);
+      if (s->focus == id) {
+        cui_canvas_event event = {CUI_CANVAS_FOCUS, id, 0, 0, 0, 0, 0};
+        dispatch(s, &event);
+      } else
+        cui__canvas_focus(w, id);
       cui_focus(w);
       return 1;
     }
