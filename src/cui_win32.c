@@ -528,6 +528,15 @@ static void theme_control(cui_widget *w)
     }
     for(cui_widget *child=w->first;child;child=child->next)theme_control(child);
 }
+cui_theme cui__backend_resolved_theme(cui_app *app)
+{
+    (void)app;
+    DWORD light = 1, bytes = sizeof(light);
+    RegGetValueW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                 L"AppsUseLightTheme", RRF_RT_REG_DWORD, NULL, &light, &bytes);
+    return light ? CUI_THEME_LIGHT : CUI_THEME_DARK;
+}
+
 void cui__backend_theme(cui_app *app)
 {
     win_app_state *state = (win_app_state *)app->native;

@@ -98,6 +98,9 @@ void cui_app_quit(cui_app *app);
 void cui_app_destroy(cui_app *app); /* Only after run returns; never in callbacks. */
 const char *cui_app_error(const cui_app *app); /* Last error, or empty string. */
 void cui_app_set_theme(cui_app *app, cui_theme theme);
+/* Effective light/dark appearance for custom drawing; main thread only.
+   Resolves SYSTEM on each call. NULL returns LIGHT. */
+cui_theme cui_app_resolved_theme(cui_app *app);
 /* Extra text scale, independent of display DPI, 0.5..4.0 (default 1).
  * Font sizes are typographic points. NULL/empty family, size 0, weight 0
  * inherit the parent/platform defaults. Weight is 100..900. Installed fonts

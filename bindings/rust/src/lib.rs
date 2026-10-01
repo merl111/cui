@@ -236,6 +236,10 @@ impl App {
     pub fn error(&self) -> String {
         copy_text(unsafe { sys::cui_app_error(self.runtime.ptr.as_ptr()) })
     }
+    /// Current light/dark appearance, resolving the system preference.
+    pub fn resolved_theme(&self) -> sys::cui_theme {
+        unsafe { sys::cui_app_resolved_theme(self.runtime.ptr.as_ptr()) }
+    }
     pub fn theme(&self, theme: sys::cui_theme) {
         unsafe { sys::cui_app_set_theme(self.runtime.ptr.as_ptr(), theme) }
     }

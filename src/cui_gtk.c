@@ -102,6 +102,11 @@ static int system_is_dark(cui_app *app)
     return dark;
 }
 
+cui_theme cui__backend_resolved_theme(cui_app *app)
+{
+    return system_is_dark(app) ? CUI_THEME_DARK : CUI_THEME_LIGHT;
+}
+
 void cui__backend_theme(cui_app *app)
 {
     cui_window *window;
@@ -762,6 +767,16 @@ void cui__backend_style(cui_widget *w)
     g_snprintf(foreground,sizeof(foreground),"rgba(%u,%u,%u,%.4f)",fg>>24,(fg>>16)&255,(fg>>8)&255,(fg&255)/255.);
     g_snprintf(border,sizeof(border),"rgba(%u,%u,%u,%.4f)",bc>>24,(bc>>16)&255,(bc>>8)&255,(bc&255)/255.);
     g_snprintf(css,sizeof(css),".%s { background-image:none; background-color:%s; color:%s; border:%.2fpx solid %s; border-radius:%.2fpx; padding:%dpx; min-width:0; min-height:0; box-shadow:none; } .%s textview, .%s textview text {background-color:%s; color:%s;} .%s > viewport {background-color:transparent;} .%s > box {min-height:0;} .%s:disabled {opacity:1;}",name,background,foreground,w->style.border_width,border,w->style.radius,w->style.padding,name,name,background,foreground,name,name,name);
+    if(w->kind==CUI_SELECT){
+        /* GtkDropDown's visible surface belongs to its child button. Styling
+         * both levels gives it a second border and twice the requested inset. */
+        size_t used=strlen(css);
+        g_snprintf(css+used,sizeof(css)-used," .%s {padding:0;border:none;background-color:transparent;} .%s > button {background-image:none;background-color:%s;color:%s;border:%.2fpx solid %s;border-radius:%.2fpx;padding:%dpx;box-shadow:none;}",name,name,background,foreground,w->style.border_width,border,w->style.radius,w->style.padding);
+    }
+    if(w->kind==CUI_BUTTON||w->kind==CUI_SELECT){
+        size_t used=strlen(css);
+        g_snprintf(css+used,sizeof(css)-used," .%s:disabled {opacity:0.5;}",name);
+    }
     if(w->kind==CUI_TABLE){
         size_t used=strlen(css);
         g_snprintf(css+used,sizeof(css)-used," .%s columnview, .%s columnview listview {background-color:%s;color:%s;} .%s columnview row {background-color:transparent;border:none;} .%s columnview row:selected {background-color:%s;color:%s;} .%s columnview cell {border:none;}",name,name,background,foreground,name,name,foreground,background,name);

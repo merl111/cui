@@ -39,6 +39,7 @@ _bind('stack_layer',P,P,I,I,I,I)
 LAYER_FILL,LAYER_CENTER,LAYER_TOP,LAYER_BOTTOM,LAYER_BOTTOM_RIGHT=range(5)
 _bind('app_error', S, P)
 _bind('app_set_theme', None, P, I)
+_bind('app_resolved_theme', I, P)
 _bind('app_set_text_scale', I, P, D)
 _bind('set_font', I, P, S, D, I)
 _bind('window_scale', D, P)
@@ -404,6 +405,8 @@ class App:
         self._check(); return lib.cui_app_error(self._ptr).decode('utf-8')
     def text_scale(self, scale):
         self._check(); return bool(lib.cui_app_set_text_scale(self._ptr, scale))
+    def resolved_theme(self):
+        self._check(); return lib.cui_app_resolved_theme(self._ptr)
     def theme(self, theme):
         self._check(); lib.cui_app_set_theme(self._ptr, theme)
     def window(self, title, width=800, height=700):

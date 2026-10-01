@@ -12,6 +12,14 @@ GTK application button/label styling is scoped to the content root. Native title
 
 Select system, light or dark appearance with `cui_app_set_theme`. Linux uses scoped GTK styling; macOS uses AppKit appearance and semantic colors; Windows uses system APIs with native controls and selected custom drawing. Windows is not a WinUI 3 backend and currently does not offer Mica or Acrylic.
 
+## Custom-drawn surfaces and system appearance
+
+Use `cui_app_resolved_theme(app)` to resolve the effective light/dark appearance on the UI thread. It returns `CUI_THEME_LIGHT` or `CUI_THEME_DARK`, including when the application follows `CUI_THEME_SYSTEM`. A null application returns light. It does not mutate the selected preference or override accessibility settings.
+
+The convenience names are Rust `app.resolved_theme()`, Python `app.resolved_theme()`, Go `app.ResolvedTheme()` and Zig `app.resolvedTheme()`. Native widgets update themselves; a custom canvas or chat theme must update its own palette when this value changes. Compare the result in an existing UI timer, update component themes only on a change, and continue to refresh at the window's display scale. Keep the presentation preset unchanged when switching palettes if the layout should stay the same.
+
+App commands also accept `CUI_KEY_ESCAPE`, `CUI_KEY_ENTER` and `CUI_KEY_TAB` in addition to ASCII letter/digit shortcuts. Escape can dismiss an application-owned modal while a pending operation guards against premature dismissal. Disable the background container while showing a modal, provide an accessible close button, and restore focus when it closes.
+
 ## Logical dimensions
 
 Widths, heights, gaps and padding use logical units. Windows maps these to 96-DPI units, AppKit uses points, and GTK uses logical pixels. Do not multiply layout sizes by `cui_window_scale`; the backend already applies display scaling. The scale accessor is useful when supplying resolution-dependent content.

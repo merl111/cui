@@ -34,9 +34,41 @@ static void check_hover(void) {
   cui__canvas_event(cui_chat_part(rooms,0),CUI_CANVAS_MOVE,-1,-1,0,0,0);
   assert(!s->hover_region&&s->dirty);
 }
+static void check_focus_contents(void) {
+  assert(cui_chat_refresh(rooms,1));
+  cui_widget *canvas=cui_chat_part(rooms,0);
+  chat_state *s=cui__chat(rooms);
+  cui_canvas_region r=s->scene.regions[0];
+  int x=(int)(r.x+r.width/2), y=(int)(r.y+r.height/2);
+  cui_surface *surface=cui__canvas_state(canvas)->surface;
+  uint32_t before=surface->pixels[y*surface->width+x];
+  cui__canvas_focus(canvas,r.id);
+  assert(cui_chat_refresh(rooms,1));
+  surface=cui__canvas_state(canvas)->surface;
+  assert(surface->pixels[y*surface->width+x]==before);
+}
+static void check_single_line_alignment(void) {
+  chat_state *s=cui__chat(rooms);
+  int found=0;
+  for(size_t i=0;i<s->scene.count;++i) {
+    const cui_draw_command *c=s->scene.commands+i;
+    if(c->op==CUI_DRAW_TEXT&&!strcmp(c->text,"Room")) {
+      /* The draw API's vertical text box is p[6], after alignment p[5]. */
+      assert(c->p[6]==s->presentation.room_height);
+      found=1;
+    }
+  }
+  assert(found);
+  const cui_chat_room row={.id=1,.title="Room",.detail="Preview"};
+  assert(cui_chat_set_rooms(rooms,&row,1));
+  assert(cui_chat_refresh(rooms,1));
+  for(size_t i=0;i<s->scene.count;++i)
+    if(s->scene.commands[i].op==CUI_DRAW_TEXT&&!strcmp(s->scene.commands[i].text,"Room"))
+      assert(s->scene.commands[i].p[6]==0);
+}
 static void verify(void *data) {
   (void)data;
-  check_font(); check_hover();
+  check_font(); check_hover(); check_focus_contents(); check_single_line_alignment();
   cui_chat_presentation p;
   assert(cui_chat_presentation_get(inspector,&p));
   p.inspector=CUI_CHAT_PEOPLE_LIST;

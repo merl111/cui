@@ -35,6 +35,18 @@ static void tick(void *data)
         g_action_group_activate_action(group,name,NULL);CHECK(calls==3);
         GtkEventController *keys=g_object_get_data(G_OBJECT(window->native),"cui-shortcuts");gboolean handled=FALSE;
         g_signal_emit_by_name(keys,"key-pressed",GDK_KEY_k,0,GDK_CONTROL_MASK,&handled);CHECK(handled&&calls==4);
+        cui_command *escape=cui_command_create(app,"Dismiss",CUI_KEY_ESCAPE,0,invoked,NULL);CHECK(escape);
+        handled=FALSE;g_signal_emit_by_name(keys,"key-pressed",GDK_KEY_Escape,0,0,&handled);CHECK(handled&&calls==5);
+        cui_command_set_enabled(escape,0);handled=FALSE;
+        g_signal_emit_by_name(keys,"key-pressed",GDK_KEY_Escape,0,0,&handled);CHECK(!handled&&calls==5);
+        CHECK(cui_app_resolved_theme(NULL)==CUI_THEME_LIGHT);
+        cui_app_set_theme(app,CUI_THEME_DARK);CHECK(cui_app_resolved_theme(app)==CUI_THEME_DARK);
+        cui_app_set_theme(app,CUI_THEME_LIGHT);CHECK(cui_app_resolved_theme(app)==CUI_THEME_LIGHT);
+        cui_app_set_theme(app,CUI_THEME_SYSTEM);
+        gboolean was_dark=FALSE;g_object_get(gtk_settings_get_default(),"gtk-application-prefer-dark-theme",&was_dark,NULL);
+        g_object_set(gtk_settings_get_default(),"gtk-application-prefer-dark-theme",TRUE,NULL);
+        CHECK(cui_app_resolved_theme(app)==CUI_THEME_DARK);
+        g_object_set(gtk_settings_get_default(),"gtk-application-prefer-dark-theme",was_dark,NULL);
         dialog=cui_alert(window,"Confirm","Native alert callback","Continue",result,NULL);CHECK(dialog);phase=1;return;
     }
     if(!dialog->native&&!dialog->finished)return;

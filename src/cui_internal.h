@@ -120,6 +120,7 @@ void cui__backend_shutdown(cui_app *app);
 void cui__backend_run(cui_app *app);
 void cui__backend_quit(cui_app *app);
 void cui__backend_theme(cui_app *app);
+cui_theme cui__backend_resolved_theme(cui_app *app);
 int cui__backend_window_create(cui_window *window, const char *title);
 int cui__backend_window_frame(cui_window *window);
 int cui__backend_window_size(cui_window *window);

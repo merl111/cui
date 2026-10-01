@@ -66,7 +66,8 @@ int cui_font_apply(cui_widget *widget, const cui_font_value *font);
 typedef struct cui_command cui_command;
 typedef struct cui_menu cui_menu;
 typedef enum cui_modifiers { CUI_MOD_SHIFT = 1, CUI_MOD_ALT = 2, CUI_MOD_CONTROL = 4, CUI_MOD_PRIMARY = 8 } cui_modifiers;
-/* Key is an ASCII letter/digit, or 0 for no shortcut. PRIMARY means Command
+/* Key is an ASCII letter/digit, CUI_KEY_ESCAPE, CUI_KEY_ENTER,
+   CUI_KEY_TAB, or 0 for no shortcut. PRIMARY means Command
  * on macOS and Control elsewhere. Shortcuts are scoped to CUI windows. */
 cui_command *cui_command_create(cui_app *app, const char *label, unsigned key, unsigned modifiers, cui_task action, void *userdata);
 void cui_command_set_enabled(cui_command *command, int enabled);

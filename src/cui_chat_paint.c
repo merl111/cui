@@ -99,6 +99,39 @@ static void text(chat_state *s, float x, float y, float w, float size,
   c->text = owned(&s->scene, value);
   c->font = s->font_family;
 }
+static void centered_text(chat_state *s, float x, float y, float w, float h,
+                          float size, int weight, unsigned color,
+                          const char *value) {
+  size_t before = s->scene.count;
+  text(s, x, y, w, size, weight, color, value);
+  if (s->scene.count > before)
+    s->scene.commands[s->scene.count - 1].p[6] = h;
+}
+/* An outline must not paint over the content it encloses. Approximate the
+ * rounded corners with short antialiased line segments, preserving alpha. */
+static void focus_outline(chat_state *s, float x, float y, float w, float h,
+                          float radius, unsigned color) {
+  if (w <= 0 || h <= 0) return;
+  float r = fminf(radius, fminf(w, h) / 2), first_x = 0, first_y = 0,
+        previous_x = 0, previous_y = 0;
+  for (int corner = 0; corner < 4; ++corner) {
+    float cx = corner == 0 || corner == 3 ? x + r : x + w - r;
+    float cy = corner < 2 ? y + r : y + h - r;
+    for (int step = 0; step <= 6; ++step) {
+      float angle = (float)(3.141592653589793 * (1 + corner * .5 + step / 12.));
+      float px = cx + r * cosf(angle), py = cy + r * sinf(angle);
+      if (corner || step) {
+        cui_draw_command *c = command(&s->scene, CUI_DRAW_LINE);
+        c->p[0] = previous_x; c->p[1] = previous_y;
+        c->p[2] = px; c->p[3] = py; c->p[4] = 1.5f; c->color = color;
+      } else { first_x = px; first_y = py; }
+      previous_x = px; previous_y = py;
+    }
+  }
+  cui_draw_command *c = command(&s->scene, CUI_DRAW_LINE);
+  c->p[0] = previous_x; c->p[1] = previous_y;
+  c->p[2] = first_x; c->p[3] = first_y; c->p[4] = 1.5f; c->color = color;
+}
 static float measure(chat_state *s, const char *text, float size, int weight) {
   if (!s->metrics)
     s->metrics = calloc(8192, sizeof(*s->metrics));
@@ -142,8 +175,13 @@ static void action(chat_state *s, unsigned id, float x, float y, float w,
   if (event.text)
     p->actions[i].text = owned(p, event.text);
   if (s->focus_region == id) {
-    border(s, left, top, right - left, bottom - top, 4, 2, s->theme.accent,
-           0x00000000);
+    int room = event.action == CUI_CHAT_OPEN_ROOM && s->kind == CUI_CHAT_ROOMS;
+    float radius = room && s->presentation.rooms == CUI_CHAT_SOFT ? 12 : 5;
+    unsigned color = room && event.id == s->selected &&
+                             s->presentation.rooms == CUI_CHAT_SOFT
+                         ? s->theme.surface : s->theme.accent;
+    focus_outline(s, left + 2, top + 2, right - left - 4,
+                  bottom - top - 4, radius, color);
   }
 }
 static void avatar(chat_state *s, float x, float y, float size,
@@ -768,12 +806,16 @@ static void rooms(chat_state *s) {
                r->flags);
         x += size + (day ? 12 : 10);
       }
-      text(s, x, py + 7, w - (x - margin) - 40, tiles ? 13.5 : 14,
+      int preview = !tiles && h >= 44 && s->presentation.show_room_previews && *r->detail;
+      if (!tiles && !preview)
+        centered_text(s, x, py, w - (x - margin) - 40, h, 14,
+                      day || r->unread ? 650 : 550, fg, r->title);
+      else text(s, x, py + 7, w - (x - margin) - 40, tiles ? 13.5 : 14,
            day         ? 650
            : r->unread ? 700
                        : 550,
            fg, r->title);
-      if (!tiles && h >= 44 && s->presentation.show_room_previews)
+      if (preview)
         text(s, x, py + 29, w - (x - margin) - (day ? 48 : 24), day ? 12.5 : 12,
              400,
              selected && day ? tint(s->theme.surface, 180) : s->theme.muted,
@@ -875,8 +917,12 @@ static void header(chat_state *s) {
          12, 400, s->theme.muted, r->detail);
   } else {
     avatar(s, x, y, av, r->title, r->avatar_color, r->flags);
-    text(s, x + av + 12, day ? y : y - 1, fmaxf(0, available - x - av - 24),
-         day ? 18 : 16, 700, s->theme.foreground, r->title);
+    if (*r->detail)
+      text(s, x + av + 12, day ? y : y - 1, fmaxf(0, available - x - av - 24),
+           day ? 18 : 16, 700, s->theme.foreground, r->title);
+    else
+      centered_text(s, x + av + 12, 0, fmaxf(0, available - x - av - 24),
+                    (float)s->height, day ? 18 : 16, 700, s->theme.foreground, r->title);
     text(s, x + av + 12, y + (day ? 24 : 22), fmaxf(0, available - x - av - 24),
          12.5, 400, s->theme.muted, r->detail);
   }

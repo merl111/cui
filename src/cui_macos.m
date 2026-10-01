@@ -505,6 +505,14 @@ void cui__backend_quit(cui_app *app)
         context:nil subtype:0 data1:0 data2:0] atStart:YES];
 }
 
+cui_theme cui__backend_resolved_theme(cui_app *app)
+{
+    (void)app;
+    NSAppearance *appearance = [NSApp effectiveAppearance];
+    NSString *match = [appearance bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua, NSAppearanceNameDarkAqua]];
+    return [match isEqualToString:NSAppearanceNameDarkAqua] ? CUI_THEME_DARK : CUI_THEME_LIGHT;
+}
+
 void cui__backend_theme(cui_app *app)
 {
     cui_window *window;

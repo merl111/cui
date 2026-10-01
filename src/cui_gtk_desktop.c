@@ -78,6 +78,9 @@ static gboolean key_pressed(GtkEventControllerKey *controller,guint key,guint co
     cui_window *w=data;(void)controller;(void)code;
     unsigned mods=0;if(modifiers&GDK_SHIFT_MASK)mods|=CUI_MOD_SHIFT;if(modifiers&GDK_ALT_MASK)mods|=CUI_MOD_ALT;if(modifiers&GDK_CONTROL_MASK)mods|=CUI_MOD_CONTROL;
     key=gdk_keyval_to_upper(key);
+    if(key==GDK_KEY_Escape)key=CUI_KEY_ESCAPE;
+    else if(key==GDK_KEY_Return||key==GDK_KEY_KP_Enter)key=CUI_KEY_ENTER;
+    else if(key==GDK_KEY_Tab)key=CUI_KEY_TAB;
     for(cui_command *c=w->app->commands;c;c=c->next){unsigned expected=(c->modifiers&~CUI_MOD_PRIMARY)|((c->modifiers&CUI_MOD_PRIMARY)?CUI_MOD_CONTROL:0);
         if(c->key&&key==c->key&&mods==expected)return cui_command_invoke(c);}
     return FALSE;

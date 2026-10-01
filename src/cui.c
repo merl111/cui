@@ -93,6 +93,13 @@ const char *cui_app_error(const cui_app *app)
     return app ? app->error : "No application";
 }
 
+cui_theme cui_app_resolved_theme(cui_app *app)
+{
+    if (!app) return CUI_THEME_LIGHT;
+    if (app->theme != CUI_THEME_SYSTEM) return app->theme;
+    return cui__backend_resolved_theme(app);
+}
+
 void cui_app_set_theme(cui_app *app, cui_theme theme)
 {
     if (!app || theme < CUI_THEME_SYSTEM || theme > CUI_THEME_DARK) return;

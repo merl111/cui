@@ -32,107 +32,107 @@
     "nebula": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "0a3a48295aef1c8e1f27666180fc40402744a56e004f5d3f81daa08871850ee2"
+      "image_sha256": "14ff01caa749f421d35ffa93ab46bf0d5a886de127b40b8090064c4c2da49122"
     },
     "daylight": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "f78655b261d661a0178afb9b202712002fb9d998cf27ecb101a9ef815afd2f65"
+      "image_sha256": "200fe083ef7cd20771fc099bc73093912e5c803e914bf4fed1f209325aaafdc0"
     },
     "tiles": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "5f4210558043abb2f4a7bafc035891553bcd7b7d6acb94fe15d08c8d5cdd6412"
+      "image_sha256": "b127ed63c9443d0d65b7b09b1cdc1947652e64f25297c2e7a00dfc20ecdcb05e"
     },
     "daylight-eng": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "6e833a7e72d9601114b0263e12a2be2921e5f9b9806761f49c60a5fca601cbd3"
+      "image_sha256": "772c9aae67799f38a285751eb93761738728308df2090200d3d25227fd946f83"
     },
     "daylight-kai": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "abe39357353cad8cffcd48f0795c10912a5624a499554464d2babf7104068b6e"
+      "image_sha256": "9869b427c20cac65a5ff64304984d0257b27997144f87bf5a9b95206c561b8b3"
     },
     "daylight-mhq": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "22eaec8121b22d9c4e5881fe8c7e3509127eed333df12b941d0f8dd191a395d2"
+      "image_sha256": "4a54f1050f7bf92076ae3e0a9471cf427d6e72eb832c2ddf0843c5a2fc2eb965"
     },
     "nebula-thread": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "631a9ae4fb88ad3b99f8a34880cf62b7b3763fc944b1b6a8cf63140a125da0d8"
+      "image_sha256": "02de004c5ca55b0ee1356f78b65d80e38869d1d9a2860945fa928d209dfe2388"
     },
     "nebula-call": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "c40a14225060ed6ccac3234c97d0d19b3e261a112a3fc2e5e88bacf08a9d3b5f"
+      "image_sha256": "232b28c0f9610aea1642e5e9f18263897739f9bca7d10c678ca9313c0df2c98e"
     },
     "daylight-verification": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "732f6bba38e1bdd09bce7b0e522f4bac8ea936ed98ab2653b46e67d8933471a8"
+      "image_sha256": "e7dddb768c5aafd04f204963ada325577bf33f10a90dacf4ecf1bb7757f7d7d8"
     },
     "daylight-people": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "3bf1d54e699b6c4018ce29d580947a4e7b9b63a4607771e856e8e18769f4bcae"
+      "image_sha256": "5a064ba65753df90079f52530b85510101fa147e4f20c7498f6380a5d88cfc56"
     },
     "daylight-media": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "7b7017dbc891cc5c8ae6e64f6ec045857c916d2006f6f7d45a8ea92a668345a7"
+      "image_sha256": "6f164f949f7a2cb46324e50a0232a4db26cfde9c5116ea94ed4da5cf77282afa"
     },
     "tiles-palette": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "6539e87b7aeda3b63dd579aaff68e4ddff47b70297b580d1289fb5b5cb98197e"
+      "image_sha256": "3d30fed86c02153896305e2d7a53144cadf99cd58534b1b8ee13cb0978381628"
     },
     "rust-daylight": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "eded09daa7cc9f48b9504fd13cd692fb132119e4aaca14cf41d29187f9480229"
+      "image_sha256": "13690d641d455a94e5fa63ecb2bb52aa2081fab6aa77a9cd9265a81efeecd598"
     },
     "rust-daylight-eng": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "fbef6617a7046c6ddf27d1a81eaeb5d2b4f77c5d14c0d13b21067809f5d3d146"
+      "image_sha256": "d8e9a6b23e8c35f0203f3f63d4afd80c37041dd9839a25d82520d001b7c744d6"
     },
     "rust-daylight-kai": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "268b3508af713e93605e24a89ae590a06697c28c2f535f5274e19160850e9ec5"
+      "image_sha256": "c5c824e99c7a04112d5e0d02e3d1e051e555fff5c2dbca812ed24af774f62491"
     },
     "rust-daylight-mhq": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "2b14537296ee5bc50d65f41a37da5451e0d6caa649e0b94c212b4bd49d24ff07"
+      "image_sha256": "80afa01bf9191c2dd831538e0023430e893a7e479a43d609bbf51e838bb2345a"
     },
     "rust-daylight-verification": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "732f6bba38e1bdd09bce7b0e522f4bac8ea936ed98ab2653b46e67d8933471a8"
+      "image_sha256": "6646c2b8ad1849f890ae4cd1a23edd895d34a6a146bfbe3b91c9323c1b965485"
     },
     "rust-daylight-people": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "3bf1d54e699b6c4018ce29d580947a4e7b9b63a4607771e856e8e18769f4bcae"
+      "image_sha256": "ee68be429a8c2fd9e27188ba4d0c83eada600e754b074633a32a1c6ca2df0298"
     },
     "rust-daylight-media": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "a29570bbae6bedfb2a85790fca06def83e929f3e74d2e133aa57272ce76164e0"
+      "image_sha256": "b2ffaf83b394ed5ed59f3ec63f5d3c4de8afe6f6a997512e8d00f1e4a78324fb"
     },
     "daylight-large": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "df883568f0c83266a9db2887c63d7771b9fd21e521a19dddb4d34143500e3a72"
+      "image_sha256": "1dec4259a494135f9af8c836d481f67078aa0aa8a8842096c63785ee596ffc1d"
     },
     "rust-daylight-large": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "54d95ba5fbdfd5e675e69bba6875e51260a8ce1744f4a037d3d4e39cb3361899"
+      "image_sha256": "29bd3980ffa48663880228a0a2789c82d778306ca64b2162c1cdaa9b9707ec22"
     }
   },
   "component_sha256": {
@@ -154,8 +154,8 @@
     "src/cui_chat_compose.c": "eba2607d6ef4145c74e16dcf9b88aaa9e300242fed908fea2b5cf53f8a79a7f6",
     "src/cui_chat_icons.h": "efe3df8fd1f152e5a504c5338d05106f3d242c9121d9874bc57fdfc76ff69130",
     "src/cui_chat_internal.h": "cb22847da7e7d8b4ab5521131eda94658913ad9ac59b542908cca69e357c80e3",
-    "src/cui_chat_paint.c": "3deaa68c7700d2f1cce688992522d2b37a3e23874193c0d2c68e3831417b873d",
-    "src/cui_gtk.c": "776fc41f3a676cea0ccc23f0197adb2a23234516befbe3a5df84f958e060f1b4",
+    "src/cui_chat_paint.c": "ebe22dd44678744f24d56f578346a04ef196095996349b9d52181698d6997638",
+    "src/cui_gtk.c": "24d2d52db7e2da466b94dd2be927de519d0bb9929634f2e790e619733552f38a",
     "src/cui_gtk_draw.c": "7cabc65bedc00ef5126a9a8602fafa6f9b80ffd10c097a2ed1bdde0206e441e1",
     "src/cui_gtk_layouts.c": "e1dd0a4ada4eb6cab58486d6cc520ddd913cd123056c1293ca78c24af62f7eb2",
     "src/cui_icons.c": "0a5c5bac33753533ff652b3063326dba7e8bc60289d3ae9e7bb1c8b638965df4",

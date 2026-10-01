@@ -153,6 +153,8 @@ func (a *App) Close() {
 	}
 	a.handles = nil
 }
+// ResolvedTheme returns the effective system or explicit light/dark appearance.
+func (a *App) ResolvedTheme() int { a.check(); return int(C.cui_app_resolved_theme(a.ptr)) }
 func (a *App) Theme(theme int) { a.check(); C.cui_app_set_theme(a.ptr, C.cui_theme(theme)) }
 func cstring(s string) (*C.char, func()) {
 	if strings.IndexByte(s, 0) >= 0 {

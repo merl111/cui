@@ -416,6 +416,7 @@ unsafe extern "C" {
     pub fn cui_app_destroy(app: *mut cui_app);
     pub fn cui_app_error(app: *const cui_app) -> *const c_char;
     pub fn cui_app_set_theme(app: *mut cui_app, theme: cui_theme);
+    pub fn cui_app_resolved_theme(app: *mut cui_app) -> cui_theme;
     pub fn cui_app_set_text_scale(app: *mut cui_app, scale: c_double) -> c_int;
     pub fn cui_set_font(widget: *mut cui_widget, family: *const c_char, points: c_double, weight: c_int) -> c_int;
     pub fn cui_window_scale(window: *const cui_window) -> c_double;

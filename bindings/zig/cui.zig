@@ -85,6 +85,7 @@ pub const App = struct {
     }
     pub fn menu(self: App) Error!Menu { return .{ .raw = c.cui_menu_create(self.raw) orelse return error.AllocationFailed }; }
     pub fn quit(self: App) void { c.cui_app_quit(self.raw); }
+    pub fn resolvedTheme(self: App) c.cui_theme { return c.cui_app_resolved_theme(self.raw); }
     pub fn theme(self: App, value: c.cui_theme) void { c.cui_app_set_theme(self.raw, value); }
     pub fn window(self: App, title: [:0]const u8, width: c_int, height: c_int) Error!Window {
         return .{ .raw = c.cui_window_create(self.raw, title, width, height) orelse return error.AllocationFailed };
