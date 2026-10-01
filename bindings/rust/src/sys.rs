@@ -552,6 +552,8 @@ unsafe extern "C" {
     pub fn cui_menu_add_separator(menu: *mut cui_menu) -> c_int;
     pub fn cui_window_set_menu(window: *mut cui_window, menu: *mut cui_menu);
     pub fn cui_menu_popup(menu: *mut cui_menu, anchor: *mut cui_widget);
+    pub fn cui_menu_popup_at(menu: *mut cui_menu, anchor: *mut cui_widget, x: c_double, y: c_double, width: c_double, height: c_double) -> c_int;
+    pub fn cui_menu_popup_region(menu: *mut cui_menu, canvas: *mut cui_widget, region: c_uint) -> c_int;
     pub fn cui_toolbar(parent: *mut cui_widget, commands: *const *mut cui_command, count: usize) -> *mut cui_widget;
     pub fn cui_draw_capabilities() -> c_uint;
     pub fn cui_text_measure(text: *const c_char, family: *const c_char, size: c_double, weight: c_int, width: *mut c_double, height: *mut c_double) -> c_int;

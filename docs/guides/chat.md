@@ -59,6 +59,42 @@ See [Reuse & framework comparison](component-design.md) for the AppKit, SwiftUI,
 
 `cui_chat_presentation_preset/get` and `cui_chat_set_presentation` expose independent message, room-list, header and composer styles, space orientation, inspector layout, geometry and visible composer tools. Theme changes preserve these choices. `cui_chat_set_commands` replaces header buttons, message hover actions or inspector tabs with copied application commands and stable IDs. All bindings expose these functions. The C example’s Daylight profile button demonstrates user-selectable message and room density preferences. Components inherit the ancestor font family and invalidate measured text when it changes. Mention foreground and background colors are independently configurable.
 
+## Anchored message menus
+
+Use `cui_chat_set_commands` for quick React, Reply, Thread and More buttons.
+Handle More by opening a native CUI menu at its current action region:
+
+```c
+cui_chat_event event;
+if (cui_chat_event_get(timeline, &event) && event.action == CUI_CHAT_MORE) {
+    unsigned region = cui_chat_action_region(timeline, &event);
+    cui_menu_popup_region(message_menu, cui_chat_part(timeline, 0), region);
+}
+```
+
+The menu uses existing `cui_command` callbacks and enabled state. CUI owns native
+placement, display scaling, keyboard navigation and outside-click dismissal.
+Missing, disabled or stale regions return zero. Resolve the region from the
+same timeline that emitted the event, before replacing its model. Capture the
+message/account/room identity in application state and revalidate it when a
+command runs; never apply a stale menu selection to another conversation.
+
+For other custom controls, `cui_menu_popup_at(menu, widget, x, y, width, height)`
+anchors to a rectangle in widget-local **logical** coordinates. Do not multiply
+by display scale. Positive finite sizes are required. AppKit and Win32 can
+invoke command callbacks before the popup call returns; release application
+locks or Rust `RefCell` borrows before opening it.
+
+| Binding | Rectangle | Canvas region |
+| --- | --- | --- |
+| Rust | `menu.popup_at(&widget, x, y, width, height)?` | `menu.popup_region(&canvas, region)?` |
+| Go | `menu.PopupAt(widget, x, y, width, height)` | `menu.PopupRegion(canvas, region)` |
+| Python | `menu.popup_at(widget, x, y, width, height)` | `menu.popup_region(canvas, region)` |
+| Zig | `menu.popupAt(widget, x, y, width, height)` | `menu.popupRegion(canvas, region)` |
+
+These functions return whether a menu could be opened, not whether an item was
+chosen. Standard widget-anchored menus remain available through `cui_menu_popup`.
+
 ## Same-window composition
 
 The new [Layered stack](../components/stack.html) is a general C layout, available in Rust, Python, Go and Zig. It hosts ordinary controls in overlapping layers; it is not specific to chat. The example composes the verification dialog from labels, an emoji grid and buttons; the call panel from avatars, a grid and controls; and the palette from the existing searchable picker.

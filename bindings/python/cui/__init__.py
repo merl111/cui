@@ -194,6 +194,8 @@ _bind('menu_add_submenu', I, P, S, P)
 _bind('menu_add_separator', I, P)
 _bind('window_set_menu', None, P, P)
 _bind('menu_popup', None, P, P)
+_bind('menu_popup_at', I, P, P, D, D, D, D)
+_bind('menu_popup_region', I, P, P, C.c_uint)
 _bind('toolbar', P, P, C.POINTER(P), N)
 _bind('grid', P, P, C.c_uint, I)
 _bind('grid_cell', P, P, C.c_uint, C.c_uint, C.c_uint, C.c_uint)
@@ -476,6 +478,10 @@ class Menu(Handle):
         return bool(lib.cui_menu_add_submenu(self.ptr, _s(title), menu.ptr))
     def separator(self): return bool(lib.cui_menu_add_separator(self.ptr))
     def popup(self, anchor): lib.cui_menu_popup(self.ptr, anchor.ptr)
+    def popup_at(self, anchor, x, y, width, height):
+        return bool(lib.cui_menu_popup_at(self.ptr, anchor.ptr, x, y, width, height))
+    def popup_region(self, canvas, region):
+        return bool(lib.cui_menu_popup_region(self.ptr, canvas.ptr, region))
 class Dialog(Handle):
     @property
     def paths(self):

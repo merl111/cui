@@ -82,6 +82,15 @@ int cui_menu_add_separator(cui_menu *menu);
  * and text-editing actions alongside the application-provided menus. */
 void cui_window_set_menu(cui_window *window, cui_menu *menu);
 void cui_menu_popup(cui_menu *menu, cui_widget *anchor);
+/* Anchor a native context menu to a rectangle in widget-local logical units.
+   Returns zero for invalid geometry, different applications or hidden/disabled
+   anchors. Native menus handle edge placement, keyboard navigation and dismissal.
+   Coordinates must be finite, within +/-1e6; sizes must be 0 < size <= 1e6. */
+int cui_menu_popup_at(cui_menu *menu, cui_widget *anchor,
+                     double x, double y, double width, double height);
+/* Use a current enabled canvas hit region, including a chat action region.
+   A stale/missing/disabled region returns zero and never opens a fallback menu. */
+int cui_menu_popup_region(cui_menu *menu, cui_widget *canvas, unsigned region);
 cui_widget *cui_toolbar(cui_widget *parent, cui_command *const *commands, size_t count);
 #ifdef __cplusplus
 }

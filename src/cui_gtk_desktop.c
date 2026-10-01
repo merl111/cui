@@ -128,6 +128,21 @@ void cui_menu_popup(cui_menu *m,cui_widget *anchor)
     GMenu *model=menu_model(m);GtkWidget *popup=gtk_popover_menu_new_from_model(G_MENU_MODEL(model));g_object_unref(model);
     g_object_ref_sink(popup);m->native=popup;gtk_widget_set_parent(popup,GTK_WIDGET(anchor->native));gtk_popover_popup(GTK_POPOVER(popup));
 }
+int cui__desktop_popup_at(cui_menu *m,cui_widget *anchor,double x,double y,double width,double height)
+{
+    if (!anchor->native || !gtk_widget_get_mapped(GTK_WIDGET(anchor->native))) return 0;
+    if(m->native){if(gtk_widget_get_parent(GTK_WIDGET(m->native)))gtk_widget_unparent(GTK_WIDGET(m->native));g_object_unref(m->native);}
+    GMenu *model=menu_model(m);
+    GtkWidget *popup=gtk_popover_menu_new_from_model(G_MENU_MODEL(model));g_object_unref(model);
+    g_object_ref_sink(popup);m->native=popup;
+    gtk_widget_set_parent(popup,GTK_WIDGET(anchor->native));
+    GdkRectangle rect={(int)x,(int)y,(int)(width<1?1:width),(int)(height<1?1:height)};
+    gtk_popover_set_pointing_to(GTK_POPOVER(popup),&rect);
+    gtk_popover_set_has_arrow(GTK_POPOVER(popup),FALSE);
+    gtk_popover_set_position(GTK_POPOVER(popup),GTK_POS_BOTTOM);
+    gtk_popover_popup(GTK_POPOVER(popup));
+    return 1;
+}
 void cui__desktop_dispose(cui_app *app)
 {
     for(cui_menu *m=app->menus;m;m=m->next)if(m->native){if(gtk_widget_get_parent(GTK_WIDGET(m->native)))gtk_widget_unparent(GTK_WIDGET(m->native));g_object_unref(m->native);}

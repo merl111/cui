@@ -103,6 +103,15 @@ void cui__desktop_menu(cui_window *w)
 }
 void cui_menu_popup(cui_menu *m,cui_widget *anchor)
 {if(m&&anchor&&m->app==anchor->window->app){NSView *view=input(anchor);[native_menu(m) popUpMenuPositioningItem:nil atLocation:NSMakePoint(0,[view bounds].size.height) inView:view];}}
+int cui__desktop_popup_at(cui_menu *m,cui_widget *anchor,double x,double y,double width,double height)
+{
+    (void)width;
+    NSView *view=(NSView *)anchor->native;
+    if(!view||![view window]||[view isHiddenOrHasHiddenAncestor])return 0;
+    NSPoint point=NSMakePoint(x,[view isFlipped]?y+height:[view bounds].size.height-y-height);
+    [native_menu(m) popUpMenuPositioningItem:nil atLocation:point inView:view];
+    return 1;
+}
 void cui__desktop_window(cui_window *w)
 {
     if(w->app->desktop_native)return;

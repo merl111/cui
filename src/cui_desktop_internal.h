@@ -39,6 +39,8 @@ void cui__desktop_cancel(cui_dialog *dialog);
 void cui__desktop_command(cui_command *command);
 void cui__desktop_dispose(cui_app *app);
 void cui__desktop_menu(cui_window *window);
+int cui__desktop_popup_at(cui_menu *menu, cui_widget *anchor,
+                          double x, double y, double width, double height);
 char *cui__desktop_copy(const char *text);
 int cui__font_valid(const cui_font_value *font);
 void cui__picker_open(cui_dialog *dialog);

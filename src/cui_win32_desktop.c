@@ -73,6 +73,20 @@ void cui_menu_popup(cui_menu *m,cui_widget *anchor)
     UINT id=(UINT)TrackPopupMenu(native,TPM_RETURNCMD|TPM_NONOTIFY,r.left,r.bottom,0,(HWND)anchor->window->native,NULL);DestroyMenu(native);
     for(cui_command *c=m->app->commands;c;c=c->next)if(c->id==id){cui_command_invoke(c);break;}
 }
+int cui__desktop_popup_at(cui_menu *m,cui_widget *anchor,double x,double y,double width,double height)
+{
+    (void)width;
+    HWND owner=(HWND)anchor->window->native, hwnd=(HWND)anchor->native;
+    if(!hwnd||!IsWindowVisible(hwnd))return 0;
+    double scale=cui_window_scale(anchor->window);
+    POINT point={(LONG)(x*scale),(LONG)((y+height)*scale)};
+    ClientToScreen(hwnd,&point);
+    HMENU native=native_menu(m,1);if(!native)return 0;
+    UINT id=(UINT)TrackPopupMenu(native,TPM_RETURNCMD|TPM_NONOTIFY,point.x,point.y,0,owner,NULL);
+    DestroyMenu(native);
+    for(cui_command *c=m->app->commands;c;c=c->next)if(c->id==id){cui_command_invoke(c);break;}
+    return 1;
+}
 void cui__desktop_dispose(cui_app *app)
 {
     for(cui_window *w=app->windows;w;w=w->next)if(w->menu_native){SetMenu((HWND)w->native,NULL);DestroyMenu((HMENU)w->menu_native);w->menu_native=NULL;}

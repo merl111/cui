@@ -4,6 +4,9 @@ from cui import chat as c
 with cui.App() as app:
     window=app.window('Shared C chat · Python',800,700)
     root=window.root
+    menu=app.menu()
+    assert not menu.popup_at(root, 0, 0, 0, 20)
+    assert not menu.popup_region(root, 0)
     stack=root.stack()
     base=stack.stack_layer(cui.LAYER_FILL)
     overlay=stack.stack_layer(cui.LAYER_CENTER,220,100,12)

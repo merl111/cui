@@ -21,6 +21,8 @@ fn checkCommands(app: ui.App, window: ui.Window, root: ui.Widget) !ui.Menu {
     command.enabled(false); expect(!command.invoke()); command.enabled(true);
     command.checked(true); expect(command.invoke() and commands == 1);
     const menu = try app.menu(); expect(menu.add(command)); expect(menu.separator());
+    expect(!menu.popupAt(root, 0, 0, 0, 20));
+    expect(!menu.popupRegion(root, 0));
     const child = try app.menu(); expect(menu.submenu("More", child));
     const bar = try app.menu(); expect(bar.submenu("File", menu)); window.menu(bar); window.menu(null);
     _ = try root.toolbar(&.{command});

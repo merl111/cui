@@ -1,13 +1,37 @@
 #include "cui_desktop_internal.h"
+#include "cui_draw.h"
 #include <gtk/gtk.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 #define CHECK(x) do{if(!(x)){fprintf(stderr,"desktop:%d: %s\n",__LINE__,#x);exit(1);}}while(0)
 static cui_app *app;static cui_window *window;static cui_widget *entry,*editor,*toolbar;static cui_command *command;
 static cui_dialog *dialog;static cui_timer *timer;static int calls,phase,ticks,results;
 static const char *fixture="/tmp/cui-desktop-open-fixture.txt";
+static cui_widget *canvas;
+static void check_popup(void)
+{
+    cui_menu *menu=cui_menu_create(app);CHECK(menu);CHECK(cui_menu_add(menu,command));
+    cui_canvas_region region={23,24,12,30,28,"More",1};
+    CHECK(cui_canvas_set_regions(canvas,&region,1));
+    CHECK(!cui_menu_popup_at(menu,canvas,NAN,0,20,20));
+    CHECK(!cui_menu_popup_at(menu,canvas,0,0,0,20));
+    CHECK(!cui_menu_popup_region(menu,canvas,999));
+    cui_set_enabled(canvas,0);CHECK(!cui_menu_popup_region(menu,canvas,23));cui_set_enabled(canvas,1);
+    CHECK(cui_menu_popup_region(menu,canvas,23));
+    GdkRectangle rect;CHECK(gtk_popover_get_pointing_to(GTK_POPOVER(menu->native),&rect));
+    CHECK(rect.x==24&&rect.y==12&&rect.width==30&&rect.height==28);
+    CHECK(gtk_popover_get_autohide(GTK_POPOVER(menu->native)));
+    gtk_popover_popdown(GTK_POPOVER(menu->native));
+    CHECK(cui_menu_popup_at(menu,canvas,40,20,15,18));
+    CHECK(gtk_popover_get_pointing_to(GTK_POPOVER(menu->native),&rect)&&rect.x==40&&rect.y==20);
+    gtk_popover_popdown(GTK_POPOVER(menu->native));
+    region.enabled=0;CHECK(cui_canvas_set_regions(canvas,&region,1));
+    CHECK(!cui_menu_popup_region(menu,canvas,23));
+    CHECK(cui_canvas_set_regions(canvas,NULL,0));CHECK(!cui_menu_popup_region(menu,canvas,23));
+}
 static void invoked(void *data){(void)data;++calls;}
 static void result(cui_dialog *d,cui_dialog_result response,const char *path,void *data)
 {
@@ -47,6 +71,7 @@ static void tick(void *data)
         g_object_set(gtk_settings_get_default(),"gtk-application-prefer-dark-theme",TRUE,NULL);
         CHECK(cui_app_resolved_theme(app)==CUI_THEME_DARK);
         g_object_set(gtk_settings_get_default(),"gtk-application-prefer-dark-theme",was_dark,NULL);
+        check_popup();
         dialog=cui_alert(window,"Confirm","Native alert callback","Continue",result,NULL);CHECK(dialog);phase=1;return;
     }
     if(!dialog->native&&!dialog->finished)return;
@@ -79,6 +104,7 @@ int main(void)
     CHECK(!cui_menu_add(bar,command));
     toolbar=cui_toolbar(cui_window_root(window),&command,1);CHECK(toolbar);
     entry=cui_entry(cui_window_root(window),"Project");editor=cui_textarea(cui_window_root(window),"Hello");
+    canvas=cui_canvas(cui_window_root(window));CHECK(canvas);cui_set_min_size(canvas,120,60);
     timer=cui_every(app,100,tick,NULL);CHECK(timer);cui_window_show(window);cui_app_run(app);cui_app_destroy(app);
     remove(fixture);puts("desktop: dialogs, menus, shortcuts, command state, focus, read-only, undo/redo passed");return 0;
 }

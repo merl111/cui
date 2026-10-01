@@ -140,6 +140,8 @@ fn main() -> Result<()> {
     )?;
     let menu = app.menu()?;
     assert!(menu.add(&command)?);
+    assert!(!menu.popup_at(&root, f64::NAN, 0., 30., 28.)?);
+    assert!(!menu.popup_region(&root, 0)?);
     assert!(command.invoke()?);
     assert_eq!(count.get(), 2);
     let _toolbar = root.toolbar(&[command])?;

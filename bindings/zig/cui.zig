@@ -36,6 +36,8 @@ pub const Menu = struct {
     pub fn submenu(self: Menu, label: [:0]const u8, child: Menu) bool { return c.cui_menu_add_submenu(self.raw, label, child.raw) != 0; }
     pub fn separator(self: Menu) bool { return c.cui_menu_add_separator(self.raw) != 0; }
     pub fn popup(self: Menu, anchor: Widget) void { c.cui_menu_popup(self.raw, anchor.raw); }
+    pub fn popupAt(self: Menu, anchor: Widget, x: f64, y: f64, width: f64, height: f64) bool { return c.cui_menu_popup_at(self.raw, anchor.raw, x, y, width, height) != 0; }
+    pub fn popupRegion(self: Menu, canvas: Widget, region: c_uint) bool { return c.cui_menu_popup_region(self.raw, canvas.raw, region) != 0; }
 };
 /// Independent owned reference; widgets retain the asset. Explicitly deinit.
 pub const Icon = struct {

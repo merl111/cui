@@ -628,6 +628,16 @@ func (m Menu) Submenu(label string, child Menu) bool {
 }
 func (m Menu) Separator() bool       { m.app.check(); return C.cui_menu_add_separator(m.ptr) != 0 }
 func (m Menu) Popup(anchor Widget)   { m.app.check(); C.cui_menu_popup(m.ptr, anchor.ptr) }
+// PopupAt anchors a native menu in widget-local logical coordinates.
+func (m Menu) PopupAt(anchor Widget, x, y, width, height float64) bool {
+    m.app.check()
+    return C.cui_menu_popup_at(m.ptr, anchor.ptr, C.double(x), C.double(y), C.double(width), C.double(height)) != 0
+}
+// PopupRegion anchors to a current enabled canvas hit region.
+func (m Menu) PopupRegion(canvas Widget, region uint32) bool {
+    m.app.check()
+    return C.cui_menu_popup_region(m.ptr, canvas.ptr, C.uint(region)) != 0
+}
 func (w Window) Menu(menu Menu)      { w.app.check(); C.cui_window_set_menu(w.ptr, menu.ptr) }
 func (w Widget) Focus() bool         { w.app.check(); return C.cui_focus(w.ptr) != 0 }
 func (w Widget) HasFocus() bool      { w.app.check(); return C.cui_has_focus(w.ptr) != 0 }

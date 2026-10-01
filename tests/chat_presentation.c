@@ -66,9 +66,25 @@ static void check_single_line_alignment(void) {
     if(s->scene.commands[i].op==CUI_DRAW_TEXT&&!strcmp(s->scene.commands[i].text,"Room"))
       assert(s->scene.commands[i].p[6]==0);
 }
+static void check_toolbar_focus(void) {
+  const cui_chat_command more={.id=17,.label="More",.symbol=CUI_SYMBOL_MORE,.action=CUI_CHAT_MORE};
+  assert(cui_chat_set_commands(message,&more,1));
+  assert(cui_chat_refresh(message,1));
+  cui_chat_event body={.action=CUI_CHAT_MORE,.id=1};
+  cui_widget *canvas=cui_chat_part(message,0);
+  assert(cui_canvas_focus_region(canvas,cui_chat_action_region(message,&body)));
+  assert(cui_chat_refresh(message,1));
+  cui_chat_event action={.action=CUI_CHAT_MORE,.id=1,.detail_id=17,.index=UINT32_MAX};
+  unsigned region=cui_chat_action_region(message,&action);assert(region);
+  assert(cui_canvas_focus_region(canvas,region));
+  cui__canvas_event(canvas,CUI_CANVAS_MOVE,-1,-1,0,0,0);
+  assert(cui_chat_refresh(message,1));
+  assert(cui_chat_action_region(message,&action)==region);
+}
 static void verify(void *data) {
   (void)data;
   check_font(); check_hover(); check_focus_contents(); check_single_line_alignment();
+  check_toolbar_focus();
   cui_chat_presentation p;
   assert(cui_chat_presentation_get(inspector,&p));
   p.inspector=CUI_CHAT_PEOPLE_LIST;

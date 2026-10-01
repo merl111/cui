@@ -37,27 +37,27 @@
     "daylight": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "200fe083ef7cd20771fc099bc73093912e5c803e914bf4fed1f209325aaafdc0"
+      "image_sha256": "3ccb95eda47c6751b921c5eefae5548ebdd5b20e13e8b341bb823058e07c4ee9"
     },
     "tiles": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "b127ed63c9443d0d65b7b09b1cdc1947652e64f25297c2e7a00dfc20ecdcb05e"
+      "image_sha256": "2fa1b789c5dbe45ef6f15934e8b780c5f1f436ab6aac9ab6ead241b87f207f74"
     },
     "daylight-eng": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "772c9aae67799f38a285751eb93761738728308df2090200d3d25227fd946f83"
+      "image_sha256": "0bae1dad64542ddb78af8146b3bd3eae6e94338c3c072ae4a8b7fd34ceef70f4"
     },
     "daylight-kai": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "9869b427c20cac65a5ff64304984d0257b27997144f87bf5a9b95206c561b8b3"
+      "image_sha256": "578fcd9d4cbb4482c8d10f2a727cef0c8ade2776348f1566682fa6fe2f22458e"
     },
     "daylight-mhq": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "4a54f1050f7bf92076ae3e0a9471cf427d6e72eb832c2ddf0843c5a2fc2eb965"
+      "image_sha256": "d80d218a01b440d618adc4312c6a0e561043bfb332cff3a19706875e957c3a77"
     },
     "nebula-thread": {
       "source": "examples/chat/main.c",
@@ -72,42 +72,42 @@
     "daylight-verification": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "e7dddb768c5aafd04f204963ada325577bf33f10a90dacf4ecf1bb7757f7d7d8"
+      "image_sha256": "6646c2b8ad1849f890ae4cd1a23edd895d34a6a146bfbe3b91c9323c1b965485"
     },
     "daylight-people": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "5a064ba65753df90079f52530b85510101fa147e4f20c7498f6380a5d88cfc56"
+      "image_sha256": "244c47db307effee610e238c36349e7120fc8328b4a41f05805847faa520308e"
     },
     "daylight-media": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "6f164f949f7a2cb46324e50a0232a4db26cfde9c5116ea94ed4da5cf77282afa"
+      "image_sha256": "d07e6620da03bbb82b172a1b444b372493ed7c3976c55cf15009a5379733b40b"
     },
     "tiles-palette": {
       "source": "examples/chat/main.c",
       "source_sha256": "59f3a380a38edcc75bd99295d5d277e4a526ff083090e98120075bf7d2c5384c",
-      "image_sha256": "3d30fed86c02153896305e2d7a53144cadf99cd58534b1b8ee13cb0978381628"
+      "image_sha256": "c7d9b48c5d299a1b2ce9271f7e42cf1ef0ca54bb71d76adf286e2be2ac031d61"
     },
     "rust-daylight": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "13690d641d455a94e5fa63ecb2bb52aa2081fab6aa77a9cd9265a81efeecd598"
+      "image_sha256": "aa379cb4f332581657aac4014c05df63bff6f26d3b08b466af33d9e2aec3072a"
     },
     "rust-daylight-eng": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "d8e9a6b23e8c35f0203f3f63d4afd80c37041dd9839a25d82520d001b7c744d6"
+      "image_sha256": "ecde17e23aa4f23ce76283d751e4d307cf02247012af211997720dc9d8d6003b"
     },
     "rust-daylight-kai": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "c5c824e99c7a04112d5e0d02e3d1e051e555fff5c2dbca812ed24af774f62491"
+      "image_sha256": "b427c1e661047f246374f981055b78016749d84076974359940fb9d3e5b3f6ee"
     },
     "rust-daylight-mhq": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "80afa01bf9191c2dd831538e0023430e893a7e479a43d609bbf51e838bb2345a"
+      "image_sha256": "11eb91675f1a1a67fbd42381e943638a30c36b0dca4cd4015c3bb240c216ff60"
     },
     "rust-daylight-verification": {
       "source": "bindings/rust/examples/daylight.rs",
@@ -122,7 +122,7 @@
     "rust-daylight-media": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "b2ffaf83b394ed5ed59f3ec63f5d3c4de8afe6f6a997512e8d00f1e4a78324fb"
+      "image_sha256": "72e9f0927ac2c560227b9ec444ee9ac3aab23384c2058803590c5a671c6fb328"
     },
     "daylight-large": {
       "source": "examples/chat/main.c",
@@ -132,7 +132,7 @@
     "rust-daylight-large": {
       "source": "bindings/rust/examples/daylight.rs",
       "source_sha256": "ef73685dcf0c33ecb8f324f46e5938bce624d8845f26fbda8ed94bf0defe4e9d",
-      "image_sha256": "29bd3980ffa48663880228a0a2789c82d778306ca64b2162c1cdaa9b9707ec22"
+      "image_sha256": "b6bfd951e1d11d1d71f6dffe343335d2bb358da499a07d4060509f52882fa3ff"
     }
   },
   "component_sha256": {
@@ -154,7 +154,7 @@
     "src/cui_chat_compose.c": "eba2607d6ef4145c74e16dcf9b88aaa9e300242fed908fea2b5cf53f8a79a7f6",
     "src/cui_chat_icons.h": "efe3df8fd1f152e5a504c5338d05106f3d242c9121d9874bc57fdfc76ff69130",
     "src/cui_chat_internal.h": "cb22847da7e7d8b4ab5521131eda94658913ad9ac59b542908cca69e357c80e3",
-    "src/cui_chat_paint.c": "ebe22dd44678744f24d56f578346a04ef196095996349b9d52181698d6997638",
+    "src/cui_chat_paint.c": "636243654fce1aa1c4986bbd59ddba51953dfbef42c81ca7dea485a773f8fbeb",
     "src/cui_gtk.c": "24d2d52db7e2da466b94dd2be927de519d0bb9929634f2e790e619733552f38a",
     "src/cui_gtk_draw.c": "7cabc65bedc00ef5126a9a8602fafa6f9b80ffd10c097a2ed1bdde0206e441e1",
     "src/cui_gtk_layouts.c": "e1dd0a4ada4eb6cab58486d6cc520ddd913cd123056c1293ca78c24af62f7eb2",

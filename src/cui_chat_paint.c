@@ -526,7 +526,10 @@ static float poll(chat_state *s, const cui_chat_message *m, float x, float y,
 }
 static void hover_actions(chat_state *s, const cui_chat_message *m, float y,
                           unsigned base) {
-  int focus = 0;
+  /* Toolbar regions are emitted after this visibility check. Keep a focused
+   * toolbar visible when the pointer enters its native popup menu. */
+  int focus = s->focus_region >= base + 200 &&
+              s->focus_region < base + 200 + s->command_count;
   for (size_t i = 0; i < s->scene.region_count; ++i)
     if (s->scene.regions[i].id == s->focus_region &&
         s->scene.actions[i].id == m->id)
