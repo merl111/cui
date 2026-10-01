@@ -1,10 +1,36 @@
 use super::*;
 impl Widget {
+    pub fn set_style(&self, style: Option<&sys::cui_widget_style>) -> Result<bool> {
+        let _rt = self.handle.live()?;
+        Ok(unsafe {
+            sys::cui_set_style(
+                self.handle.ptr.as_ptr(),
+                style.map_or(std::ptr::null(), |s| s),
+            )
+        } != 0)
+    }
+
+    /// Current allocated logical size, or None before layout.
+    pub fn allocated_size(&self) -> Result<Option<(i32, i32)>> {
+        let _rt = self.handle.live()?;
+        let (mut width, mut height) = (0, 0);
+        let ok =
+            unsafe { sys::cui_widget_get_size(self.handle.ptr.as_ptr(), &mut width, &mut height) };
+        Ok((ok != 0).then_some((width, height)))
+    }
+    pub fn textarea_height(&self, height: i32) -> Result<bool> {
+        let _rt = self.handle.live()?;
+        Ok(unsafe { sys::cui_textarea_set_height(self.handle.ptr.as_ptr(), height) } != 0)
+    }
     pub fn set_icon_size(&self, logical_size: i32) -> Result<bool> {
         let _rt = self.handle.live()?;
         Ok(accepted(unsafe {
             sys::cui_set_icon_size(self.handle.ptr.as_ptr(), logical_size)
         }))
+    }
+    pub fn set_icon_trailing(&self, trailing: bool) -> Result<bool> {
+        let _rt = self.handle.live()?;
+        Ok(accepted(unsafe { sys::cui_set_icon_trailing(self.handle.ptr.as_ptr(), trailing.into()) }))
     }
     pub fn set_icon_only(&self, icon_only: bool) -> Result<bool> {
         let _rt = self.handle.live()?;
@@ -452,6 +478,14 @@ impl Widget {
             sys::cui_field_is_valid(self.handle.ptr.as_ptr())
         }))
     }
+    pub fn stack(&self) -> Result<Widget> {
+        let rt = self.handle.live()?;
+        Widget::from_native(&rt, unsafe { sys::cui_stack(self.handle.ptr.as_ptr()) })
+    }
+    pub fn stack_layer(&self, alignment: sys::cui_layer_alignment, width: i32, height: i32, margin: i32) -> Result<Widget> {
+        let rt = self.handle.live()?;
+        Widget::from_native(&rt, unsafe { sys::cui_stack_layer(self.handle.ptr.as_ptr(), alignment, width, height, margin) })
+    }
     pub fn grid(&self, columns: u32, gap: i32) -> Result<Widget> {
         let rt = self.handle.live()?;
         Widget::from_native(&rt, unsafe {
@@ -603,6 +637,10 @@ impl Widget {
         Widget::from_native(&rt, unsafe {
             sys::cui_picker(self.handle.ptr.as_ptr(), kind, placeholder.as_ptr())
         })
+    }
+    pub fn picker_set_chrome(&self, headings: bool, status: bool, actions: bool) -> Result<bool> {
+        let _rt=self.handle.live()?;
+        Ok(unsafe { sys::cui_picker_set_chrome(self.handle.ptr.as_ptr(),headings.into(),status.into(),actions.into()) } != 0)
     }
     pub fn picker_set_query(&self, query: &str) -> Result<bool> {
         let _rt = self.handle.live()?;

@@ -43,6 +43,12 @@ int main(void)
     cui_widget *root=cui_window_root(window);
     cui_widget *row=cui_box(root,CUI_HORIZONTAL,12);
     cui_widget *view=cui_icon(row,a),*button=cui_icon_button(row,a,"Play track");
+    assert(cui_set_icon_trailing(button,1));assert(!cui_set_icon_trailing(view,1));
+    assert(cui_set_icon_only(button,0));
+    GtkWidget *content=gtk_button_get_child(GTK_BUTTON(button->native));
+    assert(GTK_IS_LABEL(gtk_widget_get_first_child(content)));
+    assert(GTK_IS_DRAWING_AREA(gtk_widget_get_last_child(content)));
+    assert(cui_set_icon_trailing(button,0));assert(cui_set_icon_only(button,1));
     assert(view&&button&&a->refs==3);
     cui_icon_release(a);a=cui_get_icon(button);assert(a&&a->refs==2);
     assert(cui_set_icon(button,a));assert(a->refs==2); /* self assignment */

@@ -163,3 +163,9 @@ void cui__backend_table_reveal(cui_widget *w,size_t row)
         if(GTK_IS_LIST_VIEW(child)){gtk_widget_activate_action(child,"list.scroll-to-item","u",(guint)row);break;}
 #endif
 }
+
+void cui__backend_table_headers(cui_widget *w,int visible)
+{
+    for(GtkWidget *child=gtk_widget_get_first_child(w->aux);child;child=gtk_widget_get_next_sibling(child))
+        if(!strcmp(gtk_widget_get_css_name(child),"header"))gtk_widget_set_visible(child,visible);
+}

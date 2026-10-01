@@ -11,7 +11,7 @@ typedef struct picker_state {
     size_t *matches,count;
     cui_item_id selected;
     cui_timer *timer;
-    int open;
+    int open,headings,status,actions;
 } picker_state;
 static void dispose(void *data)
 {picker_state *s=data;cui__choices_free(s->model);free(s->matches);free(s);}
@@ -29,8 +29,8 @@ static cui_choice_entry *at_row(picker_state *s,int row)
 static void visibility(picker_state *s)
 {
     if(s->kind==CUI_COMMAND_PALETTE)cui_set_visible(s->root,s->open);
-    for(int i=1;i<5;++i)cui_set_visible(s->parts[i],s->open);
-    cui_set_visible(s->parts[CUI_PICKER_ACCEPT]->parent,s->open);
+    cui_set_visible(s->parts[CUI_PICKER_STATUS],s->open&&s->status);
+    cui_set_visible(s->parts[CUI_PICKER_ACCEPT]->parent,s->open&&s->actions);
     cui_set_visible(s->parts[CUI_PICKER_RESULTS],s->open&&s->count);
 }
 static size_t match_choices(picker_state *s,const char *key,size_t *map,const char **cells,int *selected)
@@ -177,7 +177,7 @@ cui_widget *cui_picker(cui_widget *parent,cui_picker_kind kind,const char *place
     if(kind<CUI_AUTOCOMPLETE || kind>CUI_COMMAND_PALETTE)return NULL;
     picker_state *s=calloc(1,sizeof(*s));if(!s)return NULL;
     cui_widget *w=cui_box(parent,CUI_VERTICAL,8);if(!w){free(s);return NULL;}
-    w->payload=s;w->destroy_payload=dispose;s->root=w;s->kind=kind;
+    w->payload=s;w->destroy_payload=dispose;s->root=w;s->kind=kind;s->headings=s->status=s->actions=1;
     if(kind==CUI_COMMAND_PALETTE){cui_set_role(w,CUI_ROLE_CARD);cui_box_set_padding(w,16);}
     s->parts[0]=cui_search(w,placeholder);const char *headers[]={"Name","Details"};
     s->parts[1]=cui_table(w,headers,2);s->parts[2]=cui_label(w,"No matches");cui_set_role(s->parts[2],CUI_ROLE_CAPTION);
@@ -189,6 +189,14 @@ cui_widget *cui_picker(cui_widget *parent,cui_picker_kind kind,const char *place
     cui_on_key(s->parts[0],key,s);cui_on_key(s->parts[1],key,s);
     cui_accessibility(s->parts[0],kind==CUI_COMMAND_PALETTE?"Search commands":"Search suggestions","Use arrow keys to choose a result, Enter to accept, Escape to close");
     visibility(s);return w;
+}
+int cui_picker_set_chrome(cui_widget *w,int headings,int status,int actions)
+{
+    picker_state *s=state(w);
+    if(!s||(headings!=0&&headings!=1)||(status!=0&&status!=1)||(actions!=0&&actions!=1))return 0;
+    s->headings=headings;s->status=status;s->actions=actions;
+    cui__backend_table_headers(s->parts[CUI_PICKER_RESULTS],headings);
+    visibility(s);return 1;
 }
 int cui_picker_is_open(const cui_widget *w){picker_state *s=state(w);return s&&s->open;}
 cui_item_id cui_picker_selected(const cui_widget *w){picker_state *s=state(w);return s?s->selected:0;}

@@ -233,6 +233,23 @@ static void show_box(cui_widget *root)
 }
 /* endshowcase */
 
+/* showcase: stack */
+static void show_stack(cui_widget *root)
+{
+    cui_widget *stack = cui_stack(root);
+    cui_set_min_size(stack, 480, 280);
+    cui_widget *base = cui_stack_layer(stack, CUI_LAYER_FILL, 0, 0, 0);
+    cui_label(base, "Application content remains in the same window.");
+    cui_button(base, "Underlying action");
+    cui_widget *card = cui_stack_layer(stack, CUI_LAYER_CENTER, 320, 160, 16);
+    const cui_widget_style style = {0xf1f5ffff, 0x192536ff, 0xc4cfe0ff, 16, 1, 20};
+    cui_set_style(card, &style);
+    cui_label(card, "A reusable overlay layer");
+    cui_label(card, "Compose ordinary C controls inside it.");
+    cui_on_action(cui_button(card, "Continue"), clicked, NULL);
+}
+/* endshowcase */
+
 /* showcase: grid */
 static void show_grid(cui_widget *root)
 {
@@ -508,6 +525,234 @@ static void show_pattern_task_rows(cui_widget *root)
 }
 /* endshowcase */
 
+/* showcase: chat-rooms */
+static void show_chat_rooms(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_ROOMS, CUI_CHAT_DAYLIGHT);
+    cui_set_min_size(chat_preview, 440, 300);
+    cui_on_action(chat_preview, chat_clicked, NULL);
+    const cui_chat_room items[] = {
+        {.id=1,.group="PINNED",.title="#design-crit",.detail="Weekly critique · Bring WIP, not finals",.trailing="09:34",.avatar_color=0x64d7faff,.unread=4,.flags=CUI_CHAT_SQUARE|CUI_CHAT_HIGHLIGHT},
+        {.id=2,.group="ROOMS",.title="#engineering",.detail="Builds and on-call handoffs",.trailing="08:15",.avatar_color=0x57d8faff,.flags=CUI_CHAT_SQUARE},
+        {.id=3,.group="PEOPLE",.title="Ana Ribeiro",.detail="Can you look at the call tile?",.trailing="09:40",.avatar_color=0xcdb2ffff,.flags=CUI_CHAT_ONLINE}
+    };
+    cui_chat_set_rooms(chat_preview,items,sizeof(items)/sizeof(*items));
+    cui_chat_select(chat_preview,1);
+}
+/* endshowcase */
+
+/* showcase: chat-timeline */
+static void show_chat_timeline(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_TIMELINE, CUI_CHAT_DAYLIGHT);
+    cui_set_min_size(chat_preview, 440, 350);
+    cui_on_action(chat_preview, chat_clicked, NULL);
+    const cui_chat_span spans[]={{"A reusable conversation component.","",CUI_CHAT_BODY}};
+    const cui_chat_detail files[]={{.id=8,.text="layout.fig",.detail="4.2 MB"}};
+    const cui_chat_detail reactions[]={{.text="🙌",.count=2,.flags=CUI_CHAT_MINE},{.text="💯",.count=3}};
+    const cui_chat_detail options[]={{.text="Speaker focus",.count=4},{.text="Grid",.count=6},{.text="Spotlight + filmstrip",.count=2}};
+    const cui_chat_message item={.id=42,.author="Ana Ribeiro",.time="09:12",.avatar_color=0xcdb2ffff,
+        .spans=spans,.span_count=1,.selected_option=-1,
+        .attachments=files,.attachment_count=0,
+        .reactions=reactions,.reaction_count=2,
+        .poll_question="Default call layout?",.options=options,.option_count=0,
+        .reply_id=0,.reply_author="Kai Tanaka",.reply_text="Composer states",
+        .thread_count=0,.thread_preview="Ben: I will pick up the call tile"};
+    cui_chat_set_messages(chat_preview,&item,1);
+}
+/* endshowcase */
+
+/* showcase: chat-composer */
+static void show_chat_composer(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_COMPOSER, CUI_CHAT_DAYLIGHT);
+    cui_set_min_size(chat_preview, 440, 160);
+    cui_on_action(chat_preview, chat_clicked, NULL);
+    cui_set_placeholder(cui_chat_part(chat_preview,0),"Message your team…");
+    cui_chat_compose_context(chat_preview,42,"Ana Ribeiro","Original message",0);
+}
+/* endshowcase */
+
+/* showcase: chat-workspace */
+static void show_chat_workspace(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_WORKSPACE, CUI_CHAT_DAYLIGHT);
+    cui_set_min_size(chat_preview, 440, 350);
+    cui_on_action(chat_preview, chat_clicked, NULL);
+    cui_chat_workspace_layout(chat_preview, 3);
+    for (unsigned pane=0; pane<3; ++pane) {
+        cui_widget *content=cui_chat_part(chat_preview,pane);
+        cui_box_set_padding(content,16);
+        cui_label(content,pane==0?"Main conversation":pane==1?"Direct message":"Engineering");
+        cui_entry(content,"Each pane retains its own draft");
+    }
+}
+/* endshowcase */
+
+/* showcase: chat-header */
+static void show_chat_header(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_HEADER, CUI_CHAT_DAYLIGHT);
+    cui_set_min_size(chat_preview, 440, 72);
+    cui_on_action(chat_preview, chat_clicked, NULL);
+    const cui_chat_room items[] = {
+        {.id=1,.group="PINNED",.title="#design-crit",.detail="Weekly critique · Bring WIP, not finals",.avatar_color=0x64d7faff,.unread=4,.flags=CUI_CHAT_SQUARE|CUI_CHAT_HIGHLIGHT}
+    };
+    cui_chat_set_rooms(chat_preview,items,sizeof(items)/sizeof(*items));
+    const cui_chat_command commands[] = {
+        {.id=401,.label="Search conversation",.symbol=CUI_SYMBOL_SEARCH,.action=CUI_CHAT_MORE},
+        {.id=402,.label="Show details",.symbol=CUI_SYMBOL_PANEL,.action=CUI_CHAT_MORE,.flags=CUI_CHAT_MINE}
+    };
+    cui_chat_set_commands(chat_preview,commands,2);
+    cui_chat_select(chat_preview,1);
+}
+/* endshowcase */
+
+/* showcase: chat-spaces */
+static void show_chat_spaces(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_SPACES, CUI_CHAT_DAYLIGHT);
+    cui_set_min_size(chat_preview, 440, 160);
+    cui_on_action(chat_preview, chat_clicked, NULL);
+    const cui_chat_room items[] = {
+        {.id=1,.title="Home",.symbol=CUI_SYMBOL_HOME},
+        {.id=2,.title="Design team",.avatar_color=0xffac8aff,.unread=12},
+        {.id=3,.title="Community",.avatar_color=0x72dfb7ff,.unread=3}
+    };
+    cui_chat_set_rooms(chat_preview,items,sizeof(items)/sizeof(*items));
+    cui_chat_select(chat_preview,1);
+}
+/* endshowcase */
+
+/* showcase: chat-inspector */
+static void show_chat_inspector(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_INSPECTOR, CUI_CHAT_DAYLIGHT);
+    cui_set_min_size(chat_preview, 440, 350);
+    cui_on_action(chat_preview, chat_clicked, NULL);
+    const cui_chat_room items[] = {
+        {.id=1,.group="PINNED",.title="#design-crit",.detail="Weekly critique · Bring WIP, not finals",.trailing="09:34",.avatar_color=0x64d7faff,.unread=4,.flags=CUI_CHAT_SQUARE|CUI_CHAT_HIGHLIGHT},
+        {.id=20,.title="Members",.detail="14"},
+        {.id=21,.title="Encryption",.detail="E2EE"},
+        {.id=22,.title="Notifications",.detail="Mentions & keywords"}
+    };
+    cui_chat_set_rooms(chat_preview,items,sizeof(items)/sizeof(*items));
+    cui_chat_select(chat_preview,1);
+}
+/* endshowcase */
+
+/* showcase: chat-message */
+static void show_chat_message(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_MESSAGE, CUI_CHAT_DAYLIGHT);
+    cui_set_min_size(chat_preview, 440, 200);
+    cui_on_action(chat_preview, chat_clicked, NULL);
+    const cui_chat_span body[] = {{"A reusable conversation component.", "", CUI_CHAT_BODY}};
+    const cui_chat_message item = {.id=42, .author="Ana Ribeiro", .time="09:12",
+        .avatar_color=0xcdb2ffff, .author_color=0x714595ff,
+        .spans=body, .span_count=1, .selected_option=-1};
+    cui_chat_set_messages(chat_preview, &item, 1);
+}
+/* endshowcase */
+
+/* showcase: attachment-card */
+static void show_attachment_card(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_ATTACHMENT_CARD, CUI_CHAT_DAYLIGHT);
+    cui_set_min_size(chat_preview, 440, 160);
+    cui_on_action(chat_preview, chat_clicked, NULL);
+    const cui_chat_detail files[] = {{.id=8, .text="layout.fig", .detail="4.2 MB"}};
+    const cui_chat_message item = {.id=42, .attachments=files, .attachment_count=1,
+        .selected_option=-1};
+    cui_chat_set_messages(chat_preview, &item, 1);
+}
+/* endshowcase */
+
+/* showcase: reaction-strip */
+static void show_reaction_strip(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_REACTION_STRIP, CUI_CHAT_DAYLIGHT);
+    cui_set_min_size(chat_preview, 440, 160);
+    cui_on_action(chat_preview, chat_clicked, NULL);
+    const cui_chat_detail reactions[] = {{.text="🙌", .count=2, .flags=CUI_CHAT_MINE},
+        {.text="💯", .count=3}};
+    const cui_chat_message item = {.id=42, .reactions=reactions, .reaction_count=2,
+        .selected_option=-1};
+    cui_chat_set_messages(chat_preview, &item, 1);
+}
+/* endshowcase */
+
+/* showcase: poll-card */
+static void show_poll_card(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_POLL_CARD, CUI_CHAT_DAYLIGHT);
+    cui_set_min_size(chat_preview, 440, 260);
+    cui_on_action(chat_preview, chat_clicked, NULL);
+    const cui_chat_detail options[] = {{.text="Speaker focus", .count=4},
+        {.text="Grid", .count=6}, {.text="Spotlight + filmstrip", .count=2}};
+    const cui_chat_message item = {.id=42, .poll_question="Default call layout?",
+        .options=options, .option_count=3, .selected_option=-1};
+    cui_chat_set_messages(chat_preview, &item, 1);
+}
+/* endshowcase */
+
+/* showcase: reply-preview */
+static void show_reply_preview(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_REPLY_PREVIEW, CUI_CHAT_DAYLIGHT);
+    cui_set_min_size(chat_preview, 440, 160);
+    cui_on_action(chat_preview, chat_clicked, NULL);
+    const cui_chat_message item = {.id=42, .reply_id=7, .reply_author="Kai Tanaka",
+        .reply_text="Composer states", .selected_option=-1};
+    cui_chat_set_messages(chat_preview, &item, 1);
+}
+/* endshowcase */
+
+/* showcase: thread-summary */
+static void show_thread_summary(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_THREAD_SUMMARY, CUI_CHAT_NEBULA);
+    cui_set_min_size(chat_preview, 440, 160);
+    cui_on_action(chat_preview, chat_clicked, NULL);
+    const cui_chat_room participants[] = {
+        {.id=1, .title="Kai Tanaka", .avatar_color=0x00c9bfff},
+        {.id=2, .title="Noor Haddad", .avatar_color=0x64c9faff},
+        {.id=3, .title="Ben Okafor", .avatar_color=0xdeb0ffff}};
+    const cui_chat_message item = {.id=42, .thread_count=3,
+        .thread_preview="Ben: I will pick up the call tile",
+        .thread_participants=participants, .thread_participant_count=3,
+        .selected_option=-1};
+    cui_chat_set_messages(chat_preview, &item, 1);
+}
+/* endshowcase */
+
+/* showcase: avatar */
+static void show_avatar(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_AVATAR, CUI_CHAT_DAYLIGHT);
+    cui_set_min_size(chat_preview, 440, 160);
+    cui_on_action(chat_preview, chat_clicked, NULL);
+    const cui_chat_room items[] = {
+        {.id=1,.title="Ana Ribeiro",.avatar_color=0xcdb2ffff,.flags=CUI_CHAT_ONLINE}
+    };
+    cui_chat_set_rooms(chat_preview,items,sizeof(items)/sizeof(*items));
+    cui_chat_select(chat_preview,1);
+}
+/* endshowcase */
+
+/* showcase: native-chat */
+static void show_native_chat(cui_widget *root)
+{
+    chat_preview = cui_chat_create(root, CUI_CHAT_TIMELINE, CUI_CHAT_DAYLIGHT);
+    cui_set_min_size(chat_preview, 400, 230);
+    const cui_chat_span spans[] = {{"Shared C components, available in every binding.", "", CUI_CHAT_BODY}};
+    const cui_chat_message messages[] = {{.id=1, .author="Ana Ribeiro", .time="09:12", .avatar_color=0xcbb5ffff, .spans=spans, .span_count=1, .selected_option=-1, .thread_count=3}};
+    cui_chat_set_messages(chat_preview, messages, 1);
+    cui_widget *composer = cui_chat_create(root, CUI_CHAT_COMPOSER, CUI_CHAT_DAYLIGHT);
+    cui_set_placeholder(cui_chat_part(composer, 0), "Message #design-crit");
+}
+/* endshowcase */
+
 /* showcase: pattern-chat */
 static void show_pattern_chat(cui_widget *root)
 {
@@ -733,6 +978,7 @@ static const showcase_case cases[] = {
     {"chart", "Line chart", show_chart},
     {"image", "RGBA image", show_image},
     {"box", "Rows & columns", show_box},
+    {"stack", "Layered stack", show_stack},
     {"grid", "Grid", show_grid},
     {"wrap", "Wrapping row", show_wrap},
     {"split", "Split panes", show_split},
@@ -763,6 +1009,21 @@ static const showcase_case cases[] = {
     {"pattern-approval-card", "Approval Card", show_pattern_approval_card},
     {"pattern-tool-chips", "Tool Chips", show_pattern_tool_chips},
     {"pattern-task-rows", "Task Rows", show_pattern_task_rows},
+    {"chat-rooms", "Room navigation", show_chat_rooms},
+    {"chat-timeline", "Message timeline", show_chat_timeline},
+    {"chat-composer", "Message composer", show_chat_composer},
+    {"chat-workspace", "Conversation workspace", show_chat_workspace},
+    {"chat-header", "Conversation header", show_chat_header},
+    {"chat-spaces", "Space navigation", show_chat_spaces},
+    {"chat-inspector", "Context inspector", show_chat_inspector},
+    {"chat-message", "Message bubble", show_chat_message},
+    {"attachment-card", "Attachment card", show_attachment_card},
+    {"reaction-strip", "Reaction strip", show_reaction_strip},
+    {"poll-card", "Poll card", show_poll_card},
+    {"reply-preview", "Reply preview", show_reply_preview},
+    {"thread-summary", "Thread summary", show_thread_summary},
+    {"avatar", "Avatar and presence", show_avatar},
+    {"native-chat", "Native Chat", show_native_chat},
     {"pattern-chat", "Chat", show_pattern_chat},
     {"pattern-prompt-bar", "Prompt Bar", show_pattern_prompt_bar},
     {"pattern-recommendation-card", "Recommendation Card", show_pattern_recommendation_card},

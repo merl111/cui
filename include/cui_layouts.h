@@ -4,6 +4,17 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/* Layered layout: children overlap without changing the base content size.
+ * Add the base content first (FILL), then transient layers. Children are ordinary
+ * boxes. Zero width/height uses content size; FILL ignores dimensions. Native
+ * focus, dismissal and modal policy remain with the enclosing composition. */
+typedef enum cui_layer_alignment {
+    CUI_LAYER_FILL, CUI_LAYER_CENTER, CUI_LAYER_TOP, CUI_LAYER_BOTTOM,
+    CUI_LAYER_BOTTOM_RIGHT
+} cui_layer_alignment;
+cui_widget *cui_stack(cui_widget *parent);
+cui_widget *cui_stack_layer(cui_widget *stack, cui_layer_alignment alignment,
+    int width, int height, int margin);
 /* Grid cells are owned boxes. Coordinates are zero-based, at most 64 columns
  * and 256 rows. Spans must not overlap existing cells. */
 cui_widget *cui_grid(cui_widget *parent, unsigned columns, int gap);

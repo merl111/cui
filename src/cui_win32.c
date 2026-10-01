@@ -153,11 +153,19 @@ static void paint_ambient(cui_widget *widget, HDC dc)
     }
 }
 
+static COLORREF custom_color(unsigned c) { return RGB(c>>24,(c>>16)&255,(c>>8)&255); }
+void cui__backend_style(cui_widget *w) {
+    if(w->native){
+        if(cui__container(w)&&cui__in_layer(w))SetLayeredWindowAttributes((HWND)w->native,0,w->styled?(BYTE)(w->style.background&255):0,LWA_ALPHA);
+        InvalidateRect((HWND)w->native,NULL,TRUE);
+    }
+}
 static void paint_surfaces(cui_widget *widget, HDC dc)
 {
     cui_widget *child;
     win_app_state *state = (win_app_state *)widget->window->app->native;
     if (widget->hidden) return;
+    if(widget->styled&&cui__container(widget)&&!cui__in_layer(widget)){RECT r=native_rect(widget->frame,widget->window->scale);rounded_rect(dc,r,pixels(widget->style.radius,widget->window->scale),custom_color(widget->style.background),custom_color(widget->style.border_width?widget->style.border:widget->style.background));}
     if (widget->role == CUI_ROLE_AMBIENT) paint_ambient(widget, dc);
     if (widget->role == CUI_ROLE_CARD || (widget->role>=CUI_ROLE_PANEL&&widget->role<=CUI_ROLE_OUTGOING) || widget->kind == CUI_ENTRY || widget->kind == CUI_PASSWORD || widget->kind == CUI_SEARCH || widget->kind == CUI_NUMBER) {
         RECT rect = native_rect(widget->frame, widget->window->scale);
@@ -223,9 +231,9 @@ static LRESULT paint_button(cui_widget *widget, NMCUSTOMDRAW *draw)
     } else rounded_rect(draw->hdc, rect, pixels(5, widget->window->scale), fill, primary || widget->role==CUI_ROLE_FLAT ? fill : state->border);
     if(widget->icon){
         int size=pixels(widget->icon_size?widget->icon_size:20,widget->window->scale);
-        RECT icon_rect=rect;icon_rect.left=widget->icon_only?(rect.left+rect.right-size)/2:rect.left+pixels(12,widget->window->scale);
+        RECT icon_rect=rect;icon_rect.left=widget->icon_only?(rect.left+rect.right-size)/2:widget->icon_trailing?rect.right-pixels(12,widget->window->scale)-size:rect.left+pixels(12,widget->window->scale);
         icon_rect.top=(rect.top+rect.bottom-size)/2;icon_rect.right=icon_rect.left+size;icon_rect.bottom=icon_rect.top+size;
-        cui__win_icon(widget,draw->hdc,icon_rect,foreground);text_rect.left=icon_rect.right+pixels(8,widget->window->scale);
+        cui__win_icon(widget,draw->hdc,icon_rect,foreground);if(widget->icon_trailing)text_rect.right=icon_rect.left-pixels(8,widget->window->scale);else text_rect.left=icon_rect.right+pixels(8,widget->window->scale);
     }
     length = GetWindowTextLengthW((HWND)widget->native);
     text = (wchar_t *)calloc((size_t)length + 1, sizeof(*text));
@@ -326,6 +334,7 @@ static LRESULT control_color(cui_window *window, HDC dc, HWND control)
     int surface = widget && (widget->kind == CUI_ENTRY || inside_card(widget));
     SetTextColor(dc, widget && widget->role == CUI_ROLE_CAPTION ? state->secondary : state->foreground);
     COLORREF background=surface?state->surface:widget?surface_color(widget):state->background;
+    if(widget&&widget->styled){background=custom_color(widget->style.background);SetTextColor(dc,custom_color(widget->style.foreground));}
     SetBkColor(dc,background);SetDCBrushColor(dc,background);
     return (LRESULT)GetStockObject(DC_BRUSH);
 }
@@ -756,6 +765,18 @@ static LRESULT CALLBACK number_proc(HWND hwnd, UINT message, WPARAM wp, LPARAM l
     if (message == WM_NCDESTROY) RemoveWindowSubclass(hwnd, number_proc, 0);
     return DefSubclassProc(hwnd, message, wp, lp);
 }
+static LRESULT CALLBACK layer_proc(HWND hwnd,UINT message,WPARAM wp,LPARAM lp,UINT_PTR id,DWORD_PTR data)
+{
+    cui_widget *w=(cui_widget *)data;(void)id;
+    if(message==WM_PAINT){
+        PAINTSTRUCT paint;HDC dc=BeginPaint(hwnd,&paint);RECT r;GetClientRect(hwnd,&r);
+        if(w->styled)rounded_rect(dc,r,pixels(w->style.radius,w->window->scale),custom_color(w->style.background),custom_color(w->style.border_width?w->style.border:w->style.background));
+        EndPaint(hwnd,&paint);return 0;
+    }
+    if(message==WM_ERASEBKGND)return 1;
+    if(message==WM_NCDESTROY)RemoveWindowSubclass(hwnd,layer_proc,0);
+    return DefSubclassProc(hwnd,message,wp,lp);
+}
 int cui__backend_widget_create(cui_widget *widget, const char *text)
 {
     const wchar_t *class_name = L"BUTTON";
@@ -766,7 +787,15 @@ int cui__backend_widget_create(cui_widget *widget, const char *text)
         widget->native=CreateWindowExW(0,L"STATIC",L"Resize panes",WS_CHILD|WS_VISIBLE|WS_TABSTOP|SS_NOTIFY,0,0,8,8,(HWND)widget->window->native,NULL,GetModuleHandleW(NULL),NULL);
         if(!widget->native)return 0;SetWindowSubclass((HWND)widget->native,split_proc,0,(DWORD_PTR)widget);return 1;
     }
-    if (cui__container(widget)) return 1;
+    if (cui__container(widget)) {
+        if(cui__in_layer(widget)){
+            widget->native=CreateWindowExW(WS_EX_LAYERED,L"STATIC",L"",WS_CHILD|WS_VISIBLE,0,0,1,1,(HWND)widget->window->native,NULL,GetModuleHandleW(NULL),NULL);
+            if(!widget->native)return 0;
+            SetWindowSubclass((HWND)widget->native,layer_proc,0,(DWORD_PTR)widget);
+            SetLayeredWindowAttributes((HWND)widget->native,0,0,LWA_ALPHA);
+        }
+        return 1;
+    }
     control_class(widget->kind, &class_name, &style);
     wide = cui__win32_wide(text);
     if (!wide) return 0;
@@ -858,7 +887,7 @@ cui_size cui__backend_measure(cui_widget *widget)
     case CUI_BUTTON: case CUI_TOGGLE: {float side=(float)(widget->icon_size?widget->icon_size:20)+16;result.width=widget->icon_only?side:max(80,result.width+36+(widget->icon?side:0));result.height=widget->icon_only?side:max(result.height+20,widget->icon?side:0);break;}
     case CUI_NUMBER: case CUI_ENTRY: case CUI_PASSWORD: case CUI_SEARCH: result.width = 200; result.height += 20; break;
     case CUI_CHECKBOX: case CUI_RADIO: case CUI_SWITCH: result.width += widget->kind == CUI_SWITCH ? 50 : 30; result.height = max(28, result.height + 8); break;
-    case CUI_TEXTAREA: case CUI_CODE: result = (cui_size){240, 120}; break;
+    case CUI_TEXTAREA: case CUI_CODE: result = (cui_size){240, widget->min_height ? widget->min_height : 120}; break;
     case CUI_TREE: result = (cui_size){240, 180}; break;
     case CUI_LIST: result = (cui_size){240, 160}; break;
     case CUI_CHART: case CUI_IMAGE: case CUI_CANVAS: result = (cui_size){260, 160}; break;
@@ -876,6 +905,10 @@ cui_size cui__backend_measure(cui_widget *widget)
 void cui__backend_place(cui_widget *widget)
 {
     cui_rect r = widget->frame;
+    if(cui__container(widget)&&cui__in_layer(widget)&&widget->kind!=CUI_SPLIT){
+        RECT rect=native_rect(r,widget->window->scale);
+        SetWindowPos((HWND)widget->native,HWND_TOP,rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top,SWP_NOACTIVATE);return;
+    }
     if(widget->kind==CUI_SPLIT){
         if(!widget->first)return;
         if(widget->axis==CUI_HORIZONTAL){r.x=widget->first->frame.x+widget->first->frame.width;r.width=(float)widget->gap;}
@@ -887,7 +920,7 @@ void cui__backend_place(cui_widget *widget)
     r.y += (r.height - height) / 2;
     r.height = height;
     if (widget->kind == CUI_ENTRY || widget->kind == CUI_PASSWORD || widget->kind == CUI_SEARCH || widget->kind == CUI_NUMBER) { r.x += 10; r.y += 10; r.width -= 20; r.height -= 20; }
-    if (widget->kind == CUI_TEXTAREA || widget->kind == CUI_CODE || widget->kind == CUI_LIST || widget->kind == CUI_TABLE || widget->kind == CUI_TREE) r = widget->frame;
+    if (widget->kind == CUI_CANVAS || widget->kind == CUI_TEXTAREA || widget->kind == CUI_CODE || widget->kind == CUI_LIST || widget->kind == CUI_TABLE || widget->kind == CUI_TREE) r = widget->frame;
     r.x -= widget->window->scroll_x; r.y -= widget->window->scroll_y;
     if (widget->kind == CUI_SELECT) r.height += 240; /* Combo box dropdown list height. */
     RECT rect = native_rect(r, widget->window->scale);
@@ -896,8 +929,8 @@ void cui__backend_place(cui_widget *widget)
         SetWindowPos((HWND)widget->aux, NULL, rect.right-width, rect.top, width, rect.bottom-rect.top, SWP_NOZORDER|SWP_NOACTIVATE);
         rect.right -= width + pixels(4, widget->window->scale);
     }
-    SetWindowPos((HWND)widget->native, NULL, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-                 SWP_NOZORDER | SWP_NOACTIVATE);
+    SetWindowPos((HWND)widget->native, cui__in_layer(widget)?HWND_TOP:NULL, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+                 (cui__in_layer(widget)?0:SWP_NOZORDER) | SWP_NOACTIVATE);
 }
 
 void cui__backend_scrollable(cui_window *window)
@@ -946,6 +979,7 @@ double cui__backend_get_value(const cui_widget *w)
 { return (double)SendMessageW((HWND)w->native, w->kind == CUI_SLIDER ? TBM_GETPOS : PBM_GETPOS, 0, 0) / 10000; }
 void cui__backend_placeholder(cui_widget *w, const char *text)
 {
+    if(w->kind==CUI_TEXTAREA){cui__backend_keys(w);InvalidateRect(w->native,NULL,TRUE);return;}
     wchar_t *wide = cui__win32_wide(text);
     if (wide) SendMessageW((HWND)w->native, EM_SETCUEBANNER, FALSE, (LPARAM)wide);
     free(wide);
@@ -1168,4 +1202,12 @@ int cui__backend_window_anchor(cui_window *w)
     POINT point={(LONG)((w->anchor_x+w->anchor_width+16)*scale),(LONG)(w->anchor_y*scale)};
     ClientToScreen(parent,&point);
     return SetWindowPos((HWND)w->native,NULL,point.x,point.y,0,0,SWP_NOSIZE|SWP_NOACTIVATE|SWP_NOZORDER)!=0;
+}
+
+int cui_widget_get_size(const cui_widget *w, int *width, int *height)
+{
+    if (!w || !width || !height) return 0;
+    int x = (int)w->frame.width, y = (int)w->frame.height;
+    if (x <= 0 || y <= 0) return 0;
+    *width = x; *height = y; return 1;
 }

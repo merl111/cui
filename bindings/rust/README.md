@@ -16,3 +16,25 @@ Use `cui = { path = "/absolute/path/to/cui/bindings/rust" }` in your application
 Create one App on the main thread. Handles are !Send/!Sync and use checked weak ownership; stale calls return Error::Closed. Icons use retain/release through Clone/Drop. Setters copy input; getters own output. Closures live until app destruction. Callback panics stop the loop and are returned by App::run with the normal unwind strategy. Keep raw `sys` usage within the C ABI's unsafe contracts.
 
 See the [complete Rust guide](../../docs/guides/rust.md) for models, dialogs, icons, callbacks, cross-platform builds, errors and tests. Linux is tested; Windows/macOS native verification is deferred.
+
+The [chat component guide](../../docs/guides/chat.md) covers `cui::chat`: themeable
+room navigation, timelines, reactions/polls/threads, a native composer, persistent
+conversation panes, a command palette and reusable panels. Run
+`cargo run --offline --manifest-path bindings/rust/Cargo.toml --example chat_components -- tiles`
+from the repository root to try the native composition example.
+
+All fourteen chat component kinds are exposed by `ChatComponent::create` with
+`ChatKind`, including standalone avatars, messages, files, reactions, polls,
+reply previews and thread summaries. They use libcui's C renderer; Rust only
+marshals models and events. `Message.author_color` and
+`ThreadSummary.participants` preserve Daylight sender colors and thread avatars.
+Rebuild libcui and this crate together when the C model ABI changes.
+
+
+The full [Daylight composition](examples/daylight.rs) is ready for application
+integration. Run `CUI_LIB_DIR="$PWD/build-chat" cargo run --offline
+--manifest-path bindings/rust/Cargo.toml --example daylight` from the repository
+root after building CUI. Its application state is Rust; all component rendering
+and controls use the shared C implementation. The C and Rust examples share
+fixture data and an eight-state screenshot comparison. This comparison checks
+the language port, not HTML-reference fidelity.

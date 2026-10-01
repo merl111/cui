@@ -14,7 +14,7 @@ static void free_widgets(cui_widget *widget)
         cui__free_strings(widget->headers, widget->columns);
         if (widget->destroy_payload) widget->destroy_payload(widget->payload);
         free(widget->series); free(widget->pixels); cui_icon_release(widget->icon);
-        cui__backend_font_free(widget); free(widget->font_family);
+        cui__backend_font_free(widget); free(widget->font_family); free(widget->placeholder);
         free(widget);
         widget = next;
     }
@@ -357,4 +357,20 @@ int cui_window_set_anchor(cui_window *panel,cui_window *parent,int x,int y,int w
     panel->anchor_parent=parent;panel->anchor_x=x;panel->anchor_y=y;
     panel->anchor_width=width;panel->anchor_height=height;
     return cui__backend_window_anchor(panel);
+}
+
+int cui_textarea_set_height(cui_widget *w, int height)
+{
+    if (!w || w->kind != CUI_TEXTAREA || height < 24 || height > 2048) return 0;
+    if (w->min_height != height) cui_set_min_size(w, w->min_width, height);
+    return 1;
+}
+
+int cui_set_style(cui_widget *w,const cui_widget_style *style)
+{
+    if(!w)return 0;
+    if(style&&(!isfinite(style->radius)||!isfinite(style->border_width)||style->radius<0||style->radius>128||style->border_width<0||style->border_width>128||style->padding<0||style->padding>128))return 0;
+    if(w->styled&&style&&w->style.background==style->background&&w->style.foreground==style->foreground&&w->style.border==style->border&&w->style.radius==style->radius&&w->style.border_width==style->border_width&&w->style.padding==style->padding)return 1;
+    w->styled=style!=NULL;if(style)w->style=*style;
+    cui__backend_style(w);cui__backend_refresh(w->window);return 1;
 }

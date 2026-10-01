@@ -167,8 +167,9 @@ cui_widget *cui_progress(cui_widget *p, double value) { return meter(p, CUI_PROG
 
 void cui_set_placeholder(cui_widget *w, const char *text)
 {
-    if (!w || (w->kind != CUI_ENTRY && w->kind != CUI_PASSWORD && w->kind != CUI_SEARCH)) return;
-    cui__backend_placeholder(w, text ? text : "");
+    if (!w || (w->kind != CUI_ENTRY && w->kind != CUI_PASSWORD && w->kind != CUI_SEARCH && w->kind != CUI_TEXTAREA)) return;
+    if(!text)text="";size_t n=strlen(text);if(n>65536)return;char *copy=malloc(n+1);if(!copy)return;memcpy(copy,text,n+1);free(w->placeholder);w->placeholder=copy;
+    cui__backend_placeholder(w, text);
 }
 void cui_set_tooltip(cui_widget *w, const char *text)
 { if (w) cui__backend_tooltip(w, text ? text : ""); }

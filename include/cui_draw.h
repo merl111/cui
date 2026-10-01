@@ -91,6 +91,12 @@ typedef enum cui_draw_capability {
   CUI_DRAW_REGIONS = 16
 } cui_draw_capability;
 unsigned cui_draw_capabilities(void);
+/* Measure the same native single-line text used by DRAW_TEXT. Main thread.
+ * Size is logical pixels, 1..512; weight 100..900. Width is capped at 4096.
+ * Invalid input leaves outputs unchanged. No application/widget is required
+ * after the native toolkit has been initialized. */
+int cui_text_measure(const char *text, const char *family, double size,
+                     int weight, double *width, double *height);
 cui_surface *cui_surface_create(int width, int height, double scale);
 cui_surface *cui_surface_retain(cui_surface *surface);
 void cui_surface_release(cui_surface *surface);

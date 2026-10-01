@@ -8,7 +8,7 @@ cui_size cui__measure(cui_widget *widget)
     cui_widget *child;
     int count = 0;
     if (widget->hidden) { widget->minimum = size; return size; }
-    if (widget->kind == CUI_GRID || widget->kind == CUI_WRAP || widget->kind == CUI_SPLIT) size = cui__layout_measure(widget);
+    if (widget->kind == CUI_GRID || widget->kind == CUI_WRAP || widget->kind == CUI_SPLIT || widget->kind == CUI_STACK) size = cui__layout_measure(widget);
     else if (!cui__container(widget)) size = cui__backend_measure(widget);
     else {
         for (child = widget->first; child; child = child->next) {
@@ -40,7 +40,8 @@ void cui__arrange(cui_widget *widget, cui_rect rect)
     float extra, cursor;
     if (widget->hidden) return;
     widget->frame = rect;
-    if (widget->kind == CUI_GRID || widget->kind == CUI_WRAP || widget->kind == CUI_SPLIT) { cui__layout_arrange(widget, rect); return; }
+    if (cui__container(widget) && widget->native && cui__in_layer(widget)) cui__backend_place(widget);
+    if (widget->kind == CUI_GRID || widget->kind == CUI_WRAP || widget->kind == CUI_SPLIT || widget->kind == CUI_STACK) { cui__layout_arrange(widget, rect); return; }
     if (!cui__container(widget)) { cui__backend_place(widget); return; }
     inner.x += (float)widget->padding;
     inner.y += (float)widget->padding;

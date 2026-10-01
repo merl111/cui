@@ -23,6 +23,9 @@ typedef enum cui_picker_part { CUI_PICKER_INPUT, CUI_PICKER_RESULTS, CUI_PICKER_
  * Plain unmatched autocomplete text emits SUBMIT with ID 0 on Enter. */
 cui_widget *cui_picker(cui_widget *parent,cui_picker_kind kind,const char *placeholder);
 int cui_picker_set_items(cui_widget *picker,const cui_choice *items,size_t count);
+/* Independently show result headings, result status, and action buttons.
+ * Defaults to all visible. Visibility choices survive filtering and reopening. */
+int cui_picker_set_chrome(cui_widget *picker,int headings,int status,int actions);
 int cui_picker_set_query(cui_widget *picker,const char *query); /* Silent; refreshes matches. */
 size_t cui_picker_get_query(const cui_widget *picker,char *buffer,size_t capacity);
 void cui_picker_open(cui_widget *picker,cui_widget *return_focus); /* Optional same-window target. */

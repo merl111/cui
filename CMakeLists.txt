@@ -16,7 +16,7 @@ if(CUI_ENABLE_SANITIZERS)
     add_link_options(-fsanitize=address,undefined -fno-sanitize-recover=all)
 endif()
 
-add_library(cui_objects OBJECT src/cui.c src/cui_layout.c src/cui_layouts.c src/cui_layout_algorithms.c src/cui_icons.c src/cui_draw.c src/cui_raster.c src/cui_controls.c src/cui_components.c src/cui_patterns.c src/cui_pattern_collections.c src/cui_pattern_filters.c src/cui_insights.c src/cui_desktop.c src/cui_files.c src/cui_keys.c src/cui_feedback.c src/cui_choices.c src/cui_search.c src/cui_tokens.c src/cui_navigation.c src/cui_breadcrumbs.c src/cui_inputs.c src/cui_datetime.c src/cui_tables.c)
+add_library(cui_objects OBJECT src/cui.c src/cui_layout.c src/cui_layouts.c src/cui_layout_algorithms.c src/cui_icons.c src/cui_draw.c src/cui_chat.c src/cui_chat_paint.c src/cui_chat_compose.c src/cui_raster.c src/cui_controls.c src/cui_components.c src/cui_patterns.c src/cui_pattern_collections.c src/cui_pattern_filters.c src/cui_insights.c src/cui_desktop.c src/cui_files.c src/cui_keys.c src/cui_feedback.c src/cui_choices.c src/cui_search.c src/cui_tokens.c src/cui_navigation.c src/cui_breadcrumbs.c src/cui_inputs.c src/cui_datetime.c src/cui_tables.c)
 set_target_properties(cui_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(cui_objects PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                       $<INSTALL_INTERFACE:include>)
@@ -61,6 +61,8 @@ if(CUI_BUILD_SHARED)
 endif()
 
 if(CUI_BUILD_EXAMPLES)
+    add_executable(cui_chat_concepts examples/chat/main.c)
+    target_link_libraries(cui_chat_concepts PRIVATE cui)
     add_executable(cui_showcase examples/showcase/main.c)
     target_link_libraries(cui_showcase PRIVATE cui)
     if(WIN32)
@@ -152,6 +154,24 @@ if(CUI_BUILD_TESTS)
         add_executable(cui_gtk_chrome_test tests/gtk_chrome.c)
         target_include_directories(cui_gtk_chrome_test PRIVATE src)
         target_link_libraries(cui_gtk_chrome_test PRIVATE cui)
+        add_executable(cui_chat_test tests/chat.c)
+        add_executable(cui_chat_presentation_test tests/chat_presentation.c)
+        target_include_directories(cui_chat_presentation_test PRIVATE src)
+        target_link_libraries(cui_chat_presentation_test PRIVATE cui)
+        add_test(NAME chat_presentation COMMAND ${XVFB_RUN} -a $<TARGET_FILE:cui_chat_presentation_test>)
+        set_tests_properties(chat_presentation PROPERTIES ENVIRONMENT "GSK_RENDERER=cairo;GTK_A11Y=none" TIMEOUT 30)
+    target_link_libraries(cui_chat_test PRIVATE cui)
+    if(TARGET cui_chat_concepts)
+    foreach(concept nebula daylight tiles)
+        add_test(NAME chat_concept_${concept} COMMAND ${XVFB_RUN} -a $<TARGET_FILE:cui_chat_concepts> ${concept})
+        set_tests_properties(chat_concept_${concept} PROPERTIES ENVIRONMENT "CUI_SMOKE_TEST=1;GSK_RENDERER=cairo;GTK_A11Y=none" TIMEOUT 30)
+    endforeach()
+    endif()
+    add_test(NAME chat_daylight COMMAND ${XVFB_RUN} -a $<TARGET_FILE:cui_chat_test> daylight)
+            add_test(NAME chat COMMAND cui_chat_test)
+    add_executable(cui_chat_input_test tests/chat_input.c)
+        target_include_directories(cui_chat_input_test PRIVATE src)
+        target_link_libraries(cui_chat_input_test PRIVATE cui)
         add_executable(cui_containers_test tests/containers.c)
         target_include_directories(cui_containers_test PRIVATE src)
         target_link_libraries(cui_containers_test PRIVATE cui)
@@ -196,6 +216,8 @@ if(CUI_BUILD_TESTS)
                 add_test(NAME showcase COMMAND ${XVFB_RUN} -a -s "-screen 0 1920x1200x24" $<TARGET_FILE:cui_showcase> --smoke-test)
                 set_tests_properties(showcase PROPERTIES ENVIRONMENT "GSK_RENDERER=cairo;GTK_A11Y=none;GSETTINGS_BACKEND=memory" RESOURCE_LOCK cui_xvfb TIMEOUT 60)
             endif()
+            add_test(NAME chat_input COMMAND ${XVFB_RUN} -a $<TARGET_FILE:cui_chat_input_test>)
+            set_tests_properties(chat_input PROPERTIES ENVIRONMENT "GSK_RENDERER=cairo;GTK_A11Y=none" TIMEOUT 30)
             add_test(NAME search_feedback COMMAND ${XVFB_RUN} -a -s "-screen 0 1920x1440x24" $<TARGET_FILE:cui_search_feedback_test>)
             add_test(NAME search_feedback_4k COMMAND ${XVFB_RUN} -a -s "-screen 0 3840x2160x24" $<TARGET_FILE:cui_search_feedback_test>)
             set_tests_properties(search_feedback search_feedback_4k PROPERTIES ENVIRONMENT "GSK_RENDERER=cairo;GTK_A11Y=none" RESOURCE_LOCK cui_xvfb TIMEOUT 30)
@@ -254,7 +276,7 @@ if(CUI_BUILD_TESTS)
 endif()
 
 install(TARGETS cui ARCHIVE DESTINATION lib)
-install(FILES include/cui.h include/cui_draw.h include/cui_patterns.h include/cui_desktop.h include/cui_layouts.h include/cui_navigation.h include/cui_inputs.h include/cui_tables.h include/cui_feedback.h include/cui_search.h include/cui_tokens.h DESTINATION include)
+install(FILES include/cui_chat.h include/cui.h include/cui_draw.h include/cui_patterns.h include/cui_desktop.h include/cui_layouts.h include/cui_navigation.h include/cui_inputs.h include/cui_tables.h include/cui_feedback.h include/cui_search.h include/cui_tokens.h DESTINATION include)
 
 if(CUI_BUILD_BINDING_TESTS AND CUI_BUILD_TESTS AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND XVFB_RUN)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
@@ -281,13 +303,19 @@ if(CUI_BUILD_BINDING_TESTS AND CUI_BUILD_TESTS AND CMAKE_SYSTEM_NAME STREQUAL "L
         ${CARGO_EXECUTABLE} test --offline --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/bindings/rust/Cargo.toml --example simulator)
     add_test(NAME rust_unit_docs COMMAND ${CMAKE_COMMAND} -E env CUI_LIB_DIR=${CMAKE_CURRENT_BINARY_DIR} CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}/rust
         ${CARGO_EXECUTABLE} test --offline --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/bindings/rust/Cargo.toml)
-    foreach(DEMO IN ITEMS hello gallery contracts simulator)
+    foreach(DEMO IN ITEMS hello gallery contracts simulator chat_components daylight)
         add_test(NAME rust_${DEMO} COMMAND ${XVFB_RUN} -a ${CMAKE_CURRENT_BINARY_DIR}/rust/debug/examples/${DEMO})
         add_test(NAME rust_${DEMO}_4k COMMAND ${XVFB_RUN} -a -s "-screen 0 3840x2160x24" ${CMAKE_CURRENT_BINARY_DIR}/rust/debug/examples/${DEMO})
         set_tests_properties(rust_${DEMO} rust_${DEMO}_4k PROPERTIES TIMEOUT 120
             ENVIRONMENT "GSK_RENDERER=cairo;GTK_A11Y=none;CUI_SMOKE_TEST=1")
         set_property(TEST rust_${DEMO} APPEND PROPERTY ENVIRONMENT "GDK_SCALE=1")
         set_property(TEST rust_${DEMO}_4k APPEND PROPERTY ENVIRONMENT "GDK_SCALE=2;CUI_LARGE_TEXT=1")
+    endforeach()
+    foreach(VARIANT IN ITEMS daylight tiles)
+        add_test(NAME rust_chat_${VARIANT} COMMAND ${XVFB_RUN} -a -s "-screen 0 1800x1400x24"
+            ${CMAKE_CURRENT_BINARY_DIR}/rust/debug/examples/chat_components ${VARIANT})
+        set_tests_properties(rust_chat_${VARIANT} PROPERTIES TIMEOUT 120
+            ENVIRONMENT "GSK_RENDERER=cairo;GTK_A11Y=none;GDK_DISABLE=gl,vulkan;CUI_SMOKE_TEST=1")
     endforeach()
     add_custom_target(cui_go_example ALL
         COMMAND ${CMAKE_COMMAND} -E env GOCACHE=${CMAKE_CURRENT_BINARY_DIR}/go-cache CGO_LDFLAGS=$<TARGET_FILE:cui>
@@ -329,6 +357,19 @@ if(CUI_BUILD_BINDING_TESTS AND CUI_BUILD_TESTS AND CMAKE_SYSTEM_NAME STREQUAL "L
         set_property(TEST ${DEMO} APPEND PROPERTY ENVIRONMENT "GDK_SCALE=1")
         set_property(TEST ${DEMO}_4k APPEND PROPERTY ENVIRONMENT "GDK_SCALE=2;CUI_LARGE_TEXT=1")
     endforeach()
+    add_custom_target(cui_chat_binding_contracts ALL
+        COMMAND ${CMAKE_COMMAND} -E env GOCACHE=${CMAKE_CURRENT_BINARY_DIR}/go-cache CGO_LDFLAGS=$<TARGET_FILE:cui>
+            ${GO_EXECUTABLE} build -tags cui_external -buildvcs=false -o ${CMAKE_CURRENT_BINARY_DIR}/cui_go_chat ./cmd/chat-contracts
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bindings/go DEPENDS cui)
+    add_custom_target(cui_zig_chat_contracts ALL
+        COMMAND ${CMAKE_COMMAND} -E env ZIG_GLOBAL_CACHE_DIR=${CMAKE_CURRENT_BINARY_DIR}/zig-cache ZIG_LOCAL_CACHE_DIR=${CMAKE_CURRENT_BINARY_DIR}/zig-local
+            ${ZIG_EXECUTABLE} build -Dexample=chat -p ${CMAKE_CURRENT_BINARY_DIR}/zig
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    add_test(NAME python_chat COMMAND ${XVFB_RUN} -a ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/chat_bindings.py)
+    add_test(NAME go_chat COMMAND ${XVFB_RUN} -a ${CMAKE_CURRENT_BINARY_DIR}/cui_go_chat)
+    add_test(NAME zig_chat COMMAND ${XVFB_RUN} -a ${CMAKE_CURRENT_BINARY_DIR}/zig/bin/cui_zig_chat)
+    set_tests_properties(python_chat go_chat zig_chat PROPERTIES TIMEOUT 30
+        ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/bindings/python;CUI_LIBRARY=$<TARGET_FILE:cui_shared>;GSK_RENDERER=cairo;GTK_A11Y=none")
     add_test(NAME python_drawing COMMAND ${XVFB_RUN} -a ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/examples/python/drawing.py)
     add_test(NAME go_drawing COMMAND ${XVFB_RUN} -a ${CMAKE_CURRENT_BINARY_DIR}/cui_go_drawing)
     add_test(NAME zig_drawing COMMAND ${XVFB_RUN} -a ${CMAKE_CURRENT_BINARY_DIR}/zig/bin/cui_zig_drawing)

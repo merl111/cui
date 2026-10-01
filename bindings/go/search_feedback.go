@@ -56,6 +56,8 @@ const (
 	KeyDown      = 257
 	KeyHome      = 258
 	KeyEnd       = 259
+	KeyPageUp    = 260
+	KeyPageDown  = 261
 )
 
 func (t Timer) Start() bool { t.app.check(); return C.cui_timer_start(t.ptr) != 0 }
@@ -175,6 +177,10 @@ func (w Widget) PickerItems(items []Choice) bool {
 	p, release, ok := choiceItems(items)
 	defer release()
 	return ok && C.cui_picker_set_items(w.ptr, p, C.size_t(len(items))) != 0
+}
+func (w Widget) PickerSetChrome(headings,status,actions bool) bool {
+ w.app.check()
+ return C.cui_picker_set_chrome(w.ptr,C.int(boolIntIcon(headings)),C.int(boolIntIcon(status)),C.int(boolIntIcon(actions)))!=0
 }
 func (w Widget) PickerSetQuery(query string) bool {
 	w.app.check()

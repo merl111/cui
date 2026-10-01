@@ -3,18 +3,45 @@
 #include "safety/allocations.h"
 #include <assert.h>
 #include <gtk/gtk.h>
+#include <pango/pangocairo.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 static unsigned char pixels[64 * 64 * 4];
+static void color_glyphs(void) {
+  PangoFontFamily **families = NULL;
+  int count = 0, available = 0;
+  pango_font_map_list_families(pango_cairo_font_map_get_default(), &families,
+                              &count);
+  for (int i = 0; i < count; ++i)
+    if (!strcmp(pango_font_family_get_name(families[i]), "Noto Color Emoji"))
+      available = 1;
+  g_free(families);
+  if (!available) return;
+  cui_surface *s = cui_surface_create(64, 64, 1);
+  assert(s);
+  cui_draw_command emoji = {.op = CUI_DRAW_TEXT, .p = {0, 0, 64, 32, 400},
+                            .text = "👍", .font = "Noto Color Emoji",
+                            .color = 0x000000ff};
+  assert(cui_surface_render(s, &emoji, 1));
+  int width, height;
+  cui_surface_read(s, pixels, sizeof(pixels), &width, &height);
+  unsigned colored = 0;
+  for (size_t i = 0; i < sizeof(pixels); i += 4)
+    if (pixels[i + 3] > 128 && pixels[i] > pixels[i + 2] + 40)
+      ++colored;
+  assert(colored > 30); /* The old alpha-only path tinted every glyph black. */
+  cui_surface_release(s);
+}
 static unsigned char *read_pixel(cui_surface *s, int x, int y) {
   int w, h;
   assert(cui_surface_read(s, pixels, sizeof(pixels), &w, &h) < sizeof(pixels));
   return pixels + ((size_t)y * w + x) * 4;
 }
 static void raster(void) {
+  color_glyphs();
   assert(!cui_surface_create(0, 10, 1));
   assert(!cui_surface_create(10, 10, NAN));
   assert(!cui_surface_create(4096, 4096, 1));
@@ -353,6 +380,13 @@ int main(void) {
     assert(!downloaded[i]);
   assert(cui_canvas_set_surface(canvas, s));
   g_object_unref(old_texture);
+  /* A rendered frame must not become the canvas preferred layout size. */
+  int minimum, natural;
+  cui_set_min_size(canvas,100,70);
+  gtk_widget_measure(GTK_WIDGET(canvas->native),GTK_ORIENTATION_HORIZONTAL,-1,&minimum,&natural,NULL,NULL);
+  assert(minimum==100 && natural==100);
+  gtk_widget_measure(GTK_WIDGET(canvas->native),GTK_ORIENTATION_VERTICAL,-1,&minimum,&natural,NULL,NULL);
+  assert(minimum==70 && natural==70);
   cui_canvas_on_event(canvas, event, NULL);
   assert(cui_canvas_activate_region(canvas, 42) && activated == 1);
   cui_set_enabled(root, 0);

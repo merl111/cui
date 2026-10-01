@@ -9,12 +9,17 @@ static cui_key key_value(WPARAM key)
     case VK_BACK:return CUI_KEY_BACKSPACE;case VK_TAB:return CUI_KEY_TAB;
     case VK_UP:return CUI_KEY_UP;case VK_DOWN:return CUI_KEY_DOWN;
     case VK_HOME:return CUI_KEY_HOME;case VK_END:return CUI_KEY_END;
+    case VK_PRIOR:return CUI_KEY_PAGE_UP;case VK_NEXT:return CUI_KEY_PAGE_DOWN;
     default:return 0;
     }
 }
 static LRESULT CALLBACK input_proc(HWND hwnd,UINT message,WPARAM wp,LPARAM lp,UINT_PTR id,DWORD_PTR data)
 {
     cui_widget *w=(cui_widget *)data;
+    if(message==WM_PAINT&&w->kind==CUI_TEXTAREA&&w->placeholder&&!GetWindowTextLengthW(hwnd)&&!w->composing){
+        LRESULT result=DefSubclassProc(hwnd,message,wp,lp);wchar_t *text=cui__win32_wide(w->placeholder);
+        if(text){HDC dc=GetDC(hwnd);RECT rect;GetClientRect(hwnd,&rect);InflateRect(&rect,-8,-6);HGDIOBJ old=SelectObject(dc,(HFONT)SendMessageW(hwnd,WM_GETFONT,0,0));SetBkMode(dc,TRANSPARENT);SetTextColor(dc,GetSysColor(COLOR_GRAYTEXT));DrawTextW(dc,text,-1,&rect,DT_LEFT|DT_WORDBREAK|DT_NOPREFIX);SelectObject(dc,old);ReleaseDC(hwnd,dc);free(text);}return result;
+    }
     if(message==WM_IME_STARTCOMPOSITION)w->composing=1;
     if(message==WM_IME_ENDCOMPOSITION)w->composing=0;
     if(message==WM_NCDESTROY)RemoveWindowSubclass(hwnd,input_proc,id);

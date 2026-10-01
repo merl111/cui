@@ -33,6 +33,11 @@ int cui_set_icon_only(cui_widget *w,int only)
     if(only&&!cui_get_text(w,NULL,0))return 0;
     w->icon_only=!!only;cui__backend_icon(w);cui__backend_refresh(w->window);return 1;
 }
+int cui_set_icon_trailing(cui_widget *w,int trailing)
+{
+    if(!w||(w->kind!=CUI_BUTTON&&w->kind!=CUI_TOGGLE))return 0;
+    w->icon_trailing=!!trailing;cui__backend_icon(w);cui__backend_refresh(w->window);return 1;
+}
 cui_widget *cui_icon(cui_widget *parent,cui_icon_asset *a)
 {
     cui_widget *w=cui__append(parent,CUI_ICON,"",CUI_VERTICAL,0);
@@ -179,9 +184,11 @@ static void symbol_path(void *context,const float *xy,size_t n,int fill)
     cui_icon_command paint={0};paint.op=fill?CUI_ICON_FILL:CUI_ICON_STROKE;paint.current_color=1;
     if(!fill){paint.values[0]=2;paint.values[1]=1;paint.values[2]=1;}b->commands[b->count++]=paint;
 }
+#include "cui_chat_icons.h"
 cui_icon_asset *cui_icon_symbol(cui_symbol symbol)
 {
     if(symbol<=CUI_SYMBOL_NONE||symbol>=CUI_SYMBOL_COUNT)return NULL;
+    if(symbol>=CUI_SYMBOL_HOME)return chat_symbol(symbol);
     symbol_builder b={0};cui__draw_icon(symbol,symbol_path,&b);
     return cui_icon_vector(24,24,b.commands,b.count);
 }

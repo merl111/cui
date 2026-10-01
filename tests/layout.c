@@ -1,4 +1,5 @@
 #include "cui_internal.h"
+#include "cui_layouts.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -53,6 +54,21 @@ int main(void)
     grid.kind=CUI_SPLIT;grid.axis=CUI_HORIZONTAL;grid.value=0.25;grid.last=&b;b.next=NULL;
     size=cui__measure(&grid);cui__arrange(&grid,(cui_rect){0,0,500,100});
     CHECK(a.frame.width>=100&&b.frame.width>=200&&b.frame.x==a.frame.width+10);
+    cui_widget stack={0}, base={0}, overlay={0};
+    stack.kind=CUI_STACK;stack.first=&base;base.next=&overlay;
+    base.kind=overlay.kind=CUI_BUTTON;base.minimum=(cui_size){300,200};
+    overlay.minimum=(cui_size){600,400};overlay.layer_alignment=CUI_LAYER_CENTER;
+    overlay.layer_width=200;overlay.layer_height=100;overlay.layer_margin=10;
+    size=cui__measure(&stack);CHECK(size.width==300&&size.height==200);
+    cui__arrange(&stack,(cui_rect){20,30,500,400});
+    CHECK(base.frame.width==500&&base.frame.height==400);
+    CHECK(overlay.frame.x==170&&overlay.frame.y==180&&overlay.frame.width==200);
+    overlay.layer_alignment=CUI_LAYER_BOTTOM_RIGHT;
+    cui__arrange(&stack,(cui_rect){20,30,500,400});
+    CHECK(overlay.frame.x==310&&overlay.frame.y==320);
+    cui__arrange(&stack,(cui_rect){0,0,90,80});
+    CHECK(overlay.frame.width==70&&overlay.frame.height==60);
+    overlay.hidden=1;size=cui__measure(&stack);CHECK(size.width==300);
     puts("layout: nested boxes, expansion, padding and minimum sizes passed");
     return 0;
 }

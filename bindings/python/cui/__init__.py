@@ -34,6 +34,9 @@ for name in ('create',):
     _bind('app_'+name, P)
 for name in ('run', 'quit', 'destroy'):
     _bind('app_'+name, None, P)
+_bind('stack',P,P)
+_bind('stack_layer',P,P,I,I,I,I)
+LAYER_FILL,LAYER_CENTER,LAYER_TOP,LAYER_BOTTOM,LAYER_BOTTOM_RIGHT=range(5)
 _bind('app_error', S, P)
 _bind('app_set_theme', None, P, I)
 _bind('app_set_text_scale', I, P, D)
@@ -43,6 +46,8 @@ _bind('window_set_frame', I, P, I, I, D)
 _bind('window_set_size', I, P, I, I)
 _bind('window_set_position', I, P, I, I)
 _bind('window_begin_move', I, P)
+_bind('widget_get_size', I, P, C.POINTER(I), C.POINTER(I))
+_bind('textarea_set_height', I, P, I)
 _bind('window_get_size', I, P, C.POINTER(I), C.POINTER(I))
 _bind('window_begin_resize', I, P, I)
 _bind('window_set_anchor', I, P, P, I, I, I, I)
@@ -264,7 +269,7 @@ AUTOCOMPLETE, COMMAND_PALETTE = range(2)
 PICKER_NONE, PICKER_QUERY, PICKER_SELECT, PICKER_SUBMIT, PICKER_CANCEL = range(5)
 PICKER_INPUT, PICKER_RESULTS, PICKER_STATUS, PICKER_ACCEPT, PICKER_CLOSE = range(5)
 KEY_BACKSPACE, KEY_TAB, KEY_ENTER, KEY_ESCAPE = 8, 9, 13, 27
-KEY_UP, KEY_DOWN, KEY_HOME, KEY_END = range(256, 260)
+KEY_UP, KEY_DOWN, KEY_HOME, KEY_END, KEY_PAGE_UP, KEY_PAGE_DOWN = range(256, 262)
 class Choice(C.Structure):
     _fields_ = [('id', C.c_uint64), ('label', S), ('detail', S), ('keywords', S), ('disabled', I)]
     def __init__(self, id, label, detail='', keywords='', disabled=False):
@@ -280,6 +285,7 @@ _bind('feedback_get_part', P, P, I)
 _bind('picker', P, P, I, S)
 _bind('picker_set_items', I, P, C.POINTER(Choice), N)
 _bind('picker_set_query', I, P, S)
+_bind('picker_set_chrome', I, P, I, I, I)
 _bind('picker_get_query', N, P, P, N)
 _bind('picker_open', None, P, P)
 _bind('picker_close', None, P)
@@ -348,6 +354,7 @@ _bind('set_icon', I, P, P)
 _bind('get_icon', P, P)
 _bind('set_icon_size', I, P, I)
 _bind('set_icon_only', I, P, I)
+_bind('set_icon_trailing', I, P, I)
 
 class Icon:
     """An owned asset reference. Use with or close(); widgets retain assets."""
@@ -560,6 +567,7 @@ class Widget(Handle):
         ptr = lib.cui_get_icon(self.ptr)
         return Icon(lib.cui_icon_retain(ptr)) if ptr else None
     def icon_size(self, size): return bool(lib.cui_set_icon_size(self.ptr, size))
+    def icon_trailing(self, trailing=True): return bool(lib.cui_set_icon_trailing(self.ptr, trailing))
     def icon_only(self, only=True): return bool(lib.cui_set_icon_only(self.ptr, only))
 
     def tokens(self, placeholder='Choose…', limit=16):
@@ -616,6 +624,7 @@ class Widget(Handle):
         if len(items) > 65536: return False
         values = (Choice * len(items))(*items)
         return bool(lib.cui_picker_set_items(self.ptr, values, len(items)))
+    def picker_set_chrome(self, headings=True, status=True, actions=True): return bool(lib.cui_picker_set_chrome(self.ptr,headings,status,actions))
     def picker_set_query(self, query): return bool(lib.cui_picker_set_query(self.ptr, _s(query)))
     @property
     def picker_query(self):
@@ -754,6 +763,8 @@ class Widget(Handle):
         event = lib.cui_tree_last_event(self.ptr, C.byref(id))
         return event, id.value
 
+    def stack(self): return Widget(self.app, lib.cui_stack(self.ptr))
+    def stack_layer(self, alignment=LAYER_FILL, width=0, height=0, margin=0): return Widget(self.app, lib.cui_stack_layer(self.ptr,alignment,width,height,margin))
     def grid(self, columns, gap=12): return Widget(self.app, lib.cui_grid(self.ptr, columns, gap))
     def cell(self, row, column, row_span=1, column_span=1): return Widget(self.app, lib.cui_grid_cell(self.ptr, row, column, row_span, column_span))
     def wrap(self, gap=8): return Widget(self.app, lib.cui_wrap(self.ptr, gap))
@@ -831,6 +842,11 @@ class Widget(Handle):
     def text(self, value): lib.cui_set_text(self.ptr, _s(value))
     @property
     def selected_text(self): return self._text(True)
+    def allocated_size(self):
+        width, height = I(), I()
+        if not lib.cui_widget_get_size(self.ptr, C.byref(width), C.byref(height)): return None
+        return width.value, height.value
+    def textarea_height(self, height): return bool(lib.cui_textarea_set_height(self.ptr, height))
     def min_size(self, width, height): lib.cui_set_min_size(self.ptr, width, height)
     def expand(self, value=True): lib.cui_expand(self.ptr, value)
     def items(self, items): return bool(lib.cui_set_items(self.ptr, _strings(items), len(items)))
@@ -878,3 +894,24 @@ for _name in ('enabled', 'visible', 'role', 'placeholder', 'tooltip'):
     setattr(Widget, _name, _set)
 
 from .draw import Surface, Scene, CanvasEvent, DrawCommand, draw_capabilities
+from . import chat
+
+class WidgetStyle(C.Structure):
+    _fields_=[('background',C.c_uint),('foreground',C.c_uint),('border',C.c_uint),('radius',D),('border_width',D),('padding',I)]
+_bind('set_style',I,P,C.POINTER(WidgetStyle))
+def _widget_style(self,style=None):
+    return bool(lib.cui_set_style(self.ptr,C.byref(style) if style is not None else None))
+Widget.set_style = _widget_style
+
+SYMBOL_HOME = 27
+SYMBOL_PHONE = 28
+SYMBOL_VIDEO = 29
+SYMBOL_PEOPLE = 30
+SYMBOL_THREAD = 31
+SYMBOL_FILE = 32
+SYMBOL_DOWNLOAD = 33
+SYMBOL_POLL = 34
+SYMBOL_EMOJI = 35
+SYMBOL_ARROW_RIGHT = 36
+SYMBOL_LOCK = 37
+SYMBOL_PANEL = 38

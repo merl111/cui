@@ -55,7 +55,8 @@
         "cui_set_icon",
         "cui_get_icon",
         "cui_set_icon_only",
-        "cui_on_action"
+        "cui_on_action",
+        "cui_set_icon_trailing"
       ],
       "example": "examples/showcase/cases.inc",
       "capture_kind": "control",
@@ -131,16 +132,20 @@
       "name": "Text area",
       "category": "Inputs",
       "summary": "Multiline editing with native text behavior.",
-      "behavior": "Read the full UTF-8 value with the two-call cui_get_text pattern. User edits emit on_action; setting text is silent.",
+      "behavior": "Read the full UTF-8 value with the two-call cui_get_text pattern. User edits emit on_action; setting text is silent. The preferred height can be adjusted from 24 to 2048 logical units for growing composers. Navigation key callbacks can consume Enter or Escape while active IME composition retains its keys.",
       "limitations": "Business validation and persistence belong to the application.",
       "api": [
         "cui_textarea",
-        "cui_set_min_size"
+        "cui_set_min_size",
+        "cui_textarea_set_height",
+        "cui_widget_get_size",
+        "cui_on_key"
       ],
       "example": "examples/showcase/cases.inc",
       "capture_kind": "control",
       "status": "implemented",
-      "image": "images/components/textarea.png"
+      "image": "images/components/textarea.png",
+      "guide": "chat"
     },
     {
       "id": "code",
@@ -406,6 +411,23 @@
       "image": "images/components/box.png"
     },
     {
+      "id": "stack",
+      "name": "Layered stack",
+      "category": "Layout",
+      "summary": "Compose dialogs, floating panels and notices inside one native window.",
+      "behavior": "The first layer fills the base; later layers overlap in insertion order with fill, center, top, bottom or bottom-right alignment. Each layer contains ordinary CUI controls. Hiding a layer preserves its state.",
+      "limitations": "Applications own dismissal, modality and focus restoration. Preferred overlay sizes must fit the content; GTK honors native minimum sizes. No built-in backdrop blur or shadow.",
+      "api": [
+        "cui_stack",
+        "cui_stack_layer",
+        "cui_set_visible"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/stack.png"
+    },
+    {
       "id": "grid",
       "name": "Grid",
       "category": "Layout",
@@ -591,12 +613,13 @@
       "name": "Autocomplete",
       "category": "Navigation",
       "summary": "Find a choice without leaving the keyboard.",
-      "behavior": "Copied choices have stable IDs, details, keywords and disabled state. Unicode search, arrow navigation, Enter, Escape and IME-aware key handling are supported.",
+      "behavior": "Copied choices have stable IDs, details, keywords and disabled state. Unicode search, arrow navigation, Enter, Escape and IME-aware key handling are supported. Result headings, status and action buttons are independently configurable through cui_picker_set_chrome.",
       "limitations": "Results expand in normal layout flow. This is not a floating popup or modal overlay.",
       "api": [
         "cui_picker",
         "cui_picker_set_items",
-        "cui_picker_open"
+        "cui_picker_open",
+        "cui_picker_set_chrome"
       ],
       "example": "examples/showcase/cases.inc",
       "capture_kind": "control",
@@ -608,12 +631,13 @@
       "name": "Command palette",
       "category": "Navigation",
       "summary": "Find a choice without leaving the keyboard.",
-      "behavior": "Copied choices have stable IDs, details, keywords and disabled state. Unicode search, arrow navigation, Enter, Escape and IME-aware key handling are supported.",
-      "limitations": "Results expand in normal layout flow. This is not a floating popup or modal overlay.",
+      "behavior": "Copied choices have stable IDs, details, keywords and disabled state. Unicode search, arrow navigation, Enter, Escape and IME-aware key handling are supported. Result headings, status and action buttons are independently configurable through cui_picker_set_chrome.",
+      "limitations": "Compose the picker inside a layered stack for an in-window overlay. The application owns input blocking, dismissal and focus restoration.",
       "api": [
         "cui_picker",
         "cui_picker_set_items",
-        "cui_picker_open"
+        "cui_picker_open",
+        "cui_picker_set_chrome"
       ],
       "example": "examples/showcase/cases.inc",
       "capture_kind": "control",
@@ -914,7 +938,7 @@
       "category": "Patterns",
       "summary": "Copied message collection, author/badge/metadata, selectable bodies, copy/removal, composer/send",
       "behavior": "Copied message collection, author/badge/metadata, selectable bodies, copy/removal, composer/send. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
-      "limitations": "Gallery appends local messages; rich text, avatars and virtualized history remain",
+      "limitations": "Legacy chat pattern. Use the shared C chat components for rich timelines, native composers and workspace layouts; see the chat guide.",
       "api": [
         "cui_pattern_create",
         "cui_pattern_set_items",
@@ -929,7 +953,8 @@
       "capture_kind": "control",
       "status": "prototype",
       "image": "images/components/pattern-chat.png",
-      "pattern": "CUI_CHAT"
+      "pattern": "CUI_CHAT",
+      "guide": "chat"
     },
     {
       "id": "pattern-prompt-bar",
@@ -1185,7 +1210,7 @@
       "name": "Canvas & compositing",
       "category": "Display",
       "summary": "Custom controls, layered color and translucent materials.",
-      "behavior": "Transactional RGBA surfaces with native text and icon rasterization, group alpha, rounded clips, blur and labeled interaction regions. Canvas copies the displayed frame and retains the source surface.",
+      "behavior": "Transactional RGBA surfaces with native text and icon rasterization, group alpha, rounded clips, blur and labeled interaction regions. Canvas copies the displayed frame and retains the source surface. Query the allocated size for responsive redraws, measure native single-line text for custom wrapping, and handle navigation keys for independently scrolling views.",
       "limitations": "CPU renderer; fixed surface dimensions/scale. Text is single-line with ellipsis. Native child-widget opacity varies by backend. No desktop backdrop capture or GPU context.",
       "api": [
         "cui_canvas",
@@ -1194,12 +1219,320 @@
         "cui_canvas_on_event",
         "cui_surface_create",
         "cui_surface_render",
-        "cui_set_opacity"
+        "cui_set_opacity",
+        "cui_widget_get_size",
+        "cui_text_measure",
+        "cui_on_key"
       ],
       "example": "examples/showcase/cases.inc",
       "capture_kind": "control",
       "status": "implemented",
-      "image": "images/components/canvas.png"
+      "image": "images/components/canvas.png",
+      "guide": "chat"
+    },
+    {
+      "id": "native-chat",
+      "name": "Native Chat",
+      "category": "Patterns",
+      "summary": "Shared C timelines, composers, room navigation, headers, spaces, inspectors and persistent workspaces.",
+      "behavior": "C owns copied models, native text input, layout, rendering, activation regions and pane state. Applications handle emitted actions.",
+      "limitations": "Visual parity with the reference concepts remains in progress. Linux validated; macOS and Windows need native verification. No Matrix transport or call media.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_set_messages",
+        "cui_chat_set_rooms",
+        "cui_chat_refresh",
+        "cui_chat_event_get"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/native-chat.png",
+      "guide": "chat"
+    },
+    {
+      "id": "chat-rooms",
+      "name": "Room navigation",
+      "category": "Chat",
+      "summary": "Grouped room and contact lists with previews, unread badges, timestamps and presence.",
+      "behavior": "Shared C rendering with independent presentation and palette choices. Copied models and stable IDs keep data and actions application-owned. Rust, Python, Go and Zig expose the same APIs.",
+      "limitations": "Desktop Linux captures and contracts are validated. macOS/Windows execution remains pending. No networking, persistence or media transport is bundled.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_set_rooms",
+        "cui_chat_refresh",
+        "cui_chat_event_get",
+        "cui_chat_set_presentation"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/chat-rooms.png",
+      "guide": "chat"
+    },
+    {
+      "id": "chat-timeline",
+      "name": "Message timeline",
+      "category": "Chat",
+      "summary": "Scrollable rich history with grouped messages, inline actions and anchored updates.",
+      "behavior": "Shared C rendering with independent presentation and palette choices. Copied models and stable IDs keep data and actions application-owned. Rust, Python, Go and Zig expose the same APIs.",
+      "limitations": "Desktop Linux captures and contracts are validated. macOS/Windows execution remains pending. No networking, persistence or media transport is bundled.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_set_messages",
+        "cui_chat_refresh",
+        "cui_chat_event_get",
+        "cui_chat_set_presentation",
+        "cui_chat_set_commands"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/chat-timeline.png",
+      "guide": "chat"
+    },
+    {
+      "id": "chat-composer",
+      "name": "Message composer",
+      "category": "Chat",
+      "summary": "Native multiline input with reply/edit context, files, keyboard send and cancellation.",
+      "behavior": "Shared C rendering with independent presentation and palette choices. Copied models and stable IDs keep data and actions application-owned. Rust, Python, Go and Zig expose the same APIs.",
+      "limitations": "Desktop Linux captures and contracts are validated. macOS/Windows execution remains pending. No networking, persistence or media transport is bundled.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_compose_context",
+        "cui_chat_refresh",
+        "cui_chat_event_get",
+        "cui_chat_set_presentation"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/chat-composer.png",
+      "guide": "chat"
+    },
+    {
+      "id": "chat-workspace",
+      "name": "Conversation workspace",
+      "category": "Chat",
+      "summary": "One to four persistent pane roots with focus, close and maximize/restore.",
+      "behavior": "Shared C rendering with independent presentation and palette choices. Copied models and stable IDs keep data and actions application-owned. Rust, Python, Go and Zig expose the same APIs.",
+      "limitations": "Desktop Linux captures and contracts are validated. macOS/Windows execution remains pending. No networking, persistence or media transport is bundled.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_workspace_layout",
+        "cui_chat_refresh",
+        "cui_chat_event_get",
+        "cui_chat_set_presentation"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/chat-workspace.png",
+      "guide": "chat"
+    },
+    {
+      "id": "chat-header",
+      "name": "Conversation header",
+      "category": "Chat",
+      "summary": "Room identity, subtitle and application-defined actions with stable command IDs.",
+      "behavior": "Shared C rendering with independent presentation and palette choices. Copied models and stable IDs keep data and actions application-owned. Rust, Python, Go and Zig expose the same APIs.",
+      "limitations": "Desktop Linux captures and contracts are validated. macOS/Windows execution remains pending. No networking, persistence or media transport is bundled.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_set_rooms",
+        "cui_chat_refresh",
+        "cui_chat_event_get",
+        "cui_chat_set_presentation",
+        "cui_chat_set_commands"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/chat-header.png",
+      "guide": "chat"
+    },
+    {
+      "id": "chat-spaces",
+      "name": "Space navigation",
+      "category": "Chat",
+      "summary": "Horizontal space tabs or a vertical rail with selection and unread counters.",
+      "behavior": "Shared C rendering with independent presentation and palette choices. Copied models and stable IDs keep data and actions application-owned. Rust, Python, Go and Zig expose the same APIs.",
+      "limitations": "Desktop Linux captures and contracts are validated. macOS/Windows execution remains pending. No networking, persistence or media transport is bundled.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_set_rooms",
+        "cui_chat_refresh",
+        "cui_chat_event_get",
+        "cui_chat_set_presentation"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/chat-spaces.png",
+      "guide": "chat"
+    },
+    {
+      "id": "chat-inspector",
+      "name": "Context inspector",
+      "category": "Chat",
+      "summary": "Configurable tabs with profile, people-list and media-grid content layouts.",
+      "behavior": "Shared C rendering with independent presentation and palette choices. Copied models and stable IDs keep data and actions application-owned. Rust, Python, Go and Zig expose the same APIs.",
+      "limitations": "Desktop Linux captures and contracts are validated. macOS/Windows execution remains pending. No networking, persistence or media transport is bundled.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_set_rooms",
+        "cui_chat_refresh",
+        "cui_chat_event_get",
+        "cui_chat_set_presentation",
+        "cui_chat_set_commands"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/chat-inspector.png",
+      "guide": "chat"
+    },
+    {
+      "id": "chat-message",
+      "name": "Message bubble",
+      "category": "Chat",
+      "summary": "One reusable incoming or outgoing message with the same renderer as a timeline.",
+      "behavior": "Shared C rendering with independent presentation and palette choices. Copied models and stable IDs keep data and actions application-owned. Rust, Python, Go and Zig expose the same APIs.",
+      "limitations": "Desktop Linux captures and contracts are validated. macOS/Windows execution remains pending. No networking, persistence or media transport is bundled.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_set_messages",
+        "cui_chat_refresh",
+        "cui_chat_event_get",
+        "cui_chat_set_presentation",
+        "cui_chat_set_commands"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/chat-message.png",
+      "guide": "chat"
+    },
+    {
+      "id": "attachment-card",
+      "name": "Attachment card",
+      "category": "Chat",
+      "summary": "Filename, metadata, file icon and an activation event carrying the attachment ID.",
+      "behavior": "Shared C rendering with independent presentation and palette choices. Copied models and stable IDs keep data and actions application-owned. Rust, Python, Go and Zig expose the same APIs.",
+      "limitations": "Desktop Linux captures and contracts are validated. macOS/Windows execution remains pending. No networking, persistence or media transport is bundled.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_set_messages",
+        "cui_chat_refresh",
+        "cui_chat_event_get",
+        "cui_chat_set_presentation"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/attachment-card.png",
+      "guide": "chat"
+    },
+    {
+      "id": "reaction-strip",
+      "name": "Reaction strip",
+      "category": "Chat",
+      "summary": "Compact reaction counters and selected states with typed activation events.",
+      "behavior": "Shared C rendering with independent presentation and palette choices. Copied models and stable IDs keep data and actions application-owned. Rust, Python, Go and Zig expose the same APIs.",
+      "limitations": "Desktop Linux captures and contracts are validated. macOS/Windows execution remains pending. No networking, persistence or media transport is bundled.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_set_messages",
+        "cui_chat_refresh",
+        "cui_chat_event_get",
+        "cui_chat_set_presentation"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/reaction-strip.png",
+      "guide": "chat"
+    },
+    {
+      "id": "poll-card",
+      "name": "Poll card",
+      "category": "Chat",
+      "summary": "Reusable options, selected vote, results and closed state; totals stay hidden before voting.",
+      "behavior": "Shared C rendering with independent presentation and palette choices. Copied models and stable IDs keep data and actions application-owned. Rust, Python, Go and Zig expose the same APIs.",
+      "limitations": "Desktop Linux captures and contracts are validated. macOS/Windows execution remains pending. No networking, persistence or media transport is bundled.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_set_messages",
+        "cui_chat_refresh",
+        "cui_chat_event_get",
+        "cui_chat_set_presentation"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/poll-card.png",
+      "guide": "chat"
+    },
+    {
+      "id": "reply-preview",
+      "name": "Reply preview",
+      "category": "Chat",
+      "summary": "Compact author and excerpt for quoted-message context.",
+      "behavior": "Shared C rendering with independent presentation and palette choices. Copied models and stable IDs keep data and actions application-owned. Rust, Python, Go and Zig expose the same APIs.",
+      "limitations": "Desktop Linux captures and contracts are validated. macOS/Windows execution remains pending. No networking, persistence or media transport is bundled.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_set_messages",
+        "cui_chat_refresh",
+        "cui_chat_event_get",
+        "cui_chat_set_presentation"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/reply-preview.png",
+      "guide": "chat"
+    },
+    {
+      "id": "thread-summary",
+      "name": "Thread summary",
+      "category": "Chat",
+      "summary": "Reply count and preview with a typed thread-opening action.",
+      "behavior": "Shared C rendering with independent presentation and palette choices. Copied models and stable IDs keep data and actions application-owned. Rust, Python, Go and Zig expose the same APIs.",
+      "limitations": "Desktop Linux captures and contracts are validated. macOS/Windows execution remains pending. No networking, persistence or media transport is bundled.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_set_messages",
+        "cui_chat_refresh",
+        "cui_chat_event_get",
+        "cui_chat_set_presentation"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/thread-summary.png",
+      "guide": "chat"
+    },
+    {
+      "id": "avatar",
+      "name": "Avatar and presence",
+      "category": "Chat",
+      "summary": "Circular or rounded-square identity initials with optional online status.",
+      "behavior": "Shared C rendering with independent presentation and palette choices. Copied models and stable IDs keep data and actions application-owned. Rust, Python, Go and Zig expose the same APIs.",
+      "limitations": "Desktop Linux captures and contracts are validated. macOS/Windows execution remains pending. No networking, persistence or media transport is bundled.",
+      "api": [
+        "cui_chat_create",
+        "cui_chat_set_rooms",
+        "cui_chat_refresh",
+        "cui_chat_event_get",
+        "cui_chat_set_presentation"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/avatar.png",
+      "guide": "chat"
     }
   ]
 }

@@ -14,6 +14,8 @@ static gboolean pressed(GtkEventControllerKey *controller,guint key,guint code,G
     case GDK_KEY_Down:case GDK_KEY_KP_Down:value=CUI_KEY_DOWN;break;
     case GDK_KEY_Home:value=CUI_KEY_HOME;break;
     case GDK_KEY_End:value=CUI_KEY_END;break;
+    case GDK_KEY_Page_Up:value=CUI_KEY_PAGE_UP;break;
+    case GDK_KEY_Page_Down:value=CUI_KEY_PAGE_DOWN;break;
     default:return FALSE;
     }
     if(flags&(GDK_SUPER_MASK|GDK_HYPER_MASK|GDK_META_MASK))return FALSE;
@@ -32,6 +34,7 @@ int cui__backend_keys(cui_widget *w)
     g_object_set_data(w->native,"cui-keys",keys);
     GtkEditable *editable=GTK_IS_EDITABLE(w->native)?gtk_editable_get_delegate(GTK_EDITABLE(w->native)):NULL;
     if(editable && GTK_IS_TEXT(editable))g_signal_connect(editable,"preedit-changed",G_CALLBACK(preedit),w);
+    if(w->kind==CUI_TEXTAREA)g_signal_connect(w->aux,"preedit-changed",G_CALLBACK(preedit),w);
     return 1;
 }
 int cui__backend_hover(const cui_widget *w)

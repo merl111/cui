@@ -1154,3 +1154,29 @@ func (w Window) Anchor(parent Window, rect [4]int) bool {
 	parent.app.check()
 	return C.cui_window_set_anchor(w.ptr, parent.ptr, C.int(rect[0]), C.int(rect[1]), C.int(rect[2]), C.int(rect[3])) != 0
 }
+
+// AllocatedSize returns actual logical pixel dimensions after native layout.
+func (w Widget) AllocatedSize() (width, height int, ok bool) {
+	w.app.check()
+	var x, y C.int
+	ok = C.cui_widget_get_size(w.ptr, &x, &y) != 0
+	return int(x), int(y), ok
+}
+func (w Widget) TextareaHeight(height int) bool {
+	w.app.check()
+	return C.cui_textarea_set_height(w.ptr, C.int(height)) != 0
+}
+
+const (
+	LayerFill = iota
+	LayerCenter
+	LayerTop
+	LayerBottom
+	LayerBottomRight
+)
+
+func (w Widget) Stack() Widget { w.app.check(); return widget(w.app, C.cui_stack(w.ptr)) }
+func (w Widget) StackLayer(alignment, width, height, margin int) Widget {
+	w.app.check()
+	return widget(w.app, C.cui_stack_layer(w.ptr, C.cui_layer_alignment(alignment), C.int(width), C.int(height), C.int(margin)))
+}

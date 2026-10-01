@@ -51,6 +51,19 @@ unsigned cui_draw_capabilities(void) {
   return CUI_DRAW_ALPHA | CUI_DRAW_GROUPS | CUI_DRAW_BLUR |
          CUI_DRAW_TEXT_SHAPING | CUI_DRAW_REGIONS;
 }
+int cui_text_measure(const char *text, const char *family, double size,
+                     int weight, double *width, double *height) {
+  if (!text || !width || !height || !isfinite(size) || size < 1 || size > 512 ||
+      weight < 100 || weight > 900 || strlen(text) > 65536)
+    return 0;
+  int w = 0, h = 0;
+  unsigned char *mask = cui__draw_text(text, family, size, weight, 4096, &w, &h);
+  if (!mask) return 0;
+  free(mask);
+  *width = *text ? w : 0;
+  *height = h;
+  return 1;
+}
 cui_surface *cui_surface_create(int width, int height, double scale) {
   if (width < 1 || height < 1 || !isfinite(scale) || scale < 0.25 ||
       scale > 8 || width * scale > 4096 || height * scale > 4096)

@@ -144,3 +144,11 @@ void cui__backend_table_cell(cui_widget *w,size_t row,size_t column)
 
 void cui__backend_table_reveal(cui_widget *w,size_t row)
 {ListView_EnsureVisible((HWND)w->native,(int)row,FALSE);}
+
+void cui__backend_table_headers(cui_widget *w,int visible)
+{
+    HWND hwnd=(HWND)w->native;
+    LONG_PTR flags=GetWindowLongPtrW(hwnd,GWL_STYLE);
+    SetWindowLongPtrW(hwnd,GWL_STYLE,visible?flags&~LVS_NOCOLUMNHEADER:flags|LVS_NOCOLUMNHEADER);
+    SetWindowPos(hwnd,NULL,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE|SWP_NOZORDER|SWP_FRAMECHANGED);
+}

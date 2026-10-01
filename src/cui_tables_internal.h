@@ -16,6 +16,7 @@ void cui__table_select(cui_widget *w, int row);
 void cui__table_selection_changed(cui_widget *w);
 void cui__table_edit(cui_widget *w, size_t row, size_t column, const char *text);
 void cui__table_sort(cui_widget *w, size_t column, int descending);
+void cui__backend_table_headers(cui_widget *w,int visible);
 void cui__backend_table_selection(cui_widget *w);
 void cui__backend_table_reveal(cui_widget *w,size_t row);
 void cui__backend_table_cell(cui_widget *w, size_t row, size_t column);

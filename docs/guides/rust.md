@@ -127,7 +127,7 @@ cargo doc --offline --manifest-path bindings/rust/Cargo.toml --no-deps
 
 ## Verification and maintenance
 
-`tools/generate_rust_bindings.py` regenerates the checked-in raw declarations from all public headers without bindgen or libclang. `--check` rejects stale output. `tools/check_bindings.py` checks declaration arity and raw/convenience coverage against every C function. `tools/check_rust_abi.py` independently compiles C and Rust probes and compares 304 enum values, sizes, alignments and field offsets on the host ABI.
+`tools/generate_rust_bindings.py` regenerates the checked-in raw declarations from all public headers without bindgen or libclang. `--check` rejects stale output. `tools/check_bindings.py` checks declaration arity and raw/convenience coverage against every C function. `tools/check_rust_abi.py` independently compiles C and Rust probes and compares enum values, sizes, alignments and field offsets on the host ABI.
 
 ```sh
 cmake -S . -B build -DCUI_BUILD_SHARED=ON -DCUI_BUILD_TESTS=ON -DCUI_BUILD_BINDING_TESTS=ON
@@ -141,3 +141,28 @@ The full binding suite needs Python, Go, Zig, Rust and Xvfb on Linux. Rust tests
 ## Custom drawing
 
 See [Drawing and compositing](drawing.md) for surfaces, group opacity, native text, icons, blur and accessible hit regions, with a runnable example in this language.
+
+
+## Chat interfaces
+
+The [chat component guide](chat.md) covers `cui::chat`: room navigation, measured
+rich timelines, replies, reactions, polls, threads, a native composer, persistent
+conversation panes and reusable panels. Explore Nebula, Daylight and Tiles through
+native screenshots and the [runnable example](../../bindings/rust/examples/chat_components.rs).
+The guide documents model ownership, event handling, integration and fidelity limits.
+
+
+For the full Daylight application composition, run:
+
+```sh
+CUI_LIB_DIR="$PWD/build-chat" cargo run --offline \
+  --manifest-path bindings/rust/Cargo.toml --example daylight
+```
+
+[Entry point](../../bindings/rust/examples/daylight.rs) ·
+[Application state](../../bindings/rust/examples/daylight/state.rs) ·
+[Composition](../../bindings/rust/examples/daylight/ui.rs).
+These are application-level Rust models and event handlers over the reusable C
+components. Navigation, per-room drafts, polls, reactions, inspector tabs,
+threads and verification are exercised at 1× and 2× scale. The chat guide
+includes native C/Rust comparison captures and the remaining HTML fidelity gaps.

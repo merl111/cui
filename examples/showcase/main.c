@@ -1,5 +1,6 @@
 #include "cui.h"
 #include "cui_draw.h"
+#include "cui_chat.h"
 #include "cui_desktop.h"
 #include "cui_layouts.h"
 #include "cui_inputs.h"
@@ -19,11 +20,18 @@ typedef struct showcase_case { const char *id, *name; void (*create)(cui_widget 
 static cui_app *app;
 static cui_window *window;
 static cui_widget *status;
+static cui_widget *chat_preview;
 static size_t current;
 static int smoke, capture, settling;
 static volatile sig_atomic_t advance;
 static void clicked(cui_widget *sender, void *data)
 { (void)sender; (void)data; cui_set_text(status, "Action received by the application."); }
+static void chat_clicked(cui_widget *sender,void *data)
+{
+    (void)data;cui_chat_event event;if(!cui_chat_event_get(sender,&event))return;
+    char value[160];snprintf(value,sizeof(value),"Application action %d · item %llu · option %u",event.action,(unsigned long long)event.id,event.index);
+    cui_set_text(status,value);
+}
 static void command_clicked(void *data)
 { clicked(NULL, data); }
 static void pattern_clicked(cui_widget *sender, void *data)
@@ -69,6 +77,7 @@ static void popup_menu(cui_widget *sender, void *data)
 static void show_case(void)
 {
     cui_window *previous = window;
+    chat_preview = NULL;
     int height = !strncmp(cases[current].id, "pattern-", 8) ? 800 : 540;
     window = cui_window_create(app, "CUI Showcase", 680, height);
     if (!window) { fputs("Could not create showcase window\n", stderr); exit(1); }
@@ -92,6 +101,7 @@ static void next_signal(int signal_number)
 static void tick(void *data)
 {
     (void)data;
+    if (chat_preview) cui_chat_refresh(chat_preview, cui_window_scale(window));
     if (++settling == 6) { printf("READY %s\n", cases[current].id); fflush(stdout); }
     if ((smoke && settling >= 6) || advance) {
         advance = 0;

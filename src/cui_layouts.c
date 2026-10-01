@@ -50,3 +50,16 @@ int cui__grid_default_slot(const cui_widget *grid, cui_widget *child)
             if (!(occupied[row]&(UINT64_C(1)<<column))) { child->grid_row=row;child->grid_column=column;return 1; }
     return 0;
 }
+
+cui_widget *cui_stack(cui_widget *parent)
+{
+    cui_widget *w=cui__append(parent,CUI_STACK,"",CUI_VERTICAL,0);
+    if(w){cui__backend_container(w);cui_expand(w,1);}return w;
+}
+cui_widget *cui_stack_layer(cui_widget *stack,cui_layer_alignment alignment,int width,int height,int margin)
+{
+    if(!stack||stack->kind!=CUI_STACK||alignment<CUI_LAYER_FILL||alignment>CUI_LAYER_BOTTOM_RIGHT||width<0||height<0||margin<0||width>4096||height>4096||margin>2048)return NULL;
+    cui_widget *layer=cui_box(stack,CUI_VERTICAL,0);if(!layer)return NULL;
+    layer->layer_alignment=alignment;layer->layer_width=width;layer->layer_height=height;layer->layer_margin=margin;
+    cui_box_set_padding(layer,0);cui__backend_container(layer);cui__backend_refresh(stack->window);return layer;
+}

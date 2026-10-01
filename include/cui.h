@@ -15,9 +15,10 @@ typedef void (*cui_callback)(cui_widget *sender, void *userdata);
 typedef void (*cui_task)(void *userdata);
 typedef enum cui_key {
     CUI_KEY_BACKSPACE=8, CUI_KEY_TAB=9, CUI_KEY_ENTER=13, CUI_KEY_ESCAPE=27,
-    CUI_KEY_UP=256, CUI_KEY_DOWN, CUI_KEY_HOME, CUI_KEY_END
+    CUI_KEY_UP=256, CUI_KEY_DOWN, CUI_KEY_HOME, CUI_KEY_END,
+    CUI_KEY_PAGE_UP, CUI_KEY_PAGE_DOWN
 } cui_key;
-/* Navigation keys on entry/search/password and list/table controls. Return 1 to consume.
+/* Navigation keys on entry/search/password/textarea/canvas and list/table controls. Return 1 to consume.
  * Active IME composition retains the keys it needs. Modifiers use CUI_MOD_*
  * from cui_desktop.h; Control also sets PRIMARY on Windows/Linux. NULL removes
  * the handler; text edits still use on_action. */
@@ -37,7 +38,7 @@ typedef enum cui_role {
 
 /* Original built-in vector symbols. No icon fonts or external assets. */
 typedef enum cui_symbol {
-    CUI_SYMBOL_NONE, CUI_SYMBOL_PLAY, CUI_SYMBOL_PAUSE, CUI_SYMBOL_PREVIOUS, CUI_SYMBOL_NEXT, CUI_SYMBOL_VOLUME, CUI_SYMBOL_MUTED, CUI_SYMBOL_SHUFFLE, CUI_SYMBOL_REPEAT, CUI_SYMBOL_SEARCH, CUI_SYMBOL_MENU, CUI_SYMBOL_MORE, CUI_SYMBOL_ATTACH, CUI_SYMBOL_SEND, CUI_SYMBOL_HEART, CUI_SYMBOL_HEART_FILLED, CUI_SYMBOL_REPLY, CUI_SYMBOL_INFO, CUI_SYMBOL_CLOSE, CUI_SYMBOL_PLUS, CUI_SYMBOL_CHECK, CUI_SYMBOL_UP, CUI_SYMBOL_DOWN, CUI_SYMBOL_PIN, CUI_SYMBOL_ARCHIVE, CUI_SYMBOL_MAIL, CUI_SYMBOL_EDIT, CUI_SYMBOL_COUNT
+    CUI_SYMBOL_NONE, CUI_SYMBOL_PLAY, CUI_SYMBOL_PAUSE, CUI_SYMBOL_PREVIOUS, CUI_SYMBOL_NEXT, CUI_SYMBOL_VOLUME, CUI_SYMBOL_MUTED, CUI_SYMBOL_SHUFFLE, CUI_SYMBOL_REPEAT, CUI_SYMBOL_SEARCH, CUI_SYMBOL_MENU, CUI_SYMBOL_MORE, CUI_SYMBOL_ATTACH, CUI_SYMBOL_SEND, CUI_SYMBOL_HEART, CUI_SYMBOL_HEART_FILLED, CUI_SYMBOL_REPLY, CUI_SYMBOL_INFO, CUI_SYMBOL_CLOSE, CUI_SYMBOL_PLUS, CUI_SYMBOL_CHECK, CUI_SYMBOL_UP, CUI_SYMBOL_DOWN, CUI_SYMBOL_PIN, CUI_SYMBOL_ARCHIVE, CUI_SYMBOL_MAIL, CUI_SYMBOL_EDIT, CUI_SYMBOL_HOME, CUI_SYMBOL_PHONE, CUI_SYMBOL_VIDEO, CUI_SYMBOL_PEOPLE, CUI_SYMBOL_THREAD, CUI_SYMBOL_FILE, CUI_SYMBOL_DOWNLOAD, CUI_SYMBOL_POLL, CUI_SYMBOL_EMOJI, CUI_SYMBOL_ARROW_RIGHT, CUI_SYMBOL_LOCK, CUI_SYMBOL_PANEL, CUI_SYMBOL_COUNT
 } cui_symbol;
 /* Immutable, reference-counted icon assets. Creation copies the input. Assets
  * are independent of apps; widgets retain them. Release your reference after
@@ -82,6 +83,8 @@ cui_icon_asset *cui_get_icon(const cui_widget *widget);
 int cui_set_icon_size(cui_widget *widget, int logical_size);
 /* Toggle between icon-only and icon-with-label on buttons/toggles. */
 int cui_set_icon_only(cui_widget *widget, int icon_only);
+/* Place a button icon after its label; zero restores the leading position. */
+int cui_set_icon_trailing(cui_widget *widget, int trailing);
 
 /* All calls belong on the main thread. One app may exist at a time.
  * Strings are UTF-8; dimensions are logical units (96 DPI on Windows,
@@ -186,7 +189,22 @@ int cui_image_set_rgba(cui_widget *image, const unsigned char *pixels, int width
 void cui_clipboard_set_text(cui_window *window, const char *text);
 void cui_set_placeholder(cui_widget *entry, const char *text);
 void cui_set_tooltip(cui_widget *widget, const char *text);
+/* Optional application palette for custom compositions. Colors are RGBA.
+ * NULL restores platform styling. Padding/radius/border are logical pixels;
+ * dimensions must be finite, nonnegative and <=128. */
+typedef struct cui_widget_style {
+    unsigned background, foreground, border;
+    double radius, border_width;
+    int padding;
+} cui_widget_style;
+int cui_set_style(cui_widget *widget, const cui_widget_style *style);
 void cui_set_min_size(cui_widget *widget, int width, int height);
+/* Current allocated logical size. Returns zero before allocation or for NULL.
+ * Use to redraw custom components after a window or splitter changes size. */
+int cui_widget_get_size(const cui_widget *widget, int *width, int *height);
+/* Override the native textarea's preferred height (24..2048 logical units).
+ * A growing composer can recompute this after edits; scrolling remains native. */
+int cui_textarea_set_height(cui_widget *textarea, int height);
 void cui_set_visible(cui_widget *widget, int visible); /* Hidden items take no space. */
 
 /* Composed controls: portable buttons and boxes with shared state management. */

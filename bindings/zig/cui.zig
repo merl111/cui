@@ -2,6 +2,7 @@
 //! are also available through `c`. Widget handles are owned by App; Icon assets require deinit. Use the main thread.
 pub const c = @cImport({
     @cInclude("cui.h");
+    @cInclude("cui_chat.h");
     @cInclude("cui_draw.h");
     @cInclude("cui_patterns.h");
     @cInclude("cui_desktop.h");
@@ -150,6 +151,7 @@ pub const Window = struct {
     pub fn scrollable(self: Window, enabled: bool) void { c.cui_window_set_scrollable(self.raw, @intFromBool(enabled)); }
 };
 pub const Widget = struct {
+    pub fn setStyle(self:Widget,style:?*const c.cui_widget_style) bool {return c.cui_set_style(self.raw,style)!=0;}
     pub fn canvas(self:Widget) Error!Widget { return .{.raw=c.cui_canvas(self.raw) orelse return error.AllocationFailed}; }
     pub fn canvasSurface(self:Widget,surface:Surface) bool { return c.cui_canvas_set_surface(self.raw,surface.raw)!=0; }
     pub fn canvasRegions(self:Widget,regions:[]const c.cui_canvas_region) bool { return c.cui_canvas_set_regions(self.raw,regions.ptr,regions.len)!=0; }
@@ -186,6 +188,8 @@ pub const Widget = struct {
     pub fn list(self: Widget, items: []const [*:0]const u8) Error!Widget { return wrap(c.cui_list(self.raw, @ptrCast(items.ptr), items.len)); }
     pub fn setItems(self: Widget, items: []const [*:0]const u8) bool { return c.cui_set_items(self.raw, @ptrCast(items.ptr), items.len) != 0; }
     pub fn switchControl(self: Widget, content: [:0]const u8, checked: bool) Error!Widget { return wrap(c.cui_switch(self.raw, content, @intFromBool(checked))); }
+    pub fn stack(self: Widget) Error!Widget {return wrap(c.cui_stack(self.raw));}
+    pub fn stackLayer(self: Widget, alignment:c.cui_layer_alignment,width:c_int,height:c_int,margin:c_int) Error!Widget {return wrap(c.cui_stack_layer(self.raw,alignment,width,height,margin));}
     pub fn grid(self: Widget, column_count: c_uint, gap: c_int) Error!Widget { return wrap(c.cui_grid(self.raw, column_count, gap)); }
     pub fn gridCell(self: Widget, row: c_uint, column: c_uint, row_span: c_uint, column_span: c_uint) Error!Widget { return wrap(c.cui_grid_cell(self.raw, row, column, row_span, column_span)); }
     pub fn wrapping(self: Widget, gap: c_int) Error!Widget { return wrap(c.cui_wrap(self.raw, gap)); }
@@ -235,6 +239,7 @@ pub const Widget = struct {
     pub fn feedbackPart(self: Widget, which: c.cui_feedback_part) ?Widget { return if(c.cui_feedback_get_part(self.raw,which)) |p| Widget{.raw=p} else null; }
     pub fn picker(self: Widget, kind: c.cui_picker_kind, placeholder_text: [:0]const u8) Error!Widget { return wrap(c.cui_picker(self.raw,kind,placeholder_text)); }
     pub fn pickerItems(self: Widget, items: []const c.cui_choice) bool { return c.cui_picker_set_items(self.raw,items.ptr,items.len)!=0; }
+    pub fn pickerChrome(self: Widget,headings: bool,status: bool,actions: bool) bool { return c.cui_picker_set_chrome(self.raw,@intFromBool(headings),@intFromBool(status),@intFromBool(actions))!=0; }
     pub fn pickerSetQuery(self: Widget, query: [:0]const u8) bool { return c.cui_picker_set_query(self.raw,query)!=0; }
     pub fn pickerQuery(self: Widget, buffer: []u8) usize { return c.cui_picker_get_query(self.raw,buffer.ptr,buffer.len); }
     pub fn pickerOpen(self: Widget, return_focus: ?Widget) void { c.cui_picker_open(self.raw,if(return_focus) |w| w.raw else null); }
@@ -279,6 +284,12 @@ pub const Widget = struct {
     pub fn role(self: Widget, new_role: c.cui_role) void { c.cui_set_role(self.raw, new_role); }
     pub fn padding(self: Widget, amount: c_int) void { c.cui_box_set_padding(self.raw, amount); }
     pub fn expand(self: Widget, enabled: bool) void { c.cui_expand(self.raw, @intFromBool(enabled)); }
+    pub fn allocatedSize(self: Widget) ?[2]c_int {
+        var dimensions: [2]c_int = .{0, 0};
+        if (c.cui_widget_get_size(self.raw, &dimensions[0], &dimensions[1]) == 0) return null;
+        return dimensions;
+    }
+    pub fn textareaHeight(self: Widget, height: c_int) bool { return c.cui_textarea_set_height(self.raw, height) != 0; }
     pub fn minSize(self: Widget, width: c_int, height: c_int) void { c.cui_set_min_size(self.raw, width, height); }
     pub fn text(self: Widget, content: [:0]const u8) void { c.cui_set_text(self.raw, content); }
     pub fn getText(self: Widget, buffer: []u8) usize { return c.cui_get_text(self.raw, buffer.ptr, buffer.len); }
@@ -330,6 +341,7 @@ pub const Widget = struct {
     pub fn setIcon(self: Widget,asset: ?Icon) bool { return c.cui_set_icon(self.raw,if(asset) |a| a.raw else null)!=0; }
     pub fn getIcon(self: Widget) ?Icon { return if(c.cui_get_icon(self.raw)) |a| (Icon{.raw=a}).retain() else null; }
     pub fn iconSize(self: Widget,size: c_int) bool { return c.cui_set_icon_size(self.raw,size)!=0; }
+    pub fn iconTrailing(self: Widget,trailing: bool) bool { return c.cui_set_icon_trailing(self.raw,@intFromBool(trailing))!=0; }
     pub fn iconOnly(self: Widget,only: bool) bool { return c.cui_set_icon_only(self.raw,@intFromBool(only))!=0; }
     pub fn symbolButton(self: Widget,symbol_value: c.cui_symbol,accessible_label: [:0]const u8) Error!Widget { const a=try Icon.symbol(symbol_value);defer a.deinit();return self.iconButton(a,accessible_label); }
     pub fn button(self: Widget, text_content: [:0]const u8) Error!Widget { return wrap(c.cui_button(self.raw, text_content)); }
@@ -348,4 +360,55 @@ pub const Widget = struct {
     pub fn separator(self: Widget) Error!Widget { return wrap(c.cui_separator(self.raw)); }
     pub fn tabs(self: Widget) Error!Widget { return wrap(c.cui_tabs(self.raw)); }
     pub fn image(self: Widget) Error!Widget { return wrap(c.cui_image(self.raw)); }
+};
+
+/// Native font metrics; call on the application's UI thread.
+pub fn measureText(text: [:0]const u8, family: ?[:0]const u8, size: f64, weight: c_int) ?[2]f64 {
+    var dimensions: [2]f64 = .{0, 0};
+    if (c.cui_text_measure(text, if (family) |f| f.ptr else null, size, weight, &dimensions[0], &dimensions[1]) == 0) return null;
+    return dimensions;
+}
+
+/// Chat rendering and interaction are implemented in C. Model slices and their
+/// strings are borrowed only during setters; C copies all nested data.
+pub const Chat = struct {
+    root: Widget,
+    pub fn init(parent:Widget,kind:c.cui_chat_kind,appearance:c.cui_chat_appearance) Error!Chat {return .{.root=.{.raw=c.cui_chat_create(parent.raw,kind,appearance) orelse return error.AllocationFailed}};}
+    pub fn color(l:f64,chroma:f64,hue:f64,alpha:f64) c_uint {return c.cui_chat_color(l,chroma,hue,alpha);}
+    pub fn theme(appearance:c.cui_chat_appearance) ?c.cui_chat_theme {var t:c.cui_chat_theme=undefined;return if(c.cui_chat_theme_get(appearance,&t)!=0)t else null;}
+    pub fn presentationPreset(preset:c.cui_chat_appearance) ?c.cui_chat_presentation {
+        var p:c.cui_chat_presentation=undefined;
+        return if(c.cui_chat_presentation_preset(preset,&p)!=0)p else null;
+    }
+    pub fn presentation(self:Chat) ?c.cui_chat_presentation {
+        var p:c.cui_chat_presentation=undefined;
+        return if(c.cui_chat_presentation_get(self.root.raw,&p)!=0)p else null;
+    }
+    pub fn setPresentation(self:Chat,value:*const c.cui_chat_presentation) bool {return c.cui_chat_set_presentation(self.root.raw,value)!=0;}
+    pub fn setCommands(self:Chat,items:[]const c.cui_chat_command) bool {return c.cui_chat_set_commands(self.root.raw,items.ptr,items.len)!=0;}
+    pub fn setTheme(self:Chat,value:*const c.cui_chat_theme) bool {return c.cui_chat_set_theme(self.root.raw,value)!=0;}
+    pub fn setMessages(self:Chat,items:[]const c.cui_chat_message) bool {return c.cui_chat_set_messages(self.root.raw,items.ptr,items.len)!=0;}
+    pub fn setRooms(self:Chat,items:[]const c.cui_chat_room) bool {return c.cui_chat_set_rooms(self.root.raw,items.ptr,items.len)!=0;}
+    pub fn select(self:Chat,id:u64) bool {return c.cui_chat_select(self.root.raw,id)!=0;}
+    pub fn setQuery(self:Chat,value:[:0]const u8) bool {return c.cui_chat_set_query(self.root.raw,value)!=0;}
+    pub fn setStatus(self:Chat,value:[:0]const u8) bool {return c.cui_chat_set_status(self.root.raw,value)!=0;}
+    pub fn refresh(self:Chat,scale:f64) bool {return c.cui_chat_refresh(self.root.raw,scale)!=0;}
+    pub fn event(self:Chat) ?c.cui_chat_event {var e:c.cui_chat_event=undefined;return if(c.cui_chat_event_get(self.root.raw,&e)!=0)e else null;}
+    pub fn part(self:Chat,index:c_uint) ?Widget {return if(c.cui_chat_part(self.root.raw,index))|w|.{.raw=w} else null;}
+    pub fn scroll(self:Chat,offset:f64) bool {return c.cui_chat_scroll(self.root.raw,offset)!=0;}
+    pub fn scrollTo(self:Chat,id:u64) bool {return c.cui_chat_scroll_to(self.root.raw,id)!=0;}
+    pub fn actionRegion(self:Chat,action:*const c.cui_chat_event) c_uint {return c.cui_chat_action_region(self.root.raw,action);}
+    pub fn scrollOffset(self:Chat) f64 {return c.cui_chat_scroll_offset(self.root.raw);}
+    pub fn composeContext(self:Chat,id:u64,author:[:0]const u8,preview:[:0]const u8,editing:bool) bool {return c.cui_chat_compose_context(self.root.raw,id,author,preview,@intFromBool(editing))!=0;}
+    pub fn composeFiles(self:Chat,files:[]const c.cui_chat_detail) bool {return c.cui_chat_compose_files(self.root.raw,files.ptr,files.len)!=0;}
+    pub fn composeBusy(self:Chat,busy:bool) bool {return c.cui_chat_compose_busy(self.root.raw,@intFromBool(busy))!=0;}
+    pub fn composeCancel(self:Chat) bool {return c.cui_chat_compose_cancel(self.root.raw)!=0;}
+    pub fn composeSubmit(self:Chat) bool {return c.cui_chat_compose_submit(self.root.raw)!=0;}
+    pub fn workspaceLayout(self:Chat,layout:c_uint) bool {return c.cui_chat_workspace_layout(self.root.raw,layout)!=0;}
+    pub fn workspaceFocus(self:Chat,pane:c_uint) bool {return c.cui_chat_workspace_focus(self.root.raw,pane)!=0;}
+    pub fn workspaceClose(self:Chat,pane:c_uint) bool {return c.cui_chat_workspace_close(self.root.raw,pane)!=0;}
+    pub fn workspaceMaximize(self:Chat,pane:c_uint) bool {return c.cui_chat_workspace_maximize(self.root.raw,pane)!=0;}
+    pub fn workspaceRestore(self:Chat) bool {return c.cui_chat_workspace_restore(self.root.raw)!=0;}
+    pub fn workspaceMask(self:Chat) c_uint {return c.cui_chat_workspace_mask(self.root.raw);}
+    pub fn workspaceFocused(self:Chat) c_uint {return c.cui_chat_workspace_focused(self.root.raw);}
 };

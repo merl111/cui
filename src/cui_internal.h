@@ -7,7 +7,7 @@ typedef enum cui_kind {
     CUI_BOX, CUI_LABEL, CUI_BUTTON, CUI_ENTRY, CUI_CHECKBOX,
     CUI_TOGGLE, CUI_SWITCH, CUI_RADIO, CUI_PASSWORD, CUI_SEARCH,
     CUI_TEXTAREA, CUI_CODE, CUI_SELECT, CUI_LIST, CUI_TABLE,
-    CUI_SLIDER, CUI_PROGRESS, CUI_SPINNER, CUI_SEPARATOR, CUI_BADGE, CUI_CHART, CUI_IMAGE, CUI_GRID, CUI_WRAP, CUI_SPLIT, CUI_TREE, CUI_NUMBER, CUI_DATE, CUI_TIME_INPUT, CUI_ICON, CUI_CANVAS
+    CUI_SLIDER, CUI_PROGRESS, CUI_SPINNER, CUI_SEPARATOR, CUI_BADGE, CUI_CHART, CUI_IMAGE, CUI_GRID, CUI_WRAP, CUI_SPLIT, CUI_TREE, CUI_NUMBER, CUI_DATE, CUI_TIME_INPUT, CUI_ICON, CUI_CANVAS, CUI_STACK
 } cui_kind;
 typedef enum cui_component { CUI_COMPONENT_NONE, CUI_COMPONENT_TABS, CUI_COMPONENT_DISCLOSURE, CUI_COMPONENT_FIELD, CUI_COMPONENT_BREADCRUMBS } cui_component;
 
@@ -18,12 +18,14 @@ struct cui_widget {
     cui_kind kind;
     cui_axis axis;
     cui_role role;
+    cui_widget_style style;
+    int styled;
     cui_icon_asset *icon;
-    int icon_only, icon_size;
+    int icon_only, icon_size, icon_trailing;
     cui_window *window;
     cui_widget *parent, *first, *last, *next;
     void *native, *aux, *font_native;
-    char *font_family;
+    char *font_family, *placeholder;
     double font_points;
     int font_weight;
     int font_style; /* 0 inherits, 1 upright, 2 italic. */
@@ -46,6 +48,7 @@ struct cui_widget {
     void *key_userdata;
     int composing;
     int gap, padding, expand, updating, enabled, read_only;
+    int layer_alignment, layer_width, layer_height, layer_margin;
     unsigned grid_columns, grid_row, grid_column, grid_row_span, grid_column_span;
     cui_size minimum;
     cui_rect frame;
@@ -94,7 +97,13 @@ struct cui_timer {
 };
 
 static inline int cui__container(const cui_widget *w)
-{ return w && (w->kind == CUI_BOX || w->kind == CUI_GRID || w->kind == CUI_WRAP || w->kind == CUI_SPLIT); }
+{ return w && (w->kind == CUI_BOX || w->kind == CUI_GRID || w->kind == CUI_WRAP || w->kind == CUI_SPLIT || w->kind == CUI_STACK); }
+static inline int cui__in_layer(const cui_widget *w)
+{
+    for(const cui_widget *c=w;c&&c->parent;c=c->parent)
+        if(c->parent->kind==CUI_STACK && c->parent->first && c!=c->parent->first)return 1;
+    return 0;
+}
 int cui__grid_default_slot(const cui_widget *grid, cui_widget *child);
 void cui__backend_container(cui_widget *widget);
 void cui__backend_grid_cell(cui_widget *widget);
@@ -127,6 +136,7 @@ int cui__backend_widget_create(cui_widget *widget, const char *text);
 void cui__backend_expand(cui_widget *widget);
 void cui__backend_padding(cui_widget *widget);
 void cui__backend_role(cui_widget *widget);
+void cui__backend_style(cui_widget *widget);
 void cui__backend_set_text(cui_widget *widget, const char *text);
 size_t cui__backend_get_text(const cui_widget *widget, char *buffer, size_t capacity);
 void cui__backend_set_checked(cui_widget *widget, int checked);

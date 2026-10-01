@@ -110,3 +110,10 @@ def get_opacity(self):return lib.cui_get_opacity(self.ptr)
 for name in ('canvas','canvas_set_surface','canvas_set_regions','on_canvas_event','canvas_focus_region','canvas_activate_region','set_opacity'):
     setattr(Widget,name,globals()[name])
 Widget.opacity=property(get_opacity,lambda self,v: set_opacity(self,v))
+
+_bind('text_measure', I, S, S, D, I, C.POINTER(D), C.POINTER(D))
+def measure_text(text, family='', size=14, weight=400):
+    width, height = D(), D()
+    if not lib.cui_text_measure(_s(text), _s(family), size, weight, C.byref(width), C.byref(height)):
+        raise ValueError('Invalid text measurement or native failure')
+    return width.value, height.value

@@ -55,6 +55,18 @@ const (
 	SymbolArchive
 	SymbolMail
 	SymbolEdit
+	SymbolHome
+	SymbolPhone
+	SymbolVideo
+	SymbolPeople
+	SymbolThread
+	SymbolFile
+	SymbolDownload
+	SymbolPoll
+	SymbolEmoji
+	SymbolArrowRight
+	SymbolLock
+	SymbolPanel
 )
 
 func iconResult(p *C.cui_icon_asset) (*IconAsset, error) {
@@ -143,6 +155,10 @@ func (w Widget) GetIcon() *IconAsset {
 func (w Widget) IconSize(size int) bool {
 	w.app.check()
 	return C.cui_set_icon_size(w.ptr, C.int(size)) != 0
+}
+func (w Widget) IconTrailing(trailing bool) bool {
+ w.app.check()
+ return C.cui_set_icon_trailing(w.ptr, C.int(boolIntIcon(trailing))) != 0
 }
 func (w Widget) IconOnly(only bool) bool {
 	w.app.check()

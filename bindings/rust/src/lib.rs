@@ -33,6 +33,12 @@
 //! Raw calls require the C lifetime, thread, buffer and callback contracts.
 #[rustfmt::skip]
 pub mod sys;
+pub mod chat;
+mod chat_native;
+pub use chat_native::{
+    chat_color, chat_presentation, ChatCommand, ChatKind, ChatPresentation, Event as ChatEvent,
+    NativeChat as ChatComponent,
+};
 mod desktop;
 mod draw;
 pub use draw::*;

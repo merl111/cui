@@ -8,6 +8,17 @@
 #import <objc/runtime.h>
 #include "cui_desktop_internal.h"
 
+@interface CUIPlaceholderText : NSTextView { @public cui_widget *model; }
+@end
+@implementation CUIPlaceholderText
+- (void)drawRect:(NSRect)dirty {
+    [super drawRect:dirty];
+    if(model&&model->placeholder&&!*[[self string] UTF8String]&&![self hasMarkedText]){
+        NSSize inset=[self textContainerInset];NSRect r=[self bounds];r.origin.x+=inset.width+5;r.origin.y+=inset.height;r.size.width-=2*inset.width+10;
+        [[NSString stringWithUTF8String:model->placeholder] drawInRect:r withAttributes:@{NSFontAttributeName:[self font],NSForegroundColorAttributeName:[NSColor placeholderTextColor]}];
+    }
+}
+@end
 @interface CUINumber : NSView <NSTextFieldDelegate> {
 @public cui_widget *widget; NSTextField *field; NSStepper *stepper;
 }
@@ -112,23 +123,56 @@ void cui__backend_icon(cui_widget *w)
     BOOL monochrome=!w->icon->pixels;
     for(size_t i=0;i<w->icon->count;i++)if(w->icon->commands[i].op>=CUI_ICON_FILL&&!w->icon->commands[i].current_color)monochrome=NO;
     [image setTemplate:monochrome];[button setImage:image];[image release];
-    [button setImagePosition:w->icon_only?NSImageOnly:NSImageLeft];
+    [button setImagePosition:w->icon_only?NSImageOnly:w->icon_trailing?NSImageRight:NSImageLeft];
     [button setAccessibilityLabel:[button title]];
     if(w->icon_only)[button setToolTip:[button title]];
 }
 
-@interface CUIMedia : NSView { @public cui_widget *widget; }
+@interface CUIMedia : NSView { @public cui_widget *widget; NSTrackingArea *hoverTracking; }
 @end
 void cui__mac_canvas_event(cui_widget *,NSView *,NSEvent *,cui_canvas_event_kind);
 void cui__mac_canvas_detach(NSView *view);
 @implementation CUIMedia
-- (void)dealloc { cui__mac_canvas_detach(self); [super dealloc]; }
+- (void)dealloc { if(hoverTracking){[self removeTrackingArea:hoverTracking];[hoverTracking release];} cui__mac_canvas_detach(self); [super dealloc]; }
+- (void)updateTrackingAreas {
+    [super updateTrackingAreas];
+    if(hoverTracking){[self removeTrackingArea:hoverTracking];[hoverTracking release];hoverTracking=nil;}
+    if(widget && widget->kind==CUI_CANVAS){
+        hoverTracking=[[NSTrackingArea alloc] initWithRect:NSZeroRect options:NSTrackingMouseMoved|NSTrackingMouseEnteredAndExited|NSTrackingActiveInKeyWindow|NSTrackingInVisibleRect owner:self userInfo:nil];
+        [self addTrackingArea:hoverTracking];
+    }
+}
+- (void)mouseMoved:(NSEvent *)e { if(widget->kind==CUI_CANVAS)cui__mac_canvas_event(widget,self,e,CUI_CANVAS_MOVE);else [super mouseMoved:e]; }
+- (void)mouseExited:(NSEvent *)e { if(widget->kind==CUI_CANVAS)cui__canvas_event(widget,CUI_CANVAS_MOVE,-1,-1,0,0,0);else [super mouseExited:e]; }
 - (BOOL)acceptsFirstResponder { return widget->kind==CUI_CANVAS; }
 - (void)mouseDown:(NSEvent *)e { if(widget->kind==CUI_CANVAS)cui__mac_canvas_event(widget,self,e,CUI_CANVAS_PRESS);else [super mouseDown:e]; }
 - (void)mouseUp:(NSEvent *)e { if(widget->kind==CUI_CANVAS)cui__mac_canvas_event(widget,self,e,CUI_CANVAS_RELEASE);else [super mouseUp:e]; }
 - (void)mouseDragged:(NSEvent *)e { if(widget->kind==CUI_CANVAS)cui__mac_canvas_event(widget,self,e,CUI_CANVAS_MOVE);else [super mouseDragged:e]; }
 - (void)scrollWheel:(NSEvent *)e { if(widget->kind==CUI_CANVAS)cui__mac_canvas_event(widget,self,e,CUI_CANVAS_SCROLL);else [super scrollWheel:e]; }
-- (void)keyDown:(NSEvent *)e { NSString *value=[e charactersIgnoringModifiers];if(widget->kind==CUI_CANVAS&&[value length]){unichar key=[value characterAtIndex:0];if(key==9||key==NSBackTabCharacter){cui__canvas_key(widget,([e modifierFlags]&NSEventModifierFlagShift)!=0,0);return;}if(key==13||key==32){cui__canvas_key(widget,0,1);return;}}[super keyDown:e]; }
+- (void)keyDown:(NSEvent *)e {
+    NSString *keys=[e charactersIgnoringModifiers];
+    if(widget->kind==CUI_CANVAS && [keys length]) {
+        cui_key key=0;
+        switch([keys characterAtIndex:0]) {
+        case NSPageUpFunctionKey:key=CUI_KEY_PAGE_UP;break;
+        case NSPageDownFunctionKey:key=CUI_KEY_PAGE_DOWN;break;
+        case NSHomeFunctionKey:key=CUI_KEY_HOME;break;
+        case NSEndFunctionKey:key=CUI_KEY_END;break;
+        case NSUpArrowFunctionKey:key=CUI_KEY_UP;break;
+        case NSDownArrowFunctionKey:key=CUI_KEY_DOWN;break;
+        case 13:case 3:key=CUI_KEY_ENTER;break;
+        case 27:key=CUI_KEY_ESCAPE;break;
+        case 127:key=CUI_KEY_BACKSPACE;break;
+        case 9:case NSBackTabCharacter:key=CUI_KEY_TAB;break;
+        }
+        NSEventModifierFlags flags=[e modifierFlags];unsigned mods=0;
+        if(flags&NSEventModifierFlagShift)mods|=CUI_MOD_SHIFT;
+        if(flags&NSEventModifierFlagOption)mods|=CUI_MOD_ALT;
+        if(flags&NSEventModifierFlagControl)mods|=CUI_MOD_CONTROL;
+        if(flags&NSEventModifierFlagCommand)mods|=CUI_MOD_PRIMARY;
+        if(key && cui__key(widget,key,mods))return;
+    }
+    NSString *value=[e charactersIgnoringModifiers];if(widget->kind==CUI_CANVAS&&[value length]){unichar key=[value characterAtIndex:0];if(key==9||key==NSBackTabCharacter){cui__canvas_key(widget,([e modifierFlags]&NSEventModifierFlagShift)!=0,0);return;}if(key==13||key==32){cui__canvas_key(widget,0,1);return;}}[super keyDown:e]; }
 
 - (BOOL)isFlipped { return YES; }
 - (void)drawRect:(NSRect)dirty
@@ -200,6 +244,8 @@ void cui__mac_canvas_detach(NSView *view);
     else if(command==@selector(insertTab:)||command==@selector(insertBacktab:))key=CUI_KEY_TAB;
     else if(command==@selector(moveToBeginningOfLine:))key=CUI_KEY_HOME;
     else if(command==@selector(moveToEndOfLine:))key=CUI_KEY_END;
+    else if(command==@selector(pageUp:))key=CUI_KEY_PAGE_UP;
+    else if(command==@selector(pageDown:))key=CUI_KEY_PAGE_DOWN;
     if(!key)return NO;
     NSEventModifierFlags flags=[[NSApp currentEvent] modifierFlags];unsigned mods=0;
     if(flags&NSEventModifierFlagShift)mods|=CUI_MOD_SHIFT;
@@ -209,6 +255,8 @@ void cui__mac_canvas_detach(NSView *view);
     return cui__key(widget,key,mods);
 }
 - (void)textDidChange:(NSNotification *)note { (void)note; cui__emit(widget); }
+- (BOOL)textView:(NSTextView *)view doCommandBySelector:(SEL)command
+{ return [self control:nil textView:view doCommandBySelector:command]; }
 @end
 
 @interface CUIKeyTable : NSTableView { @public cui_widget *model; }
@@ -220,6 +268,7 @@ void cui__mac_canvas_detach(NSView *view);
     if([text length])switch([text characterAtIndex:0]){
         case NSUpArrowFunctionKey:key=CUI_KEY_UP;break;case NSDownArrowFunctionKey:key=CUI_KEY_DOWN;break;
         case NSHomeFunctionKey:key=CUI_KEY_HOME;break;case NSEndFunctionKey:key=CUI_KEY_END;break;
+        case NSPageUpFunctionKey:key=CUI_KEY_PAGE_UP;break;case NSPageDownFunctionKey:key=CUI_KEY_PAGE_DOWN;break;
         case 13:case 3:key=CUI_KEY_ENTER;break;case 27:key=CUI_KEY_ESCAPE;break;
         case 127:key=CUI_KEY_BACKSPACE;break;case 9:key=CUI_KEY_TAB;break;
     }
@@ -313,10 +362,27 @@ static void draw_ambient(cui_widget *widget)
     [gradient release];
 }
 
+static NSColor *custom_color(unsigned c)
+{ return [NSColor colorWithSRGBRed:(c>>24)/255. green:((c>>16)&255)/255. blue:((c>>8)&255)/255. alpha:(c&255)/255.]; }
+void cui__backend_style(cui_widget *w)
+{
+    if(w->native){NSView *v=(NSView*)w->native;[v setWantsLayer:YES];
+        v.layer.backgroundColor=w->styled?[custom_color(w->style.background) CGColor]:nil;
+        v.layer.cornerRadius=w->styled?w->style.radius:0;v.layer.borderWidth=w->styled?w->style.border_width:0;
+        v.layer.borderColor=w->styled?[custom_color(w->style.border) CGColor]:nil;
+        id text=w->kind==CUI_TEXTAREA?w->aux:w->native;
+        if([text respondsToSelector:@selector(setTextColor:)])[text setTextColor:w->styled?custom_color(w->style.foreground):[NSColor textColor]];
+        if([text respondsToSelector:@selector(setBackgroundColor:)])[text setBackgroundColor:w->styled?custom_color(w->style.background):[NSColor textBackgroundColor]];
+    }
+}
 static void draw_cards(cui_widget *widget)
 {
     cui_widget *child;
     if (widget->hidden) return;
+    if(widget->styled&&cui__container(widget)&&!cui__in_layer(widget)){
+        cui_rect r=widget->frame;NSBezierPath *p=[NSBezierPath bezierPathWithRoundedRect:NSMakeRect(r.x,r.y,r.width,r.height) xRadius:widget->style.radius yRadius:widget->style.radius];
+        [custom_color(widget->style.background) setFill];[p fill];if(widget->style.border_width>0){[p setLineWidth:widget->style.border_width];[custom_color(widget->style.border) setStroke];[p stroke];}
+    }
     if (widget->role == CUI_ROLE_AMBIENT) draw_ambient(widget);
     if (widget->role == CUI_ROLE_CARD || (widget->role>=CUI_ROLE_PANEL && widget->role<=CUI_ROLE_OUTGOING)) {
         cui_rect r = widget->frame;
@@ -597,7 +663,7 @@ static NSView *extended_control(cui_widget *w, const char *text)
         NSBox *line = [[NSBox alloc] initWithFrame:NSZeroRect]; [line setBoxType:NSBoxSeparator]; return line;
     }
     case CUI_TEXTAREA: case CUI_CODE: {
-        NSTextView *view = [[NSTextView alloc] initWithFrame:NSMakeRect(0, 0, 240, 120)];
+        CUIPlaceholderText *view = [[CUIPlaceholderText alloc] initWithFrame:NSMakeRect(0, 0, 240, 120)];view->model=w;
         [view setString:native_text(text)]; [view setRichText:NO]; [view setAllowsUndo:YES];
         [view setEditable:w->kind != CUI_CODE];
         [view setFont:w->kind == CUI_CODE ? [NSFont userFixedPitchFontOfSize:13] : [NSFont systemFontOfSize:13]];
@@ -662,7 +728,14 @@ int cui__backend_widget_create(cui_widget *widget, const char *text)
         [split addSubview:[[[NSView alloc] initWithFrame:NSZeroRect] autorelease]];
         widget->native=split;[(NSView *)widget->window->content addSubview:split];[split release];return 1;
     }
-    if (cui__container(widget)) return 1;
+    if (cui__container(widget)) {
+        if(cui__in_layer(widget)) {
+            NSView *layer=[[NSView alloc] initWithFrame:NSZeroRect];
+            [layer setWantsLayer:YES];widget->native=layer;
+            [(NSView *)widget->window->content addSubview:layer];[layer release];
+        }
+        return 1;
+    }
     NSView *control = extended_control(widget, text);
     if (!control && (widget->kind == CUI_LABEL || widget->kind == CUI_ENTRY || widget->kind == CUI_PASSWORD || widget->kind == CUI_SEARCH || widget->kind == CUI_BADGE)) {
         control = text_control(widget, text);
@@ -746,7 +819,7 @@ cui_size cui__backend_measure(cui_widget *widget)
 {
     if(widget->kind==CUI_ICON || widget->icon_only){float size=(float)(widget->icon_size?widget->icon_size:20)+(widget->icon_only?16:0);return(cui_size){size,size};}
     switch (widget->kind) {
-    case CUI_TEXTAREA: case CUI_CODE: return (cui_size){240, 120};
+    case CUI_TEXTAREA: case CUI_CODE: return (cui_size){240, widget->min_height ? widget->min_height : 120};
     case CUI_DATE: case CUI_TIME_INPUT: return (cui_size){200,(float)MAX(32,[(NSControl *)widget->native font].pointSize+16)};
     case CUI_NUMBER: return (cui_size){200, (float)MAX(30,[(NSTextField *)widget->aux font].pointSize+16)};
     case CUI_TREE: return (cui_size){240, 180};
@@ -774,6 +847,12 @@ cui_size cui__backend_measure(cui_widget *widget)
 void cui__backend_place(cui_widget *widget)
 {
     cui_rect r = widget->frame;
+    if(cui__in_layer(widget) && widget->native) {
+        [(NSView *)widget->window->content addSubview:(NSView *)widget->native positioned:NSWindowAbove relativeTo:nil];
+        if(cui__container(widget) && widget->kind!=CUI_SPLIT) {
+            [(NSView *)widget->native setFrame:NSMakeRect(r.x,r.y,r.width,r.height)];return;
+        }
+    }
     if (widget->kind == CUI_SPLIT) {
         NSSplitView *split = widget->native;
         ++widget->updating;
@@ -784,7 +863,7 @@ void cui__backend_place(cui_widget *widget)
     }
     /* Labels and controls keep their intrinsic height when a row stretches. */
     float height = widget->minimum.height;
-    if (widget->kind == CUI_TEXTAREA || widget->kind == CUI_CODE || widget->kind == CUI_LIST || widget->kind == CUI_TABLE || widget->kind == CUI_TREE) height = r.height;
+    if (widget->kind == CUI_CANVAS || widget->kind == CUI_TEXTAREA || widget->kind == CUI_CODE || widget->kind == CUI_LIST || widget->kind == CUI_TABLE || widget->kind == CUI_TREE) height = r.height;
     [(NSView *)widget->native setFrame:NSMakeRect(r.x, r.y + (r.height - height) / 2, r.width, height)];
 }
 
@@ -827,7 +906,7 @@ int cui__backend_get_selected(const cui_widget *w)
 { return w->kind == CUI_SELECT ? (int)[(NSPopUpButton *)w->native indexOfSelectedItem] : (int)[(NSTableView *)w->aux selectedRow]; }
 void cui__backend_set_value(cui_widget *w, double value) { [(id)w->native setDoubleValue:value]; }
 double cui__backend_get_value(const cui_widget *w) { return [(id)w->native doubleValue]; }
-void cui__backend_placeholder(cui_widget *w, const char *text) { [(NSTextField *)w->native setPlaceholderString:native_text(text)]; }
+void cui__backend_placeholder(cui_widget *w, const char *text) { if(w->kind==CUI_TEXTAREA)[(NSTextView*)w->aux setNeedsDisplay:YES];else [(NSTextField *)w->native setPlaceholderString:native_text(text)]; }
 void cui__backend_tooltip(cui_widget *w, const char *text) { [(NSView *)w->native setToolTip:native_text(text)]; }
 void cui__backend_visible(cui_widget *w, int visible) { [(NSView *)w->native setHidden:!visible]; }
 void cui__backend_min_size(cui_widget *w) { (void)w; }
@@ -1094,4 +1173,19 @@ int cui__backend_window_anchor(cui_window *w)
     NSRect content=[parent convertRectToScreen:[[(NSWindow *)w->anchor_parent->native contentView] bounds]];
     [panel setFrameTopLeftPoint:NSMakePoint(NSMinX(content)+w->anchor_x+w->anchor_width+16,NSMaxY(content)-w->anchor_y)];
     return 1;
+}
+
+int cui_widget_get_size(const cui_widget *w, int *width, int *height)
+{
+    if (!w || !width || !height) return 0;
+    int x = (int)w->frame.width, y = (int)w->frame.height;
+    if (x <= 0 || y <= 0) return 0;
+    *width = x; *height = y; return 1;
+}
+
+void cui__backend_table_headers(cui_widget *w,int visible)
+{
+    NSTableView *table=(NSTableView *)w->aux;
+    if(visible && ![table headerView]) [table setHeaderView:[[[NSTableHeaderView alloc] initWithFrame:NSMakeRect(0,0,1,24)] autorelease]];
+    else if(!visible) [table setHeaderView:nil];
 }

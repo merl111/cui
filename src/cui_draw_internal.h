@@ -56,6 +56,8 @@ int cui__native_opacity(cui_widget *w, double value);
 unsigned char *cui__draw_text(const char *text, const char *family, double size,
                               int weight, int max_width, int *width,
                               int *height);
+/* Premultiplied ARGB including native color glyphs; NULL uses mask fallback. */
+uint32_t *cui__draw_text_color(const char *text,const char *family,double size,int weight,int max_width,int *width,int *height,unsigned color);
 uint32_t *cui__draw_asset(const cui_icon_asset *asset, int width, int height,
                           unsigned color);
 int cui__render(cui_surface *surface, const cui_draw_command *commands,

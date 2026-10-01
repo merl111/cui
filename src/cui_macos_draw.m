@@ -19,9 +19,9 @@ static NSBitmapImageRep *bitmap(int w, int h) {
                    bytesPerRow:w * 4
                   bitsPerPixel:32];
 }
-unsigned char *cui__draw_text(const char *text, const char *family, double size,
+static unsigned char *text_bitmap(const char *text, const char *family, double size,
                               int weight, int max_width, int *width,
-                              int *height) {
+                              int *height,unsigned color,int colored) {
   @autoreleasepool {
     NSString *value = [NSString stringWithUTF8String:text];
     if (!value)
@@ -39,7 +39,7 @@ unsigned char *cui__draw_text(const char *text, const char *family, double size,
     [paragraph setLineBreakMode:NSLineBreakByTruncatingTail];
     NSDictionary *attrs = @{
       NSFontAttributeName : font,
-      NSForegroundColorAttributeName : [NSColor whiteColor],
+      NSForegroundColorAttributeName : [NSColor colorWithRed:(color>>24)/255. green:((color>>16)&255)/255. blue:((color>>8)&255)/255. alpha:(color&255)/255.],
       NSParagraphStyleAttributeName : paragraph
     };
     NSSize measured = [value sizeWithAttributes:attrs];
@@ -58,15 +58,21 @@ unsigned char *cui__draw_text(const char *text, const char *family, double size,
     [flip concat];
     [value drawInRect:NSMakeRect(0, 0, *width, *height) withAttributes:attrs];
     [NSGraphicsContext restoreGraphicsState];
-    unsigned char *result = malloc((size_t)*width * *height);
+    unsigned char *result = malloc((size_t)*width * *height * (colored ? 4 : 1));
     if (result) {
       unsigned char *pixels = [rep bitmapData];
       for (size_t i = 0; i < (size_t)*width * *height; ++i)
-        result[i] = pixels[i * 4 + 3];
+        if(colored){const unsigned char *v=pixels+i*4;((uint32_t*)result)[i]=(unsigned)v[3]<<24|((unsigned)v[0]*v[3]/255)<<16|((unsigned)v[1]*v[3]/255)<<8|((unsigned)v[2]*v[3]/255);}else result[i] = pixels[i * 4 + 3];
     }
     [rep release];
     return result;
   }
+}
+unsigned char *cui__draw_text(const char *text,const char *family,double size,int weight,int max_width,int *width,int *height) {
+  return text_bitmap(text,family,size,weight,max_width,width,height,0xffffffffu,0);
+}
+uint32_t *cui__draw_text_color(const char *text,const char *family,double size,int weight,int max_width,int *width,int *height,unsigned color) {
+  return (uint32_t*)text_bitmap(text,family,size,weight,max_width,width,height,color,1);
 }
 uint32_t *cui__draw_asset(const cui_icon_asset *source, int width, int height,
                           unsigned color) {

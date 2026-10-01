@@ -1,0 +1,46 @@
+{
+  "scope": "C versus Rust Daylight composition; NOT an HTML-reference parity score.",
+  "threshold_percent": 99.99,
+  "captures": {
+    "daylight": {
+      "exact_pixel_agreement_percent": 99.999177,
+      "width": 1977,
+      "height": 1229
+    },
+    "daylight-eng": {
+      "exact_pixel_agreement_percent": 99.999177,
+      "width": 1977,
+      "height": 1229
+    },
+    "daylight-kai": {
+      "exact_pixel_agreement_percent": 99.999177,
+      "width": 1977,
+      "height": 1229
+    },
+    "daylight-mhq": {
+      "exact_pixel_agreement_percent": 99.999177,
+      "width": 1977,
+      "height": 1229
+    },
+    "daylight-verification": {
+      "exact_pixel_agreement_percent": 100.0,
+      "width": 1977,
+      "height": 1229
+    },
+    "daylight-people": {
+      "exact_pixel_agreement_percent": 100.0,
+      "width": 1977,
+      "height": 1229
+    },
+    "daylight-media": {
+      "exact_pixel_agreement_percent": 99.999177,
+      "width": 1977,
+      "height": 1229
+    },
+    "daylight-large": {
+      "exact_pixel_agreement_percent": 99.998737,
+      "width": 2880,
+      "height": 2200
+    }
+  }
+}

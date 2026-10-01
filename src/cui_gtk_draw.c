@@ -9,9 +9,9 @@
 #include <stdlib.h>
 #include <string.h>
 void cui__gtk_icon_paint(cairo_t *, const cui_icon_asset *, const GdkRGBA *);
-unsigned char *cui__draw_text(const char *text, const char *family, double size,
+static unsigned char *text_bitmap(const char *text, const char *family, double size,
                               int weight, int max_width, int *width,
-                              int *height) {
+                              int *height, unsigned color, int colored) {
   cairo_surface_t *probe = cairo_image_surface_create(CAIRO_FORMAT_A8, 1, 1);
   cairo_t *cr = cairo_create(probe);
   PangoLayout *layout = pango_cairo_create_layout(cr);
@@ -31,26 +31,32 @@ unsigned char *cui__draw_text(const char *text, const char *family, double size,
   cairo_destroy(cr);
   cairo_surface_destroy(probe);
   cairo_surface_t *bitmap =
-      cairo_image_surface_create(CAIRO_FORMAT_A8, *width, *height);
+      cairo_image_surface_create(colored ? CAIRO_FORMAT_ARGB32 : CAIRO_FORMAT_A8, *width, *height);
   cr = cairo_create(bitmap);
-  cairo_set_source_rgba(cr, 1, 1, 1, 1);
+  cairo_set_source_rgba(cr,(color>>24)/255.,((color>>16)&255)/255.,((color>>8)&255)/255.,(color&255)/255.);
   pango_cairo_show_layout(cr, layout);
   g_object_unref(layout);
   cairo_destroy(cr);
   cairo_surface_flush(bitmap);
   unsigned char *result = NULL;
   if (cairo_surface_status(bitmap) == CAIRO_STATUS_SUCCESS) {
-    result = malloc((size_t)*width * *height);
+    result = malloc((size_t)*width * *height * (colored ? 4 : 1));
     if (result) {
       unsigned char *src = cairo_image_surface_get_data(bitmap);
+      size_t row=(size_t)*width*(colored?4:1);
       int stride = cairo_image_surface_get_stride(bitmap);
       for (int y = 0; y < *height; ++y)
-        memcpy(result + (size_t)y * *width, src + (size_t)y * stride,
-               (size_t)*width);
+        memcpy(result + (size_t)y * row, src + (size_t)y * stride, row);
     }
   }
   cairo_surface_destroy(bitmap);
   return result;
+}
+unsigned char *cui__draw_text(const char *text,const char *family,double size,int weight,int max_width,int *width,int *height) {
+  return text_bitmap(text,family,size,weight,max_width,width,height,0xffffffffu,0);
+}
+uint32_t *cui__draw_text_color(const char *text,const char *family,double size,int weight,int max_width,int *width,int *height,unsigned color) {
+  return (uint32_t*)text_bitmap(text,family,size,weight,max_width,width,height,color,1);
 }
 uint32_t *cui__draw_asset(const cui_icon_asset *a, int width, int height,
                           unsigned color) {
@@ -239,6 +245,10 @@ static void motion(GtkEventControllerMotion *controller, double x, double y,
   cui__canvas_event(data, CUI_CANVAS_MOVE, x, y, 0, 0,
                     modifiers(GTK_EVENT_CONTROLLER(controller)));
 }
+static void leave(GtkEventControllerMotion *controller, gpointer data) {
+  cui__canvas_event(data, CUI_CANVAS_MOVE, -1, -1, 0, 0,
+                    modifiers(GTK_EVENT_CONTROLLER(controller)));
+}
 static gboolean scroll(GtkEventControllerScroll *controller, double dx,
                        double dy, gpointer data) {
   GdkEvent *event =
@@ -280,6 +290,7 @@ int cui__canvas_attach(cui_widget *w) {
   gtk_widget_add_controller(w->native, GTK_EVENT_CONTROLLER(click));
   GtkEventController *move = gtk_event_controller_motion_new();
   g_signal_connect(move, "motion", G_CALLBACK(motion), w);
+  g_signal_connect(move, "leave", G_CALLBACK(leave), w);
   gtk_widget_add_controller(w->native, move);
   GtkEventController *wheel =
       gtk_event_controller_scroll_new(GTK_EVENT_CONTROLLER_SCROLL_BOTH_AXES);
@@ -335,12 +346,16 @@ GtkWidget *cui__gtk_canvas_new(void) {
             *fixed = gtk_fixed_new(), *resize = gtk_drawing_area_new();
   gtk_widget_add_css_class(overlay, "cui-canvas");
   gtk_picture_set_can_shrink(GTK_PICTURE(image), TRUE);
-  gtk_overlay_set_child(GTK_OVERLAY(overlay), image);
+  /* Raster dimensions describe the previous frame, never a layout request.
+   * A non-measuring overlay prevents feedback when a pane shrinks or grows. */
+  gtk_overlay_set_child(GTK_OVERLAY(overlay), resize);
+  gtk_overlay_add_overlay(GTK_OVERLAY(overlay), image);
   gtk_overlay_add_overlay(GTK_OVERLAY(overlay), fixed);
-  gtk_overlay_add_overlay(GTK_OVERLAY(overlay), resize);
+  gtk_widget_set_can_target(image, FALSE);
   gtk_widget_set_can_target(resize, FALSE);
   gtk_widget_set_can_target(fixed, FALSE);
   gtk_widget_set_size_request(overlay, 260, 160);
+  g_object_set_data(G_OBJECT(overlay), "image", image);
   g_object_set_data(G_OBJECT(overlay), "regions", fixed);
   g_object_set_data(G_OBJECT(overlay), "resize", resize);
   return overlay;

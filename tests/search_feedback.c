@@ -50,6 +50,17 @@ static void check_picker(void)
     CHECK(cui_picker_set_items(palette,choices,4));CHECK(!cui_picker_is_open(palette));cui_picker_open(palette,outside);
     CHECK(cui_picker_set_query(palette,"missing"));CHECK(!cui_picker_accept(palette));
     CHECK(cui_picker_set_query(palette,""));cui_widget *results=cui_picker_get_part(palette,CUI_PICKER_RESULTS);
+    CHECK(cui_picker_set_chrome(palette,0,0,0));
+    CHECK(!cui_picker_set_chrome(palette,2,0,0));
+    CHECK(cui_picker_get_part(palette,CUI_PICKER_STATUS)->hidden);
+    CHECK(cui_picker_get_part(palette,CUI_PICKER_ACCEPT)->parent->hidden);
+    GtkWidget *heading=gtk_widget_get_first_child(GTK_WIDGET(results->aux));
+    CHECK(!strcmp(gtk_widget_get_css_name(heading),"header"));
+    CHECK(!gtk_widget_get_visible(heading));
+    cui_picker_close(palette);cui_picker_open(palette,outside);cui_picker_set_query(palette,"");
+    CHECK(cui_picker_get_part(palette,CUI_PICKER_STATUS)->hidden);
+    CHECK(!gtk_widget_get_visible(heading));
+    CHECK(cui_picker_set_chrome(palette,1,1,1));CHECK(gtk_widget_get_visible(heading));
     CHECK(cui_table_sort(results,0,1,0));
     CHECK(press(cui_picker_get_part(palette,CUI_PICKER_INPUT),GDK_KEY_Down));CHECK(cui_picker_accept(palette));CHECK(cui_picker_selected(palette)==93);
     /* Replacing a large choice model retains copied IDs and virtualized rows. */

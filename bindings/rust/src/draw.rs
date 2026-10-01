@@ -3,6 +3,26 @@ use super::*;
 pub fn draw_capabilities() -> u32 {
     unsafe { sys::cui_draw_capabilities() }
 }
+/// Measure native text in logical pixels on the UI thread after App creation.
+pub fn measure_text(text: &str, family: &str, size: f64, weight: i32) -> Result<(f64, f64)> {
+    let text = string(text)?;
+    let family = string(family)?;
+    let (mut width, mut height) = (0., 0.);
+    if unsafe {
+        sys::cui_text_measure(
+            text.as_ptr(),
+            family.as_ptr(),
+            size,
+            weight,
+            &mut width,
+            &mut height,
+        )
+    } == 0
+    {
+        return Err(Error::NativeFailure);
+    }
+    Ok((width, height))
+}
 pub struct Surface {
     ptr: NonNull<sys::cui_surface>,
     _thread: PhantomData<Rc<()>>,

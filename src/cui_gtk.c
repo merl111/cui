@@ -328,7 +328,7 @@ void cui__backend_icon(cui_widget *w)
     if(!w->icon_only)gtk_widget_remove_css_class(native,"cui-icon-button");
     if(!w->icon&&!w->icon_only)gtk_button_set_label(GTK_BUTTON(native),label);
     else if(w->icon_only){gtk_button_set_child(GTK_BUTTON(native),icon_area(w));gtk_widget_add_css_class(native,"cui-icon-button");}
-    else{GtkWidget *box=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,8);gtk_box_append(GTK_BOX(box),icon_area(w));gtk_box_append(GTK_BOX(box),gtk_label_new(label));gtk_button_set_child(GTK_BUTTON(native),box);}
+    else{GtkWidget *box=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,8);if(!w->icon_trailing)gtk_box_append(GTK_BOX(box),icon_area(w));gtk_box_append(GTK_BOX(box),gtk_label_new(label));if(w->icon_trailing)gtk_box_append(GTK_BOX(box),icon_area(w));gtk_button_set_child(GTK_BUTTON(native),box);}
     gtk_accessible_update_property(GTK_ACCESSIBLE(native),GTK_ACCESSIBLE_PROPERTY_LABEL,label,-1);
     if(w->icon_only)gtk_widget_set_tooltip_text(native,label);
     g_free(label);
@@ -340,9 +340,9 @@ int cui__backend_widget_create(cui_widget *widget, const char *text)
     GtkWidget *native;
     const char *signal = NULL;
     switch (widget->kind) {
-    case CUI_CANVAS: native=cui__gtk_canvas_new(); widget->aux=gtk_overlay_get_child(GTK_OVERLAY(native)); break;
+    case CUI_CANVAS: native=cui__gtk_canvas_new(); widget->aux=g_object_get_data(G_OBJECT(native),"image"); break;
     case CUI_ICON: native=icon_area(widget);gtk_widget_add_css_class(native,"cui-icon-view");break;
-    case CUI_GRID: case CUI_WRAP: case CUI_SPLIT:
+    case CUI_GRID: case CUI_WRAP: case CUI_SPLIT: case CUI_STACK:
         native = cui__gtk_container(widget); break;
     case CUI_BOX:
         native = gtk_box_new(widget->axis == CUI_HORIZONTAL ? GTK_ORIENTATION_HORIZONTAL : GTK_ORIENTATION_VERTICAL, widget->gap);
@@ -732,4 +732,39 @@ int cui__backend_window_anchor(cui_window *w)
         else gtk_popover_popup(GTK_POPOVER(w->attached_native));
     }
     return 1;
+}
+
+int cui_widget_get_size(const cui_widget *w, int *width, int *height)
+{
+    if (!w || !width || !height) return 0;
+    int x = gtk_widget_get_width(GTK_WIDGET(w->native));
+    int y = gtk_widget_get_height(GTK_WIDGET(w->native));
+    if (x <= 0 || y <= 0) return 0;
+    *width = x; *height = y; return 1;
+}
+
+void cui__backend_style(cui_widget *w)
+{
+    GtkWidget *native=GTK_WIDGET(w->native);if(!native)return;
+    GtkCssProvider *provider=g_object_get_data(G_OBJECT(native),"cui-custom-style");
+    if(!provider){provider=gtk_css_provider_new();gtk_style_context_add_provider_for_display(gdk_display_get_default(),GTK_STYLE_PROVIDER(provider),GTK_STYLE_PROVIDER_PRIORITY_APPLICATION+2);g_object_set_data_full(G_OBJECT(native),"cui-custom-style",provider,free_padding_provider);}
+    char name[80],css[4096];g_snprintf(name,sizeof(name),"cui-style-%p",(void*)w);gtk_widget_add_css_class(native,name);
+    if(!w->styled){load_css(provider,"");return;}
+    if(w->kind==CUI_TEXTAREA){
+        gtk_text_view_set_left_margin(GTK_TEXT_VIEW(w->aux),6);gtk_text_view_set_right_margin(GTK_TEXT_VIEW(w->aux),6);gtk_text_view_set_top_margin(GTK_TEXT_VIEW(w->aux),6);gtk_text_view_set_bottom_margin(GTK_TEXT_VIEW(w->aux),6);
+        GtkWidget *hint=g_object_get_data(G_OBJECT(native),"cui-placeholder");if(hint){gtk_widget_set_margin_start(hint,6);gtk_widget_set_margin_top(hint,6);}
+        GtkWidget *scroll=gtk_overlay_get_child(GTK_OVERLAY(native));gtk_widget_remove_css_class(scroll,"cui-input-surface");
+        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),GTK_POLICY_NEVER,GTK_POLICY_EXTERNAL);
+    }
+    unsigned bg=w->style.background,fg=w->style.foreground,bc=w->style.border;
+    char background[80],foreground[80],border[80];
+    g_snprintf(background,sizeof(background),"rgba(%u,%u,%u,%.4f)",bg>>24,(bg>>16)&255,(bg>>8)&255,(bg&255)/255.);
+    g_snprintf(foreground,sizeof(foreground),"rgba(%u,%u,%u,%.4f)",fg>>24,(fg>>16)&255,(fg>>8)&255,(fg&255)/255.);
+    g_snprintf(border,sizeof(border),"rgba(%u,%u,%u,%.4f)",bc>>24,(bc>>16)&255,(bc>>8)&255,(bc&255)/255.);
+    g_snprintf(css,sizeof(css),".%s { background-image:none; background-color:%s; color:%s; border:%.2fpx solid %s; border-radius:%.2fpx; padding:%dpx; min-width:0; min-height:0; box-shadow:none; } .%s textview, .%s textview text {background-color:%s; color:%s;} .%s > viewport {background-color:transparent;} .%s > box {min-height:0;} .%s:disabled {opacity:1;}",name,background,foreground,w->style.border_width,border,w->style.radius,w->style.padding,name,name,background,foreground,name,name,name);
+    if(w->kind==CUI_TABLE){
+        size_t used=strlen(css);
+        g_snprintf(css+used,sizeof(css)-used," .%s columnview, .%s columnview listview {background-color:%s;color:%s;} .%s columnview row {background-color:transparent;border:none;} .%s columnview row:selected {background-color:%s;color:%s;} .%s columnview cell {border:none;}",name,name,background,foreground,name,name,foreground,background,name);
+    }
+    load_css(provider,css);
 }

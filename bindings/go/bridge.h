@@ -23,3 +23,5 @@ int cui_go_key(cui_widget *, uintptr_t);
 cui_dialog *cui_go_file_dialog_ex(cui_window *, cui_dialog_kind, const char *, const cui_file_options *, uintptr_t);
 #include "cui_draw.h"
 void cui_go_canvas(cui_widget *, uintptr_t);
+
+#include "cui_chat.h"

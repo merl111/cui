@@ -50,6 +50,14 @@ static GtkWidget *scrolled(cui_widget *widget, GtkWidget *child, int height)
     widget->aux = child;
     return scroll;
 }
+static void placeholder_changed(GtkTextBuffer *buffer,gpointer data)
+{
+    GtkWidget *label=data;gtk_widget_set_visible(label,gtk_text_buffer_get_char_count(buffer)==0&&*gtk_label_get_text(GTK_LABEL(label)));
+}
+static void placeholder_preedit(GtkTextView *view,const char *preedit,gpointer data)
+{
+    GtkWidget *label=data;gtk_widget_set_visible(label,(!preedit||!*preedit)&&gtk_text_buffer_get_char_count(gtk_text_view_get_buffer(view))==0&&*gtk_label_get_text(GTK_LABEL(label)));
+}
 static GtkWidget *text_view(cui_widget *widget, const char *text)
 {
     GtkWidget *view = gtk_text_view_new();
@@ -64,7 +72,18 @@ static GtkWidget *text_view(cui_widget *widget, const char *text)
     gtk_text_view_set_bottom_margin(GTK_TEXT_VIEW(view), 10);
     if (widget->kind == CUI_CODE) gtk_widget_add_css_class(view, "cui-code");
     g_signal_connect(buffer, "changed", G_CALLBACK(cui__gtk_action), widget);
-    return scrolled(widget, view, 120);
+    GtkWidget *scroll=scrolled(widget,view,120);
+    if(widget->kind==CUI_CODE)return scroll;
+    GtkWidget *overlay=gtk_overlay_new(),*hint=gtk_label_new("");
+    gtk_widget_set_size_request(scroll,1,-1);gtk_widget_set_size_request(overlay,240,120);
+    gtk_overlay_set_child(GTK_OVERLAY(overlay),scroll);gtk_overlay_add_overlay(GTK_OVERLAY(overlay),hint);
+    gtk_widget_set_halign(hint,GTK_ALIGN_START);gtk_widget_set_valign(hint,GTK_ALIGN_START);
+    gtk_widget_set_margin_start(hint,12);gtk_widget_set_margin_top(hint,10);
+    gtk_widget_set_can_target(hint,FALSE);gtk_widget_set_opacity(hint,.6);gtk_widget_set_visible(hint,FALSE);
+    g_object_set_data(G_OBJECT(overlay),"cui-placeholder",hint);
+    g_signal_connect(buffer,"changed",G_CALLBACK(placeholder_changed),hint);
+    g_signal_connect(view,"preedit-changed",G_CALLBACK(placeholder_preedit),hint);
+    return overlay;
 }
 static GtkWidget *switch_control(cui_widget *widget, const char *text)
 {
@@ -271,7 +290,10 @@ void cui__backend_set_value(cui_widget *w, double value)
 double cui__backend_get_value(const cui_widget *w)
 { return w->kind == CUI_SLIDER ? gtk_range_get_value(GTK_RANGE(w->native)) : gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(w->native)); }
 void cui__backend_placeholder(cui_widget *w, const char *text)
-{ g_object_set(w->native, "placeholder-text", text, NULL); }
+{
+    if(w->kind==CUI_TEXTAREA){GtkWidget *hint=g_object_get_data(G_OBJECT(w->native),"cui-placeholder");gtk_label_set_text(GTK_LABEL(hint),text);placeholder_changed(gtk_text_view_get_buffer(GTK_TEXT_VIEW(w->aux)),hint);}
+    else g_object_set(w->native,"placeholder-text",text,NULL);
+}
 void cui__backend_tooltip(cui_widget *w, const char *text)
 { gtk_widget_set_tooltip_text(GTK_WIDGET(w->native), text); }
 void cui__backend_visible(cui_widget *w, int visible)

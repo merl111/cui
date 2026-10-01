@@ -156,3 +156,102 @@ A user-reported intermittent inspector failure reproduced under headless Mutter:
 The GTK backend now bounds the decorative popup gap by available parent padding, clamps anchor rectangles during pending resizes, and presents attached canvas panels during native allocation. New `window_panels_wayland_1x` and `_2x` tests wait across compositor frames and assert real mapped state, logical size, reopening, and resizing larger and smaller with the panel open. Both pass. The X11 mouse/keyboard checks and Rust simulator tests also pass at 1×/2×.
 
 The toolbar now moves vertically with the fitted phone body, retaining its gap after landscape rotation even if the native window stays tall. A Rust regression test checks both orientations in a tall allocation and confirms the labeled Settings hit region follows the toolbar. Settings now has a visible text label and a side-panel icon. Both the CMake and Cargo-local simulator executables have been rebuilt; existing processes must be restarted to use the changes.
+
+## October 1: reusable C chat components
+
+The [chat guide](guides/chat.md) documents the shared C implementation and all
+four bindings. Fourteen component kinds now have individual catalog entries,
+compiled C recipes and real GTK screenshots: navigation, timeline, composer,
+workspace, header, spaces, inspector, message, attachment, reaction strip, poll,
+reply preview, thread summary and avatar. The complete grid contains 85 entries.
+Rendering, model ownership, hit regions and behavior live in C; Rust only
+marshals inputs and events, including participant avatars and sender colors.
+
+The targeted native C, drawing at 1×/2×, Rust, Python, Go and Zig contracts passed
+11/11 after the model update. Generated Rust declarations, actual C/Rust field
+layout comparison, strict Rust Clippy, and all-language coverage checks pass
+(267/267 public C functions). Standalone element tests activate file, reaction,
+poll and thread controls after caller-owned models have been replaced. The GTK
+color-font regression checks that emoji retain colored pixels instead of being
+tinted by the foreground color. Windows retains its GDI monochrome fallback.
+
+The earlier complete 76-test run exposed a Daylight assertion that was corrected
+and a Rust simulator 2× geometry failure reproduced on untouched HEAD. That
+unrelated simulator failure remains open. Windows/macOS execution remains
+outstanding. The structural quality scan reports 189 major regressions against
+the older repository baseline, including platform dispatch and generated catalog
+classifications, plus complexity warnings in new rendering routines; no clean
+quality-gate result is claimed. The tracked quality baseline was preserved.
+
+Native captures use the reference fixture and record implementation/screenshot
+hashes. A measured 99% visual and interaction match is still outstanding; the
+chat guide lists remaining gaps. No Archaic application sources were changed.
+
+
+### Independent chat presentation and commands
+
+The configuration extension separates palette from message, room, header,
+composer and navigation presentation. C tests cover copied command labels,
+stable IDs, invalid/duplicate models, disabled activation, command removal,
+and preserving presentation across palette changes. Rust, Python, Go and Zig
+contract tests exercise the same setters and independent presentation values.
+The public ABI checker now includes the presentation and command value types.
+See [the framework comparison](guides/component-design.md) for the architectural
+decision and remaining gaps; this does not certify 99% design parity.
+
+### Native design interaction pass
+
+The C example now composes verification, command search, notices and a floating
+call panel inside its existing window using the reusable layered stack. Nebula
+threads start closed, open from their summary, and retain an empty state when
+switching to a room without replies. Daylight inspector tabs and Tiles palette,
+pane focus and layout commands are exercised by the three native concept tests.
+Composer sizing, icon placement, media grids and message spacing were refined.
+GTK canvases no longer feed the previous rendered texture size back into layout.
+
+The full Linux suite passes 78/79 tests. The remaining failure is the previously
+observed `rust_simulator_windows_4k` inspector-corner assertion; all chat,
+language-binding, stack, picker and drawing checks pass. All four bindings cover
+271/271 public APIs; C/Rust ABI verification covers 569 values and layout checks.
+Documentation validation passes for 123 pages, 86 compiled component recipes,
+13 chat appearance/state captures and all local links. Capture provenance records
+the implementation hashes. Native Windows/macOS execution remains outstanding.
+
+The structural scan still does not pass: it reports 309 major regressions on
+existing symbols against the repository baseline across the accumulated diff,
+plus warnings on new symbols. Generated manifests and platform dispatch are
+included in that result. No clean quality result or measured 99% screenshot
+match is claimed; the chat guide records the remaining visual differences.
+
+
+### Runnable Rust Daylight and shared rendering refinements — October 1
+
+The Rust Daylight application now composes the same C widgets and fixture as
+the C example. Its state and event handlers cover navigation, per-room drafts,
+inspector tabs, thread replies, reactions, voting, verification and sending.
+The Escape command is enabled only while verification is open. No rendering
+implementation was moved into Rust.
+
+The 20 affected C, Rust, Python, Go, Zig, drawing and ABI tests pass, including
+Rust Daylight interactions at 1× and 2×. The new Rust example passes Clippy with
+warnings denied. All four bindings cover 271 public functions; C/Rust ABI
+verification passes 570 enum, size, alignment and offset checks. The fixture
+and raw-binding generation checks pass. Native Windows/macOS execution is
+still outstanding. The unrelated simulator failure from the earlier full
+suite has not been fixed by this work.
+
+The docs now carry 21 native chat captures and 86 component recipes. Eight
+Daylight C/Rust comparisons pass the 99.99% exact-pixel threshold, including
+150% text at 2× scale; the lowest result is 99.998737%. This is a language-port
+comparison, **not** an HTML-reference parity score. The [comparison report](images/chat/rust-parity.json)
+and [capture provenance](images/chat/provenance.json) retain reproducible evidence.
+
+Shared C refinements include inherited font metrics, native hover/leave events,
+centered wrapped inspector topics, media captions, action rows, configurable
+mention ink, compact attachments and thread previews. Application compositions
+add Daylight card shadows and Tiles layout artwork, shortcut labels, active-room
+markers and an account footer. The structural quality scan reports 321 major
+regressions across the accumulated uncommitted diff against the older HEAD,
+including native dispatch, generated data and layout complexity. It remains an
+open quality result; the existing baseline file was preserved. Remaining visual
+differences are listed in the chat guide, and 99% HTML parity is not certified.

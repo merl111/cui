@@ -261,3 +261,13 @@ func PaintTextBox(rect [4]float32, size float32, weight int, text string, color 
 	c.P[6] = rect[3]
 	return c
 }
+
+// MeasureText uses native font metrics; call on the application's UI thread.
+func MeasureText(text, family string, size float64, weight int) (width, height float64, ok bool) {
+	t, f := C.CString(text), C.CString(family)
+	defer C.free(unsafe.Pointer(t))
+	defer C.free(unsafe.Pointer(f))
+	var x, y C.double
+	ok = C.cui_text_measure(t, f, C.double(size), C.int(weight), &x, &y) != 0
+	return float64(x), float64(y), ok
+}

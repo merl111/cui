@@ -50,13 +50,13 @@ def check_catalog(catalog, api):
         image=OUT/item['image']
         require(image.is_file() and image.read_bytes().startswith(b'\x89PNG\r\n\x1a\n'), f'Missing native PNG: {image}')
     # Accessors return existing parts; window creation is covered in the lifecycle guide.
-    accessors={'cui_pattern_item_part','cui_window_root','cui_tab_add','cui_disclosure_content','cui_grid_cell','cui_split_pane','cui_pattern_part','cui_field_entry','cui_picker_get_part','cui_tokens_get_part','cui_tokens_remove_button','cui_feedback_get_part','cui_window_create'}
+    accessors={'cui_chat_part','cui_pattern_item_part','cui_window_root','cui_tab_add','cui_disclosure_content','cui_grid_cell','cui_split_pane','cui_pattern_part','cui_field_entry','cui_picker_get_part','cui_tokens_get_part','cui_tokens_remove_button','cui_feedback_get_part','cui_window_create'}
     constructors={f['name'] for f in api['functions'] if re.match(r'cui_(widget|window|dialog|command|menu)\s*\*',f['signature'])}
     require(constructors<=mapped|accessors, f'New constructor needs a showcase entry: {constructors-mapped-accessors}')
     patterns=next(e['values'] for e in api['enums'] if e['name']=='cui_pattern')
     require({c.get('pattern') for c in components if c.get('pattern')}==set(patterns)-{'CUI_PATTERN_COUNT'}, 'Pattern enum coverage differs')
     combined='\n'.join(c['recipe'] for c in components)
-    for enum_name in ('cui_picker_kind','cui_feedback_kind'):
+    for enum_name in ('cui_picker_kind','cui_feedback_kind','cui_chat_kind'):
         values=next(e['values'] for e in api['enums'] if e['name']==enum_name)
         require(all(value in combined for value in values), f'Missing showcase variant of {enum_name}')
     provenance=json.loads((OUT/'images/components/provenance.json').read_text())
@@ -83,6 +83,32 @@ def check_apps():
         require(hashlib.sha256(source.read_bytes()).hexdigest() == record['source_sha256'], f"Recapture {app['name']}: source changed")
         require(hashlib.sha256(capture.read_bytes()).hexdigest() == record['image_sha256'], 'App screenshot digest mismatch')
         require((OUT / 'apps' / (app['id'] + '.html')).is_file(), 'Missing app page')
+
+def check_chat_docs():
+    evidence = json.loads((OUT / 'images/chat/provenance.json').read_text())
+    expected = {'nebula', 'daylight', 'tiles', 'daylight-large',
+                'daylight-eng', 'daylight-kai', 'daylight-mhq',
+                'nebula-thread', 'nebula-call', 'daylight-verification',
+                'daylight-people', 'daylight-media', 'tiles-palette'}
+    expected |= {'rust-daylight' + suffix for suffix in
+                 ('', '-eng', '-kai', '-mhq', '-verification', '-people', '-media', '-large')}
+    require(set(evidence['captures']) == expected, 'Missing chat appearance or interaction capture')
+    for variant, record in evidence['captures'].items():
+        image = OUT / 'images/chat' / (variant + '.png')
+        require(hashlib.sha256(image.read_bytes()).hexdigest() == record['image_sha256'], 'Chat capture digest mismatch: ' + variant)
+        require(hashlib.sha256((ROOT / record['source']).read_bytes()).hexdigest() == record['source_sha256'], 'Recapture chat demo: source changed')
+    sources = set(evidence['component_sha256']) | {r['source'] for r in evidence['captures'].values()}
+    for source in sources:
+        require((ROOT / source).read_bytes() == (OUT / 'sources' / source).read_bytes(), 'Stale chat source export: ' + source)
+    for source, digest in evidence['component_sha256'].items():
+        require(hashlib.sha256((ROOT / source).read_bytes()).hexdigest() == digest, 'Recapture chat components: ' + source)
+    guide = 'guides/chat.html'
+    for path in ('index.html', 'components/index.html', 'apps/index.html', 'examples/index.html'):
+        links = Page((OUT / path).read_text()).links
+        require(any(urlsplit(link).path.endswith(guide) for link in links), 'Missing chat navigation: ' + path)
+    search = json.loads((OUT / 'search-index.json').read_text())
+    require(any(item['url'] == guide and item['kind'] == 'Guide' for item in search), 'Chat guide is not searchable')
+    require((OUT / 'text/chat.md').is_file() and 'text/chat.md' in (OUT / 'llms.txt').read_text(), 'Missing chat text reference')
 
 def check_benchmarks():
     folder = OUT / 'sources/benchmarks'
@@ -130,6 +156,7 @@ def main():
     try:
         components,functions=check_catalog(json.loads((OUT/'catalog.json').read_text()),json.loads((OUT/'api.json').read_text()))
         check_apps()
+        check_chat_docs()
         check_benchmarks()
         homepage = (OUT / 'index.html').read_text()
         for name, key, source, _, _ in LANGUAGE_EXAMPLES:

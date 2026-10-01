@@ -337,10 +337,11 @@ static int material(painter *p, rect r, double amount, unsigned tint,
 static int text(painter *p, const cui_draw_command *c) {
   int w = 0, h = 0;
   int max = (int)clamp(c->p[2] * p->st.sx, 1, 4096);
-  unsigned char *mask =
+  uint32_t *rgba=cui__draw_text_color(c->text ? c->text : "",c->font,c->p[3]*p->st.sy,(int)c->p[4],max,&w,&h,c->color);
+  unsigned char *mask = rgba ? NULL :
       cui__draw_text(c->text ? c->text : "", c->font, c->p[3] * p->st.sy,
                      (int)c->p[4], max, &w, &h);
-  if (!mask)
+  if (!rgba && !mask)
     return 0;
   int xx = (int)clamp(p->st.tx + c->p[0] * p->st.sx, -1000000, 1000000),
       yy = (int)clamp(p->st.ty + c->p[1] * p->st.sy, -1000000, 1000000);
@@ -348,7 +349,7 @@ static int text(painter *p, const cui_draw_command *c) {
   if (c->p[5] || c->p[6]) {
     for (int y = 0; y < h; ++y)
       for (int x = 0; x < w; ++x)
-        if (mask[(size_t)y * w + x]) {
+        if (rgba ? rgba[(size_t)y*w+x]>>24 : mask[(size_t)y * w + x]) {
           if (x < left)
             left = x;
           if (x + 1 > right)
@@ -375,9 +376,9 @@ static int text(painter *p, const cui_draw_command *c) {
         (c->p[6] == 0 || (y + yy >= clip_top && y + yy < clip_bottom)))
       for (int x = 0; x < w; ++x)
         if (x + xx >= p->limit.x0 && x + xx < p->limit.x1 &&
-            mask[(size_t)y * w + x])
-          pixel(p, x + xx, y + yy, color, mask[(size_t)y * w + x] / 255.);
-  free(mask);
+            (rgba ? rgba[(size_t)y*w+x]>>24 : mask[(size_t)y * w + x]))
+          pixel(p, x + xx, y + yy, rgba ? rgba[(size_t)y*w+x] : color, rgba ? 1 : mask[(size_t)y * w + x] / 255.);
+  free(rgba);free(mask);
   return 1;
 }
 static int icon(painter *p, const cui_draw_command *c) {

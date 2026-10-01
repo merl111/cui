@@ -69,6 +69,11 @@ unsigned char *cui__draw_text(const char *text, const char *family, double size,
   free(value);
   return result;
 }
+/* GDI's coverage renderer remains the fallback on Windows. Color glyphs need
+ * a future DirectWrite path; never interpret a monochrome bitmap as RGBA. */
+uint32_t *cui__draw_text_color(const char *text,const char *family,double size,int weight,int max_width,int *width,int *height,unsigned color) {
+  (void)text;(void)family;(void)size;(void)weight;(void)max_width;(void)width;(void)height;(void)color;return NULL;
+}
 static unsigned modifiers(void) {
   unsigned m = 0;
   if (GetKeyState(VK_SHIFT) & 0x8000)
@@ -121,9 +126,15 @@ static LRESULT CALLBACK canvas_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
     ReleaseCapture();
     kind = CUI_CANVAS_RELEASE;
     break;
-  case WM_MOUSEMOVE:
+  case WM_MOUSEMOVE: {
+    TRACKMOUSEEVENT tracking = {sizeof(tracking), TME_LEAVE, hwnd, 0};
+    TrackMouseEvent(&tracking);
     kind = CUI_CANVAS_MOVE;
     break;
+  }
+  case WM_MOUSELEAVE:
+    cui__canvas_event(w, CUI_CANVAS_MOVE, -1, -1, 0, 0, modifiers());
+    return 0;
   case WM_MOUSEWHEEL: {
     POINT point = {GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
     ScreenToClient(hwnd, &point);

@@ -1,4 +1,5 @@
 #include "cui_internal.h"
+#include "cui_layouts.h"
 #include <string.h>
 static float maxf(float a,float b){return a>b?a:b;}
 static unsigned grid_sizes(cui_widget *w,float *widths,float *heights)
@@ -27,7 +28,9 @@ static cui_size wrap_items(cui_widget *w,float width,int arrange)
 cui_size cui__layout_measure(cui_widget *w)
 {
     cui_size size={0,0};
-    if(w->kind==CUI_GRID){float widths[64],heights[256];unsigned rows=grid_sizes(w,widths,heights);
+    if(w->kind==CUI_STACK){
+        for(cui_widget *c=w->first;c;c=c->next){cui_size item=cui__measure(c);if(c==w->first)size=item;}
+    }else if(w->kind==CUI_GRID){float widths[64],heights[256];unsigned rows=grid_sizes(w,widths,heights);
         for(unsigned i=0;i<w->grid_columns;++i)size.width+=widths[i]+(i?w->gap:0);
         for(unsigned i=0;i<rows;++i)size.height+=heights[i]+(i?w->gap:0);
     }else if(w->kind==CUI_WRAP){
@@ -41,6 +44,23 @@ cui_size cui__layout_measure(cui_widget *w)
 }
 void cui__layout_arrange(cui_widget *w,cui_rect rect)
 {
+    if(w->kind==CUI_STACK){
+        for(cui_widget *c=w->first;c;c=c->next){
+            if(c->hidden)continue;
+            float margin=(float)c->layer_margin;
+            cui_rect item={rect.x+margin,rect.y+margin,maxf(0,rect.width-2*margin),maxf(0,rect.height-2*margin)};
+            if(c->layer_alignment!=CUI_LAYER_FILL){
+                float width=c->layer_width>0?c->layer_width:c->minimum.width;
+                float height=c->layer_height>0?c->layer_height:c->minimum.height;
+                width=width<item.width?width:item.width;height=height<item.height?height:item.height;
+                item.x+=(item.width-width)/(c->layer_alignment==CUI_LAYER_BOTTOM_RIGHT?1:2);
+                if(c->layer_alignment==CUI_LAYER_CENTER)item.y+=(item.height-height)/2;
+                else if(c->layer_alignment==CUI_LAYER_BOTTOM||c->layer_alignment==CUI_LAYER_BOTTOM_RIGHT)item.y+=item.height-height;
+                item.width=width;item.height=height;
+            }
+            cui__arrange(c,item);
+        }return;
+    }
     if(w->kind==CUI_WRAP){wrap_items(w,maxf(0,rect.width-2*w->padding),1);return;}
     if(w->kind==CUI_GRID){float widths[64],heights[256];unsigned rows=grid_sizes(w,widths,heights);
         float extra=w->grid_columns?maxf(0,rect.width-w->minimum.width)/w->grid_columns:0;

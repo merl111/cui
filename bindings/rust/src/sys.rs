@@ -16,6 +16,8 @@ pub const CUI_KEY_UP: cui_key = 256;
 pub const CUI_KEY_DOWN: cui_key = 257;
 pub const CUI_KEY_HOME: cui_key = 258;
 pub const CUI_KEY_END: cui_key = 259;
+pub const CUI_KEY_PAGE_UP: cui_key = 260;
+pub const CUI_KEY_PAGE_DOWN: cui_key = 261;
 pub type cui_axis = c_int;
 pub const CUI_HORIZONTAL: cui_axis = 0;
 pub const CUI_VERTICAL: cui_axis = 1;
@@ -68,7 +70,19 @@ pub const CUI_SYMBOL_PIN: cui_symbol = 23;
 pub const CUI_SYMBOL_ARCHIVE: cui_symbol = 24;
 pub const CUI_SYMBOL_MAIL: cui_symbol = 25;
 pub const CUI_SYMBOL_EDIT: cui_symbol = 26;
-pub const CUI_SYMBOL_COUNT: cui_symbol = 27;
+pub const CUI_SYMBOL_HOME: cui_symbol = 27;
+pub const CUI_SYMBOL_PHONE: cui_symbol = 28;
+pub const CUI_SYMBOL_VIDEO: cui_symbol = 29;
+pub const CUI_SYMBOL_PEOPLE: cui_symbol = 30;
+pub const CUI_SYMBOL_THREAD: cui_symbol = 31;
+pub const CUI_SYMBOL_FILE: cui_symbol = 32;
+pub const CUI_SYMBOL_DOWNLOAD: cui_symbol = 33;
+pub const CUI_SYMBOL_POLL: cui_symbol = 34;
+pub const CUI_SYMBOL_EMOJI: cui_symbol = 35;
+pub const CUI_SYMBOL_ARROW_RIGHT: cui_symbol = 36;
+pub const CUI_SYMBOL_LOCK: cui_symbol = 37;
+pub const CUI_SYMBOL_PANEL: cui_symbol = 38;
+pub const CUI_SYMBOL_COUNT: cui_symbol = 39;
 pub type cui_icon_op = c_int;
 pub const CUI_ICON_MOVE: cui_icon_op = 0;
 pub const CUI_ICON_LINE: cui_icon_op = 1;
@@ -78,6 +92,86 @@ pub const CUI_ICON_FILL: cui_icon_op = 4;
 pub const CUI_ICON_STROKE: cui_icon_op = 5;
 #[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_icon_command {pub op: cui_icon_op,pub values: [c_float; 6],pub rgba: c_uint,pub current_color: c_int,}
 impl Default for cui_icon_command { fn default()->Self { unsafe { std::mem::zeroed() } } }
+#[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_widget_style {pub background: c_uint,pub foreground: c_uint,pub border: c_uint,pub radius: c_double,pub border_width: c_double,pub padding: c_int,}
+impl Default for cui_widget_style { fn default()->Self { unsafe { std::mem::zeroed() } } }
+// cui_chat.h
+pub type cui_chat_appearance = c_int;
+pub const CUI_CHAT_NEBULA: cui_chat_appearance = 0;
+pub const CUI_CHAT_DAYLIGHT: cui_chat_appearance = 1;
+pub const CUI_CHAT_TILES: cui_chat_appearance = 2;
+pub type cui_chat_kind = c_int;
+pub const CUI_CHAT_ROOMS: cui_chat_kind = 0;
+pub const CUI_CHAT_TIMELINE: cui_chat_kind = 1;
+pub const CUI_CHAT_COMPOSER: cui_chat_kind = 2;
+pub const CUI_CHAT_WORKSPACE: cui_chat_kind = 3;
+pub const CUI_CHAT_HEADER: cui_chat_kind = 4;
+pub const CUI_CHAT_SPACES: cui_chat_kind = 5;
+pub const CUI_CHAT_INSPECTOR: cui_chat_kind = 6;
+pub const CUI_CHAT_MESSAGE: cui_chat_kind = 7;
+pub const CUI_CHAT_ATTACHMENT_CARD: cui_chat_kind = 8;
+pub const CUI_CHAT_REACTION_STRIP: cui_chat_kind = 9;
+pub const CUI_CHAT_POLL_CARD: cui_chat_kind = 10;
+pub const CUI_CHAT_REPLY_PREVIEW: cui_chat_kind = 11;
+pub const CUI_CHAT_THREAD_SUMMARY: cui_chat_kind = 12;
+pub const CUI_CHAT_AVATAR: cui_chat_kind = 13;
+pub type cui_chat_action = c_int;
+pub const CUI_CHAT_NONE: cui_chat_action = 0;
+pub const CUI_CHAT_OPEN_ROOM: cui_chat_action = 1;
+pub const CUI_CHAT_REPLY: cui_chat_action = 2;
+pub const CUI_CHAT_THREAD: cui_chat_action = 3;
+pub const CUI_CHAT_MORE: cui_chat_action = 4;
+pub const CUI_CHAT_COPY: cui_chat_action = 5;
+pub const CUI_CHAT_REACT: cui_chat_action = 6;
+pub const CUI_CHAT_VOTE: cui_chat_action = 7;
+pub const CUI_CHAT_ATTACHMENT: cui_chat_action = 8;
+pub const CUI_CHAT_LINK: cui_chat_action = 9;
+pub const CUI_CHAT_FOCUS: cui_chat_action = 10;
+pub const CUI_CHAT_SEND: cui_chat_action = 11;
+pub const CUI_CHAT_CANCEL: cui_chat_action = 12;
+pub const CUI_CHAT_ATTACH: cui_chat_action = 13;
+pub const CUI_CHAT_EMOJI: cui_chat_action = 14;
+pub const CUI_CHAT_POLL: cui_chat_action = 15;
+pub const CUI_CHAT_CHANGED: cui_chat_action = 16;
+pub const CUI_CHAT_LOAD_OLDER: cui_chat_action = 17;
+pub type cui_chat_flags = c_int;
+pub const CUI_CHAT_OUTGOING: cui_chat_flags = 1;
+pub const CUI_CHAT_HIGHLIGHT: cui_chat_flags = 2;
+pub const CUI_CHAT_CONTINUED: cui_chat_flags = 4;
+pub const CUI_CHAT_ONLINE: cui_chat_flags = 8;
+pub const CUI_CHAT_SQUARE: cui_chat_flags = 16;
+pub const CUI_CHAT_DISABLED: cui_chat_flags = 32;
+pub const CUI_CHAT_MINE: cui_chat_flags = 64;
+pub const CUI_CHAT_CLOSED: cui_chat_flags = 128;
+pub type cui_chat_span_style = c_int;
+pub const CUI_CHAT_BODY: cui_chat_span_style = 0;
+pub const CUI_CHAT_STRONG: cui_chat_span_style = 1;
+pub const CUI_CHAT_MUTED: cui_chat_span_style = 2;
+pub const CUI_CHAT_MENTION: cui_chat_span_style = 3;
+pub const CUI_CHAT_CODE: cui_chat_span_style = 4;
+pub type cui_chat_layout_style = c_int;
+pub const CUI_CHAT_STANDARD: cui_chat_layout_style = 0;
+pub const CUI_CHAT_SOFT: cui_chat_layout_style = 1;
+pub const CUI_CHAT_COMPACT: cui_chat_layout_style = 2;
+pub type cui_chat_inspector_layout = c_int;
+pub const CUI_CHAT_PROFILE: cui_chat_inspector_layout = 0;
+pub const CUI_CHAT_PEOPLE_LIST: cui_chat_inspector_layout = 1;
+pub const CUI_CHAT_MEDIA_GRID: cui_chat_inspector_layout = 2;
+#[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_chat_theme {pub appearance: cui_chat_appearance,pub background: c_uint,pub surface: c_uint,pub foreground: c_uint,pub muted: c_uint,pub border: c_uint,pub accent: c_uint,pub on_accent: c_uint,pub soft: c_uint,pub hover: c_uint,pub rail: c_uint,pub danger: c_uint,pub online: c_uint,pub font_size: c_double,}
+impl Default for cui_chat_theme { fn default()->Self { unsafe { std::mem::zeroed() } } }
+#[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_chat_presentation {pub messages: cui_chat_layout_style,pub rooms: cui_chat_layout_style,pub header: cui_chat_layout_style,pub composer: cui_chat_layout_style,pub spaces: cui_axis,pub inspector: cui_chat_inspector_layout,pub show_sender: c_int,pub show_room_previews: c_int,pub room_height: c_double,pub bubble_radius: c_double,pub surface_radius: c_double,pub avatar_border_width: c_double,pub composer_padding: c_double,pub composer_radius: c_double,pub mention_background: c_uint,pub mention_foreground: c_uint,pub attachment_background: c_uint,pub media_columns: c_uint,pub composer_tools: c_uint,}
+impl Default for cui_chat_presentation { fn default()->Self { unsafe { std::mem::zeroed() } } }
+#[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_chat_command {pub id: cui_item_id,pub label: *const c_char,pub text: *const c_char,pub symbol: cui_symbol,pub action: cui_chat_action,pub flags: c_uint,}
+impl Default for cui_chat_command { fn default()->Self { unsafe { std::mem::zeroed() } } }
+#[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_chat_span {pub text: *const c_char,pub link: *const c_char,pub style: cui_chat_span_style,}
+impl Default for cui_chat_span { fn default()->Self { unsafe { std::mem::zeroed() } } }
+#[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_chat_detail {pub id: cui_item_id,pub text: *const c_char,pub detail: *const c_char,pub count: c_uint,pub flags: c_uint,}
+impl Default for cui_chat_detail { fn default()->Self { unsafe { std::mem::zeroed() } } }
+#[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_chat_room {pub id: cui_item_id,pub group: *const c_char,pub title: *const c_char,pub detail: *const c_char,pub trailing: *const c_char,pub avatar_color: c_uint,pub unread: c_uint,pub flags: c_uint,pub symbol: cui_symbol,}
+impl Default for cui_chat_room { fn default()->Self { unsafe { std::mem::zeroed() } } }
+#[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_chat_message {pub id: cui_item_id,pub author: *const c_char,pub time: *const c_char,pub date: *const c_char,pub avatar_color: c_uint,pub flags: c_uint,pub spans: *const cui_chat_span,pub span_count: usize,pub reply_author: *const c_char,pub reply_text: *const c_char,pub reply_id: cui_item_id,pub attachments: *const cui_chat_detail,pub attachment_count: usize,pub reactions: *const cui_chat_detail,pub reaction_count: usize,pub poll_question: *const c_char,pub options: *const cui_chat_detail,pub option_count: usize,pub selected_option: c_int,pub thread_preview: *const c_char,pub thread_count: c_uint,pub thread_participants: *const cui_chat_room,pub thread_participant_count: usize,pub author_color: c_uint,}
+impl Default for cui_chat_message { fn default()->Self { unsafe { std::mem::zeroed() } } }
+#[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_chat_event {pub action: cui_chat_action,pub id: cui_item_id,pub detail_id: cui_item_id,pub index: c_uint,pub modifiers: c_uint,pub text: *const c_char,}
+impl Default for cui_chat_event { fn default()->Self { unsafe { std::mem::zeroed() } } }
 // cui_desktop.h
 #[repr(C)] pub struct cui_dialog { _private: [u8;0] }
 #[repr(C)] pub struct cui_command { _private: [u8;0] }
@@ -168,6 +262,12 @@ impl Default for cui_date_value { fn default()->Self { unsafe { std::mem::zeroed
 #[repr(C)] #[derive(Clone,Copy,Debug)] pub struct cui_time_value {pub hour: c_int,pub minute: c_int,pub second: c_int,}
 impl Default for cui_time_value { fn default()->Self { unsafe { std::mem::zeroed() } } }
 // cui_layouts.h
+pub type cui_layer_alignment = c_int;
+pub const CUI_LAYER_FILL: cui_layer_alignment = 0;
+pub const CUI_LAYER_CENTER: cui_layer_alignment = 1;
+pub const CUI_LAYER_TOP: cui_layer_alignment = 2;
+pub const CUI_LAYER_BOTTOM: cui_layer_alignment = 3;
+pub const CUI_LAYER_BOTTOM_RIGHT: cui_layer_alignment = 4;
 // cui_navigation.h
 pub type cui_tree_event = c_int;
 pub const CUI_TREE_NONE: cui_tree_event = 0;
@@ -309,6 +409,7 @@ unsafe extern "C" {
     pub fn cui_get_icon(widget: *const cui_widget) -> *mut cui_icon_asset;
     pub fn cui_set_icon_size(widget: *mut cui_widget, logical_size: c_int) -> c_int;
     pub fn cui_set_icon_only(widget: *mut cui_widget, icon_only: c_int) -> c_int;
+    pub fn cui_set_icon_trailing(widget: *mut cui_widget, trailing: c_int) -> c_int;
     pub fn cui_app_create() -> *mut cui_app;
     pub fn cui_app_run(app: *mut cui_app);
     pub fn cui_app_quit(app: *mut cui_app);
@@ -369,7 +470,10 @@ unsafe extern "C" {
     pub fn cui_clipboard_set_text(window: *mut cui_window, text: *const c_char);
     pub fn cui_set_placeholder(entry: *mut cui_widget, text: *const c_char);
     pub fn cui_set_tooltip(widget: *mut cui_widget, text: *const c_char);
+    pub fn cui_set_style(widget: *mut cui_widget, style: *const cui_widget_style) -> c_int;
     pub fn cui_set_min_size(widget: *mut cui_widget, width: c_int, height: c_int);
+    pub fn cui_widget_get_size(widget: *const cui_widget, width: *mut c_int, height: *mut c_int) -> c_int;
+    pub fn cui_textarea_set_height(textarea: *mut cui_widget, height: c_int) -> c_int;
     pub fn cui_set_visible(widget: *mut cui_widget, visible: c_int);
     pub fn cui_tabs(parent: *mut cui_widget) -> *mut cui_widget;
     pub fn cui_tab_add(tabs: *mut cui_widget, title: *const c_char) -> *mut cui_widget;
@@ -387,6 +491,38 @@ unsafe extern "C" {
     pub fn cui_set_checked(checkbox: *mut cui_widget, checked: c_int);
     pub fn cui_get_checked(checkbox: *const cui_widget) -> c_int;
     pub fn cui_set_enabled(widget: *mut cui_widget, enabled: c_int);
+    pub fn cui_chat_presentation_preset(preset: cui_chat_appearance, presentation: *mut cui_chat_presentation) -> c_int;
+    pub fn cui_chat_presentation_get(chat: *const cui_widget, presentation: *mut cui_chat_presentation) -> c_int;
+    pub fn cui_chat_set_presentation(chat: *mut cui_widget, presentation: *const cui_chat_presentation) -> c_int;
+    pub fn cui_chat_set_commands(chat: *mut cui_widget, commands: *const cui_chat_command, count: usize) -> c_int;
+    pub fn cui_chat_color(l: c_double, c: c_double, hue: c_double, alpha: c_double) -> c_uint;
+    pub fn cui_chat_theme_get(appearance: cui_chat_appearance, theme: *mut cui_chat_theme) -> c_int;
+    pub fn cui_chat_create(parent: *mut cui_widget, kind: cui_chat_kind, appearance: cui_chat_appearance) -> *mut cui_widget;
+    pub fn cui_chat_set_theme(chat: *mut cui_widget, theme: *const cui_chat_theme) -> c_int;
+    pub fn cui_chat_set_messages(chat: *mut cui_widget, items: *const cui_chat_message, count: usize) -> c_int;
+    pub fn cui_chat_set_rooms(chat: *mut cui_widget, items: *const cui_chat_room, count: usize) -> c_int;
+    pub fn cui_chat_select(chat: *mut cui_widget, id: cui_item_id) -> c_int;
+    pub fn cui_chat_set_query(chat: *mut cui_widget, query: *const c_char) -> c_int;
+    pub fn cui_chat_set_status(chat: *mut cui_widget, status: *const c_char) -> c_int;
+    pub fn cui_chat_refresh(chat: *mut cui_widget, scale: c_double) -> c_int;
+    pub fn cui_chat_event_get(chat: *const cui_widget, event: *mut cui_chat_event) -> c_int;
+    pub fn cui_chat_part(chat: *mut cui_widget, part: c_uint) -> *mut cui_widget;
+    pub fn cui_chat_scroll(chat: *mut cui_widget, offset: c_double) -> c_int;
+    pub fn cui_chat_scroll_to(chat: *mut cui_widget, id: cui_item_id) -> c_int;
+    pub fn cui_chat_action_region(chat: *const cui_widget, action: *const cui_chat_event) -> c_uint;
+    pub fn cui_chat_scroll_offset(chat: *const cui_widget) -> c_double;
+    pub fn cui_chat_compose_context(chat: *mut cui_widget, id: cui_item_id, author: *const c_char, preview: *const c_char, editing: c_int) -> c_int;
+    pub fn cui_chat_compose_files(chat: *mut cui_widget, files: *const cui_chat_detail, count: usize) -> c_int;
+    pub fn cui_chat_compose_busy(chat: *mut cui_widget, busy: c_int) -> c_int;
+    pub fn cui_chat_compose_cancel(chat: *mut cui_widget) -> c_int;
+    pub fn cui_chat_compose_submit(chat: *mut cui_widget) -> c_int;
+    pub fn cui_chat_workspace_layout(chat: *mut cui_widget, layout: c_uint) -> c_int;
+    pub fn cui_chat_workspace_focus(chat: *mut cui_widget, pane: c_uint) -> c_int;
+    pub fn cui_chat_workspace_close(chat: *mut cui_widget, pane: c_uint) -> c_int;
+    pub fn cui_chat_workspace_maximize(chat: *mut cui_widget, pane: c_uint) -> c_int;
+    pub fn cui_chat_workspace_restore(chat: *mut cui_widget) -> c_int;
+    pub fn cui_chat_workspace_mask(chat: *const cui_widget) -> c_uint;
+    pub fn cui_chat_workspace_focused(chat: *const cui_widget) -> c_uint;
     pub fn cui_focus(widget: *mut cui_widget) -> c_int;
     pub fn cui_has_focus(widget: *const cui_widget) -> c_int;
     pub fn cui_accessibility(widget: *mut cui_widget, label: *const c_char, description: *const c_char);
@@ -417,6 +553,7 @@ unsafe extern "C" {
     pub fn cui_menu_popup(menu: *mut cui_menu, anchor: *mut cui_widget);
     pub fn cui_toolbar(parent: *mut cui_widget, commands: *const *mut cui_command, count: usize) -> *mut cui_widget;
     pub fn cui_draw_capabilities() -> c_uint;
+    pub fn cui_text_measure(text: *const c_char, family: *const c_char, size: c_double, weight: c_int, width: *mut c_double, height: *mut c_double) -> c_int;
     pub fn cui_surface_create(width: c_int, height: c_int, scale: c_double) -> *mut cui_surface;
     pub fn cui_surface_retain(surface: *mut cui_surface) -> *mut cui_surface;
     pub fn cui_surface_release(surface: *mut cui_surface);
@@ -452,6 +589,8 @@ unsafe extern "C" {
     pub fn cui_field_entry(field: *mut cui_widget) -> *mut cui_widget;
     pub fn cui_field_set_error(field: *mut cui_widget, message: *const c_char);
     pub fn cui_field_is_valid(field: *const cui_widget) -> c_int;
+    pub fn cui_stack(parent: *mut cui_widget) -> *mut cui_widget;
+    pub fn cui_stack_layer(stack: *mut cui_widget, alignment: cui_layer_alignment, width: c_int, height: c_int, margin: c_int) -> *mut cui_widget;
     pub fn cui_grid(parent: *mut cui_widget, columns: c_uint, gap: c_int) -> *mut cui_widget;
     pub fn cui_grid_cell(grid: *mut cui_widget, row: c_uint, column: c_uint, row_span: c_uint, column_span: c_uint) -> *mut cui_widget;
     pub fn cui_wrap(parent: *mut cui_widget, gap: c_int) -> *mut cui_widget;
@@ -494,6 +633,7 @@ unsafe extern "C" {
     pub fn cui_pattern_item_part(pattern: *mut cui_widget, id: cui_item_id, part: cui_part) -> *mut cui_widget;
     pub fn cui_picker(parent: *mut cui_widget, kind: cui_picker_kind, placeholder: *const c_char) -> *mut cui_widget;
     pub fn cui_picker_set_items(picker: *mut cui_widget, items: *const cui_choice, count: usize) -> c_int;
+    pub fn cui_picker_set_chrome(picker: *mut cui_widget, headings: c_int, status: c_int, actions: c_int) -> c_int;
     pub fn cui_picker_set_query(picker: *mut cui_widget, query: *const c_char) -> c_int;
     pub fn cui_picker_get_query(picker: *const cui_widget, buffer: *mut c_char, capacity: usize) -> usize;
     pub fn cui_picker_open(picker: *mut cui_widget, return_focus: *mut cui_widget);

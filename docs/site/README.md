@@ -69,3 +69,18 @@ python3 tools/check_docs.py
 ```
 
 The capture tool starts only its own example processes, waits for a ready signal, captures their mapped native windows and terminates those processes. `docs/images/apps/provenance.json` records source and image hashes. The documentation checker rejects stale source exports or captures. Recapture whenever one of these app sources changes. For interaction checks, run `ctest --test-dir build --output-on-failure -R 'go_messenger|python_music|zig_mail'`.
+
+## Shared C chat components
+
+`guides/chat.html` is generated from `docs/guides/chat.md`; the implementation
+notes are published as `guides/chat-design-components.html`. Chat appears in the
+sidebar, local search, the homepage and component/app galleries, and the text
+references for agents. Textarea, canvas and the C chat prototype link to the guide.
+The C catalog includes a compiled native-chat recipe. The guide documents the
+shared C implementation, all four bindings, and the `cui_chat_concepts` C example.
+
+`tools/capture_chat.py` records the Nebula, Daylight, Tiles and enlarged Daylight
+captures in `docs/images/chat`. The website checker validates their provenance and
+the exported C implementation and fixture sources. After changing the demo or component
+implementation, rebuild the example and refresh its captures before rebuilding
+and checking the website. See the chat guide for the native build/capture commands.
