@@ -6,6 +6,10 @@ CUI aims for native behavior with deliberate visual defaults. Design with system
 
 Use TITLE, HEADING and CAPTION to express text hierarchy. PRIMARY identifies the main button; CARD groups content. SUCCESS, WARNING, DANGER and SUBTLE communicate status. Keep a text label alongside a status color so meaning survives high-contrast themes and color-vision differences.
 
+`CUI_ROLE_AMBIENT` gives a container a decorative multicolor background that follows the app's light/dark theme. Put readable content in a nested CARD; the background carries no semantic information and yields to high contrast. Native gradients require no images, shaders or extra dependencies. C, Rust (`sys::CUI_ROLE_AMBIENT`), Go (`Ambient`), Python (`AMBIENT`) and Zig (`c.CUI_ROLE_AMBIENT`) expose the same role.
+
+GTK application button/label styling is scoped to the content root. Native title-bar controls retain the desktop theme, dimensions and behavior; they are not application buttons.
+
 Select system, light or dark appearance with `cui_app_set_theme`. Linux uses scoped GTK styling; macOS uses AppKit appearance and semantic colors; Windows uses system APIs with native controls and selected custom drawing. Windows is not a WinUI 3 backend and currently does not offer Mica or Acrylic.
 
 ## Logical dimensions

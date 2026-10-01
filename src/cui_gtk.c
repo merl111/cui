@@ -33,6 +33,9 @@ static const char style[] =
     ".cui-canvas, .cui-canvas:focus, .cui-canvas:focus-visible { outline: none; border: none; box-shadow: none; }"
 
     ".cui-window .cui-icon-view:disabled { opacity: 0.45; }"
+    ".cui-window .cui-ambient { background-color: #f3f3fa; background-image: radial-gradient(ellipse at 0% 15%, alpha(#afa3f5,0.65), alpha(#afa3f5,0) 65%), radial-gradient(ellipse at 95% 85%, alpha(#65cfc5,0.55), alpha(#65cfc5,0) 65%), linear-gradient(135deg,#f6e9f3,#edf5fa); }"
+    ".cui-window.cui-dark .cui-ambient { background-color: #161b29; background-image: radial-gradient(ellipse at 0% 15%, alpha(#7559b5,0.5), alpha(#7559b5,0) 65%), radial-gradient(ellipse at 95% 85%, alpha(#26776f,0.5), alpha(#26776f,0) 65%), linear-gradient(135deg,#242039,#111d28); }"
+    ".cui-window .cui-ambient .cui-card { box-shadow: 0 18px 60px alpha(#19233e,0.14); }"
     ".cui-window .cui-panel { background: white; }"
     ".cui-window .cui-chat-background { background: #e5eced; }"
     ".cui-window .cui-message { background: white; border-radius: 12px; }"
@@ -43,24 +46,24 @@ static const char style[] =
     ".cui-window.cui-dark .cui-outgoing { background: #294f56; }"
     ".cui-window { background: #f6f7f9; color: #20242c; }"
     ".cui-window.cui-dark { background: #17191e; color: #edf0f5; }"
-    ".cui-window label { color: inherit; }"
+    ".cui-content label { color: inherit; }"
     ".cui-window .cui-title { font-size: 1.85em; font-weight: 700; letter-spacing: -0.7px; }"
     ".cui-window .cui-heading { font-size: 1.05em; font-weight: 600; }"
     ".cui-window .cui-caption { color: #686f7d; font-size: 0.9em; }"
     ".cui-window.cui-dark .cui-caption { color: #a2aaba; }"
     ".cui-window .cui-card { background: #ffffff; border: 1px solid #e3e6eb; border-radius: 14px; }"
     ".cui-window.cui-dark .cui-card { background: #22252c; border-color: #343942; }"
-    ".cui-window button { background-image: none; background-color: #ffffff; color: #303641;"
+    ".cui-window .cui-content button { background-image: none; background-color: #ffffff; color: #303641;"
     " border: 1px solid #d9dde5; border-radius: 8px; box-shadow: 0 1px 2px alpha(black,0.04);"
     " padding: 8px 18px; min-height: 20px; font-weight: 500; text-shadow: none; }"
-    ".cui-window button:hover { background-color: #eef1f6; }"
-    ".cui-window button:active { background-color: #e3e7ef; }"
-    ".cui-window.cui-dark button { background-color: #2c3039; color: #edf0f5; border-color: #424854; }"
-    ".cui-window.cui-dark button:hover { background-color: #373d48; }"
-    ".cui-window.cui-dark button:active { background-color: #424956; }"
-    ".cui-window button.cui-primary { background-color: #4967da; color: white; border-color: #4967da; }"
-    ".cui-window button.cui-primary:hover { background-color: #3d59c5; border-color: #3d59c5; }"
-    ".cui-window button.cui-primary:active { background-color: #334dab; border-color: #334dab; }"
+    ".cui-window .cui-content button:hover { background-color: #eef1f6; }"
+    ".cui-window .cui-content button:active { background-color: #e3e7ef; }"
+    ".cui-window.cui-dark .cui-content button { background-color: #2c3039; color: #edf0f5; border-color: #424854; }"
+    ".cui-window.cui-dark .cui-content button:hover { background-color: #373d48; }"
+    ".cui-window.cui-dark .cui-content button:active { background-color: #424956; }"
+    ".cui-window .cui-content button.cui-primary { background-color: #4967da; color: white; border-color: #4967da; }"
+    ".cui-window .cui-content button.cui-primary:hover { background-color: #3d59c5; border-color: #3d59c5; }"
+    ".cui-window .cui-content button.cui-primary:active { background-color: #334dab; border-color: #334dab; }"
     ".cui-window entry { background: #fcfcfd; color: #20242c; border: 1px solid #d9dde5;"
     " border-radius: 8px; padding: 9px 12px; min-height: 20px; box-shadow: none; }"
     ".cui-window.cui-dark entry { background: #191c22; color: #edf0f5; border-color: #424854; }"
@@ -69,20 +72,20 @@ static const char style[] =
     ".cui-window spinbutton { border-radius: 8px; background: #fcfcfd; color: #20242c; border: 1px solid #d9dde5; }"
     ".cui-window.cui-dark spinbutton { background: #191c22; color: #edf0f5; border-color: #424854; }"
     ".cui-window spinbutton text { padding: 9px 12px; }"
-    ".cui-window spinbutton button { border-radius: 0; border: none; padding: 6px 10px; box-shadow: none; }"
+    ".cui-window .cui-content spinbutton button { border-radius: 0; border: none; padding: 6px 10px; box-shadow: none; }"
     ".cui-window entry selection { background: #4967da; color: white; }"
     ".cui-window checkbutton { color: inherit; padding: 4px 0; }"
     ".cui-window checkbutton check { background: #fcfcfd; color: white; border: 1px solid #bcc3cf;"
     " border-radius: 5px; min-width: 18px; min-height: 18px; margin-right: 8px; box-shadow: none; }"
     ".cui-window.cui-dark checkbutton check { background: #191c22; border-color: #616c80; }"
     ".cui-window checkbutton check:checked { background: #4967da; border-color: #4967da; }"
-    ".cui-window button:focus-visible, .cui-window checkbutton:focus-visible {"
+    ".cui-window .cui-content button:focus-visible, .cui-window checkbutton:focus-visible {"
     " outline: 2px solid #6680e6; outline-offset: 3px; }"
-    ".cui-window button.cui-flat { background: transparent; border-color: transparent; box-shadow: none; }"
-    ".cui-window button.cui-flat:hover { background: alpha(#8095aa,0.16); }"
-    ".cui-window button.cui-flat:checked { background: alpha(#4967da,0.22); color: #4967da; }"
-    ".cui-window button.cui-icon-button { padding: 8px; border-radius: 999px; }"
-    ".cui-window button:disabled, .cui-window entry:disabled, .cui-window checkbutton:disabled { opacity: 0.45; }";
+    ".cui-window .cui-content button.cui-flat { background: transparent; border-color: transparent; box-shadow: none; }"
+    ".cui-window .cui-content button.cui-flat:hover { background: alpha(#8095aa,0.16); }"
+    ".cui-window .cui-content button.cui-flat:checked { background: alpha(#4967da,0.22); color: #4967da; }"
+    ".cui-window .cui-content button.cui-icon-button { padding: 8px; border-radius: 999px; }"
+    ".cui-window .cui-content button:disabled, .cui-window entry:disabled, .cui-window checkbutton:disabled { opacity: 0.45; }";
 
 static int system_is_dark(cui_app *app)
 {
@@ -371,7 +374,10 @@ int cui__backend_widget_create(cui_widget *widget, const char *text)
     }
     widget->native = native;
     if (widget->parent) cui__gtk_append(widget->parent, widget);
-    else gtk_window_set_child(GTK_WINDOW(widget->window->native), native);
+    else {
+        gtk_widget_add_css_class(native, "cui-content");
+        gtk_window_set_child(GTK_WINDOW(widget->window->native), native);
+    }
     cui__backend_expand(widget);
     if (signal) g_signal_connect(native, signal, G_CALLBACK(cui__gtk_action), widget);
     return 1;
@@ -416,7 +422,7 @@ void cui__backend_padding(cui_widget *widget)
 void cui__backend_role(cui_widget *widget)
 {
     static const char *roles[] = {"cui-body", "cui-title", "cui-heading", "cui-caption", "cui-primary", "cui-card",
-        "cui-success", "cui-warning", "cui-danger", "cui-subtle", "cui-panel", "cui-chat-background", "cui-message", "cui-outgoing", "cui-flat"};
+        "cui-success", "cui-warning", "cui-danger", "cui-subtle", "cui-panel", "cui-chat-background", "cui-message", "cui-outgoing", "cui-flat", "cui-ambient"};
     size_t i;
     for (i = 0; i < G_N_ELEMENTS(roles); ++i) gtk_widget_remove_css_class(GTK_WIDGET(widget->native), roles[i]);
     gtk_widget_add_css_class(GTK_WIDGET(widget->native), roles[widget->role]);

@@ -30,7 +30,7 @@ const char *cui__gtk_styles(void)
     ".cui-window.cui-dark .cui-input-surface { border-color: #424854; }"
     ".cui-window list row { padding: 9px 12px; border-radius: 5px; }"
     ".cui-window columnview cell { padding: 10px 12px; }"
-    ".cui-window columnview header button { border-radius: 0; padding: 9px 12px; font-weight: 600; }"
+    ".cui-window .cui-content columnview header button { border-radius: 0; padding: 9px 12px; font-weight: 600; }"
     ".cui-window .cui-code { font-family: monospace; font-size: 0.92em; }"
     ".cui-window separator { background: alpha(#888888,0.25); min-height: 1px; }"
     ".cui-window checkbutton radio { min-width: 18px; min-height: 18px; margin-right: 8px; }";

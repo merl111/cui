@@ -298,10 +298,26 @@ void cui__mac_canvas_detach(NSView *view);
 }
 @end
 
+static void draw_ambient(cui_widget *widget)
+{
+    if ([[NSWorkspace sharedWorkspace] accessibilityDisplayShouldIncreaseContrast]) return;
+    NSAppearance *appearance = [(NSWindow *)widget->window->native effectiveAppearance];
+    BOOL dark = [[appearance bestMatchFromAppearancesWithNames:
+        @[NSAppearanceNameAqua, NSAppearanceNameDarkAqua]] isEqualToString:NSAppearanceNameDarkAqua];
+    NSColor *violet = [NSColor colorWithSRGBRed:dark ? 0.24 : 0.83 green:dark ? 0.19 : 0.79 blue:dark ? 0.36 : 0.96 alpha:1];
+    NSColor *middle = [NSColor colorWithSRGBRed:dark ? 0.10 : 0.94 green:dark ? 0.12 : 0.94 blue:dark ? 0.18 : 0.98 alpha:1];
+    NSColor *teal = [NSColor colorWithSRGBRed:dark ? 0.09 : 0.74 green:dark ? 0.23 : 0.90 blue:dark ? 0.23 : 0.89 alpha:1];
+    NSGradient *gradient = [[NSGradient alloc] initWithColors:@[violet, middle, teal]];
+    cui_rect r = widget->frame;
+    [gradient drawInRect:NSMakeRect(r.x, r.y, r.width, r.height) angle:25];
+    [gradient release];
+}
+
 static void draw_cards(cui_widget *widget)
 {
     cui_widget *child;
     if (widget->hidden) return;
+    if (widget->role == CUI_ROLE_AMBIENT) draw_ambient(widget);
     if (widget->role == CUI_ROLE_CARD || (widget->role>=CUI_ROLE_PANEL && widget->role<=CUI_ROLE_OUTGOING)) {
         cui_rect r = widget->frame;
         NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:

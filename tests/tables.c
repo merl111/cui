@@ -1,5 +1,5 @@
 #include "cui_tables_internal.h"
-#include <gtk/gtk.h>
+#include "gtk_find.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,12 +10,10 @@ static cui_timer *timer;
 static int events,phase;
 static void changed(cui_widget *sender,void *data)
 { (void)data;CHECK(sender==table);++events; }
-static GtkWidget *editor(GtkWidget *w,const char *text)
-{
-    if(GTK_IS_EDITABLE_LABEL(w)&&!strcmp(gtk_editable_get_text(GTK_EDITABLE(w)),text))return w;
-    for(GtkWidget *c=gtk_widget_get_first_child(w);c;c=gtk_widget_get_next_sibling(c)){GtkWidget *found=editor(c,text);if(found)return found;}
-    return NULL;
-}
+static int editor_matches(GtkWidget *widget,const void *text)
+{ return GTK_IS_EDITABLE_LABEL(widget) && !strcmp(gtk_editable_get_text(GTK_EDITABLE(widget)),(const char *)text); }
+static GtkWidget *editor(GtkWidget *widget,const char *text)
+{ return cui_test_find_widget(widget,editor_matches,text); }
 static unsigned widgets(GtkWidget *w)
 {
     unsigned count=GTK_IS_EDITABLE_LABEL(w)?1:0;

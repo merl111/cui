@@ -67,6 +67,7 @@ const (
 	Message
 	Outgoing
 	Flat
+	Ambient
 )
 const (
 	Loading = iota

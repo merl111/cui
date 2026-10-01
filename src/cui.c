@@ -264,8 +264,8 @@ void cui_on_action(cui_widget *widget, cui_callback callback, void *userdata)
 
 void cui_set_role(cui_widget *widget, cui_role role)
 {
-    if (!widget || role < CUI_ROLE_BODY || role > CUI_ROLE_FLAT) return;
-    if (role == CUI_ROLE_CARD && !cui__container(widget)) return;
+    if (!widget || role < CUI_ROLE_BODY || role > CUI_ROLE_AMBIENT) return;
+    if ((role == CUI_ROLE_CARD || role == CUI_ROLE_AMBIENT) && !cui__container(widget)) return;
     if (role == CUI_ROLE_PRIMARY && widget->kind != CUI_BUTTON && widget->kind != CUI_TOGGLE) return;
     if (role >= CUI_ROLE_TITLE && role <= CUI_ROLE_CAPTION && widget->kind != CUI_LABEL) return;
     widget->role = role;

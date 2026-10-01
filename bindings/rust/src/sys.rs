@@ -39,6 +39,7 @@ pub const CUI_ROLE_CHAT_BACKGROUND: cui_role = 11;
 pub const CUI_ROLE_MESSAGE: cui_role = 12;
 pub const CUI_ROLE_OUTGOING: cui_role = 13;
 pub const CUI_ROLE_FLAT: cui_role = 14;
+pub const CUI_ROLE_AMBIENT: cui_role = 15;
 pub type cui_symbol = c_int;
 pub const CUI_SYMBOL_NONE: cui_symbol = 0;
 pub const CUI_SYMBOL_PLAY: cui_symbol = 1;

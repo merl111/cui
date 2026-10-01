@@ -30,7 +30,9 @@ typedef enum cui_role {
     CUI_ROLE_BODY, CUI_ROLE_TITLE, CUI_ROLE_HEADING,
     CUI_ROLE_CAPTION, CUI_ROLE_PRIMARY, CUI_ROLE_CARD,
     CUI_ROLE_SUCCESS, CUI_ROLE_WARNING, CUI_ROLE_DANGER, CUI_ROLE_SUBTLE,
-    CUI_ROLE_PANEL, CUI_ROLE_CHAT_BACKGROUND, CUI_ROLE_MESSAGE, CUI_ROLE_OUTGOING, CUI_ROLE_FLAT
+    CUI_ROLE_PANEL, CUI_ROLE_CHAT_BACKGROUND, CUI_ROLE_MESSAGE, CUI_ROLE_OUTGOING, CUI_ROLE_FLAT,
+    /* Decorative, theme-aware multicolor background for containers. */
+    CUI_ROLE_AMBIENT
 } cui_role;
 
 /* Original built-in vector symbols. No icon fonts or external assets. */

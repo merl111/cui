@@ -125,11 +125,40 @@ static int inside_card(cui_widget *widget)
     return 0;
 }
 
+static COLORREF blend_background(COLORREF a, COLORREF b, double t)
+{
+    return RGB((BYTE)(GetRValue(a)*(1-t)+GetRValue(b)*t),
+               (BYTE)(GetGValue(a)*(1-t)+GetGValue(b)*t),
+               (BYTE)(GetBValue(a)*(1-t)+GetBValue(b)*t));
+}
+
+static void paint_ambient(cui_widget *widget, HDC dc)
+{
+    win_app_state *state = (win_app_state *)widget->window->app->native;
+    if (state->contrast) return;
+    RECT rect = native_rect(widget->frame, widget->window->scale);
+    int width = rect.right-rect.left;
+    COLORREF colors[3] = {state->dark ? RGB(61,48,92) : RGB(212,201,245),
+        state->dark ? RGB(26,31,46) : RGB(240,240,250),
+        state->dark ? RGB(23,59,59) : RGB(189,230,227)};
+    /* Static native GDI gradient. At most 512 strips, independent of DPI. */
+    for (int i=0; i<512 && width>0; ++i) {
+        double t=i/511.0;
+        COLORREF color=t<0.5 ? blend_background(colors[0],colors[1],t*2) :
+            blend_background(colors[1],colors[2],(t-0.5)*2);
+        RECT strip={rect.left+(int)((double)width*i/512),rect.top,
+            rect.left+(int)((double)width*(i+1)/512),rect.bottom};
+        HBRUSH brush=CreateSolidBrush(color);
+        if(brush){FillRect(dc,&strip,brush);DeleteObject(brush);}
+    }
+}
+
 static void paint_surfaces(cui_widget *widget, HDC dc)
 {
     cui_widget *child;
     win_app_state *state = (win_app_state *)widget->window->app->native;
     if (widget->hidden) return;
+    if (widget->role == CUI_ROLE_AMBIENT) paint_ambient(widget, dc);
     if (widget->role == CUI_ROLE_CARD || (widget->role>=CUI_ROLE_PANEL&&widget->role<=CUI_ROLE_OUTGOING) || widget->kind == CUI_ENTRY || widget->kind == CUI_PASSWORD || widget->kind == CUI_SEARCH || widget->kind == CUI_NUMBER) {
         RECT rect = native_rect(widget->frame, widget->window->scale);
         COLORREF border = GetFocus() == widget->native ? state->accent : state->border;
