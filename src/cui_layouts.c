@@ -1,5 +1,6 @@
 #include "cui_internal.h"
 #include "cui_layouts.h"
+#include "cui_desktop.h"
 #include <math.h>
 #include <string.h>
 #include <stdint.h>
@@ -62,4 +63,17 @@ cui_widget *cui_stack_layer(cui_widget *stack,cui_layer_alignment alignment,int 
     cui_widget *layer=cui_box(stack,CUI_VERTICAL,0);if(!layer)return NULL;
     layer->layer_alignment=alignment;layer->layer_width=width;layer->layer_height=height;layer->layer_margin=margin;
     cui_box_set_padding(layer,0);cui__backend_container(layer);cui__backend_refresh(stack->window);return layer;
+}
+
+cui_widget *cui_stack_backdrop(cui_widget *stack,const char *label)
+{
+    if(!stack||stack->kind!=CUI_STACK||!stack->first||!label)return NULL;
+    cui_widget *backdrop=cui_button(stack,"");if(!backdrop)return NULL;
+    backdrop->layer_alignment=CUI_LAYER_FILL;
+    cui_widget_style style={0};style.background=0x00000066;
+    cui_set_style(backdrop,&style);
+    cui_accessibility(backdrop,label,"");
+    cui__backend_container(backdrop);
+    cui__backend_refresh(stack->window);
+    return backdrop;
 }

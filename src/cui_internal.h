@@ -61,7 +61,7 @@ struct cui_window {
     void *native, *content, *font;
     int width, height, visible, laying_out;
     float scale;
-    int decorated, resizable;
+    int decorated, resizable, popup;
     cui_window *anchor_parent;
     int anchor_x, anchor_y, anchor_width, anchor_height;
     void *attached_native;
@@ -129,6 +129,7 @@ int cui__backend_window_move(cui_window *window);
 int cui__backend_window_get_size(cui_window *window, int *width, int *height);
 int cui__backend_window_resize(cui_window *window, int corner);
 int cui__backend_window_anchor(cui_window *window);
+int cui__backend_popup_anchor(cui_window *panel,cui_widget *anchor,double x,double y,double width,double height);
 void cui__backend_window_destroy(cui_window *window);
 void cui__backend_window_show(cui_window *window);
 void cui__backend_window_hide(cui_window *window);

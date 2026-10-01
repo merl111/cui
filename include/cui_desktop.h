@@ -82,6 +82,14 @@ int cui_menu_add_separator(cui_menu *menu);
  * and text-editing actions alongside the application-provided menus. */
 void cui_window_set_menu(cui_window *window, cui_menu *menu);
 void cui_menu_popup(cui_menu *menu, cui_widget *anchor);
+/* Show an undecorated window as a transient, focusable popup anchored to a
+ * widget-local rectangle or enabled canvas hit region. Outside clicks, Escape
+ * and parent closure dismiss it. is_visible observes dismissal; show again via
+ * this API. Native placement flips/clamps at screen edges. The app owns content.
+ * Invalid, hidden or disabled anchors return 0 without showing the popup. */
+int cui_window_popup_at(cui_window *panel, cui_widget *anchor,
+    double x, double y, double width, double height);
+int cui_window_popup_region(cui_window *panel, cui_widget *canvas, unsigned region);
 /* Anchor a native context menu to a rectangle in widget-local logical units.
    Returns zero for invalid geometry, different applications or hidden/disabled
    anchors. Native menus handle edge placement, keyboard navigation and dismissal.

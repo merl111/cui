@@ -144,6 +144,8 @@ pub const Window = struct {
         if (c.cui_window_get_size(self.raw, &dimensions[0], &dimensions[1]) == 0) return null;
         return dimensions;
     }
+    pub fn popupAt(self: Window, anchor_widget: Widget, rect: [4]f64) bool { return c.cui_window_popup_at(self.raw,anchor_widget.raw,rect[0],rect[1],rect[2],rect[3]) != 0; }
+    pub fn popupRegion(self: Window, canvas: Widget, region: c_uint) bool { return c.cui_window_popup_region(self.raw,canvas.raw,region) != 0; }
     pub fn anchor(self: Window, parent: Window, rect: [4]c_int) bool {
         return c.cui_window_set_anchor(self.raw,parent.raw,rect[0],rect[1],rect[2],rect[3]) != 0;
     }
@@ -192,6 +194,7 @@ pub const Widget = struct {
     pub fn setItems(self: Widget, items: []const [*:0]const u8) bool { return c.cui_set_items(self.raw, @ptrCast(items.ptr), items.len) != 0; }
     pub fn switchControl(self: Widget, content: [:0]const u8, checked: bool) Error!Widget { return wrap(c.cui_switch(self.raw, content, @intFromBool(checked))); }
     pub fn stack(self: Widget) Error!Widget {return wrap(c.cui_stack(self.raw));}
+    pub fn stackBackdrop(self: Widget, dismiss_label: [:0]const u8) Error!Widget {return wrap(c.cui_stack_backdrop(self.raw,dismiss_label));}
     pub fn stackLayer(self: Widget, alignment:c.cui_layer_alignment,width:c_int,height:c_int,margin:c_int) Error!Widget {return wrap(c.cui_stack_layer(self.raw,alignment,width,height,margin));}
     pub fn grid(self: Widget, column_count: c_uint, gap: c_int) Error!Widget { return wrap(c.cui_grid(self.raw, column_count, gap)); }
     pub fn gridCell(self: Widget, row: c_uint, column: c_uint, row_span: c_uint, column_span: c_uint) Error!Widget { return wrap(c.cui_grid_cell(self.raw, row, column, row_span, column_span)); }

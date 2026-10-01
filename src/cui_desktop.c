@@ -26,6 +26,27 @@ int cui_menu_popup_region(cui_menu *menu, cui_widget *canvas, unsigned region)
     }
     return 0;
 }
+int cui_window_popup_at(cui_window *panel,cui_widget *anchor,double x,double y,double width,double height)
+{
+    if(!panel||!anchor||panel->decorated||panel->app!=anchor->window->app||
+       !isfinite(x)||!isfinite(y)||!isfinite(width)||!isfinite(height)||
+       fabs(x)>1e6||fabs(y)>1e6||width<=0||height<=0||width>1e6||height>1e6)return 0;
+    for(cui_window *w=anchor->window;w;w=w->anchor_parent)if(w==panel)return 0;
+    for(cui_widget *w=anchor;w;w=w->parent)if(w->hidden||!w->enabled)return 0;
+    panel->popup=1;
+    if(!cui__backend_popup_anchor(panel,anchor,x,y,width,height))return 0;
+    cui_window_show(panel);return 1;
+}
+int cui_window_popup_region(cui_window *panel,cui_widget *canvas,unsigned region)
+{
+    cui_canvas_state *state=cui__canvas_state(canvas);
+    if(!state||!region)return 0;
+    for(size_t i=0;i<state->count;++i){
+        const cui_canvas_region *r=state->regions+i;
+        if(r->id==region&&r->enabled)return cui_window_popup_at(panel,canvas,r->x,r->y,r->width,r->height);
+    }
+    return 0;
+}
 char *cui__desktop_copy(const char *text)
 {
     if (!text) text = "";

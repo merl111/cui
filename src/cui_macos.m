@@ -421,6 +421,7 @@ static void draw_cards(cui_widget *widget)
     cui_window_close(model);
     return NO;
 }
+- (void)windowDidResignKey:(NSNotification *)note { (void)note; if(model&&model->popup)cui_window_close(model); }
 - (void)windowDidBecomeKey:(NSNotification *)note { (void)note; if(model) cui__desktop_menu(model); }
 - (void)windowDidResize:(NSNotification *)note { (void)note; if (model && model->scrollable) cui__backend_refresh(model); }
 @end
@@ -529,6 +530,11 @@ void cui__backend_theme(cui_app *app)
 @implementation CUIFramedWindow
 - (BOOL)canBecomeKeyWindow { return YES; }
 - (BOOL)canBecomeMainWindow { return YES; }
+- (void)cancelOperation:(id)sender {
+    CUIContent *content=(CUIContent *)[self delegate];
+    if(content->model&&content->model->popup)cui_window_close(content->model);
+    else [super cancelOperation:sender];
+}
 @end
 int cui__backend_window_create(cui_window *window, const char *title)
 {
@@ -1179,7 +1185,15 @@ int cui__backend_window_anchor(cui_window *w)
     }
     if(!w->visible)[panel orderOut:nil];
     NSRect content=[parent convertRectToScreen:[[(NSWindow *)w->anchor_parent->native contentView] bounds]];
-    [panel setFrameTopLeftPoint:NSMakePoint(NSMinX(content)+w->anchor_x+w->anchor_width+16,NSMaxY(content)-w->anchor_y)];
+    NSPoint point=NSMakePoint(NSMinX(content)+w->anchor_x+w->anchor_width+16,NSMaxY(content)-w->anchor_y);
+    if(w->popup){
+        NSRect screen=[[parent screen] visibleFrame];NSSize size=[panel frame].size;
+        point=NSMakePoint(NSMinX(content)+w->anchor_x,NSMaxY(content)-w->anchor_y-w->anchor_height);
+        if(point.y-size.height<NSMinY(screen))point.y=NSMaxY(content)-w->anchor_y+size.height;
+        point.x=fmax(NSMinX(screen),fmin(point.x,NSMaxX(screen)-size.width));
+        point.y=fmin(NSMaxY(screen),fmax(point.y,NSMinY(screen)+size.height));
+    }
+    [panel setFrameTopLeftPoint:point];
     return 1;
 }
 
@@ -1196,4 +1210,12 @@ void cui__backend_table_headers(cui_widget *w,int visible)
     NSTableView *table=(NSTableView *)w->aux;
     if(visible && ![table headerView]) [table setHeaderView:[[[NSTableHeaderView alloc] initWithFrame:NSMakeRect(0,0,1,24)] autorelease]];
     else if(!visible) [table setHeaderView:nil];
+}
+
+int cui__backend_popup_anchor(cui_window *panel,cui_widget *anchor,double x,double y,double width,double height)
+{
+    panel->anchor_parent=anchor->window;
+    panel->anchor_x=(int)floor(anchor->frame.x+x);panel->anchor_y=(int)floor(anchor->frame.y+y);
+    panel->anchor_width=(int)ceil(width);panel->anchor_height=(int)ceil(height);
+    return cui__backend_window_anchor(panel);
 }

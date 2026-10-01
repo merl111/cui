@@ -82,3 +82,39 @@ else cui_window_show(panel);
 The native popup must remain adjacent to or overlap its parent's native buffer. [GNOME enforces this constraint](https://github.com/GNOME/mutter/blob/main/src/wayland/meta-wayland-xdg-shell.c). The visible gap is bounded by the phone window's transparent padding. CUI clamps anchor rectangles during pending size changes and updates attached canvas panels during native allocation, before committing the resized parent surface. A later timer update alone can allow the compositor to dismiss the popup.
 
 `window_panels_wayland_1x` and `window_panels_wayland_2x` run when system Mutter, Python and `dbus-run-session` are installed. They use an isolated headless compositor and private session bus, wait for the popup to actually map, and verify close/reopen plus growth and shrinkage while open. Run with `ctest --test-dir build --output-on-failure -R window_panels_wayland`. These are development tools, not runtime library dependencies.
+
+
+## Dialog backdrops and attached popups
+
+For an in-window modal, create a stack base, then `cui_stack_backdrop(stack,
+"Close dialog")`, then the dialog's `cui_stack_layer`. The backdrop is a native
+button with no visible label; `cui_on_action` receives outside activations.
+Disable the base while open, and hide both the backdrop and dialog when closing.
+Clicks inside the later dialog layer do not activate the backdrop. Applications
+own Escape handling, initial focus, focus restoration, and any pending-operation
+dismissal policy. The backdrop uses a translucent black fill by default and accepts
+`cui_set_style`. Explicit widget colors and radii use locale-independent CSS on GTK.
+
+For a non-modal picker, use an undecorated CUI window with ordinary child widgets:
+
+```c
+cui_window *picker = cui_window_create(app, "Reactions", 404, 126);
+cui_window_set_frame(picker, 0, 0, 20);
+/* Populate cui_window_root(picker), then show next to the clicked region: */
+cui_window_popup_region(picker, timeline_canvas, reaction_region);
+```
+
+`cui_window_popup_at(picker, anchor, x, y, width, height)` accepts widget-local
+logical coordinates. `cui_window_popup_region` resolves a current enabled canvas
+hit region. Invalid, hidden, or disabled anchors are rejected. Native placement
+keeps the popup on screen. Outside clicks and Escape dismiss it;
+`cui_window_is_visible` observes dismissal. Parent closure also closes attached
+children. Reuse the same picker window and call the popup API again to reopen.
+Use `cui_window_set_size` followed by the popup API when expanding its content.
+Do not use the persistent `cui_window_set_anchor` companion-panel API for a
+transient picker that should dismiss on outside interaction.
+
+Convenience wrappers: Rust `Widget::stack_backdrop`, `Window::popup_at` and
+`popup_region`; Go `StackBackdrop`, `PopupAt`, `PopupRegion`; Python
+`stack_backdrop`, `popup_at`, `popup_region`; Zig `stackBackdrop`, `popupAt`,
+`popupRegion`. All languages call the same C implementation.

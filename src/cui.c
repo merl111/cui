@@ -196,6 +196,8 @@ void cui_window_close(cui_window *window)
 {
     if (!window || !window->visible) return;
     window->visible = 0;
+    for(cui_window *child=window->app->windows;child;child=child->next)
+        if(child->anchor_parent==window)cui_window_close(child);
     cui__backend_window_hide(window);
     if (!has_visible_windows(window->app)) cui_app_quit(window->app);
 }
@@ -361,6 +363,7 @@ int cui_window_set_anchor(cui_window *panel,cui_window *parent,int x,int y,int w
     if(!panel || !parent || panel->app!=parent->app || panel->decorated ||
        x<0 || y<0 || width<1 || height<1 || x>4096 || y>4096 || width>4096 || height>4096)return 0;
     for(cui_window *p=parent;p;p=p->anchor_parent)if(p==panel)return 0;
+    panel->popup=0;
     panel->anchor_parent=parent;panel->anchor_x=x;panel->anchor_y=y;
     panel->anchor_width=width;panel->anchor_height=height;
     return cui__backend_window_anchor(panel);

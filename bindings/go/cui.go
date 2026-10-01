@@ -153,9 +153,10 @@ func (a *App) Close() {
 	}
 	a.handles = nil
 }
+
 // ResolvedTheme returns the effective system or explicit light/dark appearance.
 func (a *App) ResolvedTheme() int { a.check(); return int(C.cui_app_resolved_theme(a.ptr)) }
-func (a *App) Theme(theme int) { a.check(); C.cui_app_set_theme(a.ptr, C.cui_theme(theme)) }
+func (a *App) Theme(theme int)    { a.check(); C.cui_app_set_theme(a.ptr, C.cui_theme(theme)) }
 func cstring(s string) (*C.char, func()) {
 	if strings.IndexByte(s, 0) >= 0 {
 		panic("CUI string contains NUL")
@@ -626,17 +627,19 @@ func (m Menu) Submenu(label string, child Menu) bool {
 	defer done()
 	return C.cui_menu_add_submenu(m.ptr, p, child.ptr) != 0
 }
-func (m Menu) Separator() bool       { m.app.check(); return C.cui_menu_add_separator(m.ptr) != 0 }
-func (m Menu) Popup(anchor Widget)   { m.app.check(); C.cui_menu_popup(m.ptr, anchor.ptr) }
+func (m Menu) Separator() bool     { m.app.check(); return C.cui_menu_add_separator(m.ptr) != 0 }
+func (m Menu) Popup(anchor Widget) { m.app.check(); C.cui_menu_popup(m.ptr, anchor.ptr) }
+
 // PopupAt anchors a native menu in widget-local logical coordinates.
 func (m Menu) PopupAt(anchor Widget, x, y, width, height float64) bool {
-    m.app.check()
-    return C.cui_menu_popup_at(m.ptr, anchor.ptr, C.double(x), C.double(y), C.double(width), C.double(height)) != 0
+	m.app.check()
+	return C.cui_menu_popup_at(m.ptr, anchor.ptr, C.double(x), C.double(y), C.double(width), C.double(height)) != 0
 }
+
 // PopupRegion anchors to a current enabled canvas hit region.
 func (m Menu) PopupRegion(canvas Widget, region uint32) bool {
-    m.app.check()
-    return C.cui_menu_popup_region(m.ptr, canvas.ptr, C.uint(region)) != 0
+	m.app.check()
+	return C.cui_menu_popup_region(m.ptr, canvas.ptr, C.uint(region)) != 0
 }
 func (w Window) Menu(menu Menu)      { w.app.check(); C.cui_window_set_menu(w.ptr, menu.ptr) }
 func (w Widget) Focus() bool         { w.app.check(); return C.cui_focus(w.ptr) != 0 }
@@ -1160,6 +1163,17 @@ func (w Window) BeginResize(corner int) bool {
 	return C.cui_window_begin_resize(w.ptr, C.int(corner)) != 0
 }
 
+// PopupAt shows a transient window next to a widget-local rectangle.
+func (w Window) PopupAt(anchor Widget, rect [4]float64) bool {
+	w.app.check()
+	anchor.app.check()
+	return C.cui_window_popup_at(w.ptr, anchor.ptr, C.double(rect[0]), C.double(rect[1]), C.double(rect[2]), C.double(rect[3])) != 0
+}
+func (w Window) PopupRegion(canvas Widget, region uint32) bool {
+	w.app.check()
+	canvas.app.check()
+	return C.cui_window_popup_region(w.ptr, canvas.ptr, C.uint(region)) != 0
+}
 // Anchor attaches an auxiliary window beside a parent content rectangle.
 func (w Window) Anchor(parent Window, rect [4]int) bool {
 	w.app.check()
@@ -1188,6 +1202,14 @@ const (
 )
 
 func (w Widget) Stack() Widget { w.app.check(); return widget(w.app, C.cui_stack(w.ptr)) }
+
+// StackBackdrop creates a dimming layer that emits OnAction when activated.
+func (w Widget) StackBackdrop(label string) Widget {
+	w.app.check()
+	text := C.CString(label)
+	defer C.free(unsafe.Pointer(text))
+	return widget(w.app, C.cui_stack_backdrop(w.ptr, text))
+}
 func (w Widget) StackLayer(alignment, width, height, margin int) Widget {
 	w.app.check()
 	return widget(w.app, C.cui_stack_layer(w.ptr, C.cui_layer_alignment(alignment), C.int(width), C.int(height), C.int(margin)))

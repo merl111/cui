@@ -482,6 +482,12 @@ impl Widget {
         let rt = self.handle.live()?;
         Widget::from_native(&rt, unsafe { sys::cui_stack(self.handle.ptr.as_ptr()) })
     }
+    /// Clickable dimming layer; add after the base and before the dialog.
+    pub fn stack_backdrop(&self, label: &str) -> Result<Widget> {
+        let rt = self.handle.live()?;
+        let label = string(label)?;
+        Widget::from_native(&rt, unsafe { sys::cui_stack_backdrop(self.handle.ptr.as_ptr(), label.as_ptr()) })
+    }
     pub fn stack_layer(&self, alignment: sys::cui_layer_alignment, width: i32, height: i32, margin: i32) -> Result<Widget> {
         let rt = self.handle.live()?;
         Widget::from_native(&rt, unsafe { sys::cui_stack_layer(self.handle.ptr.as_ptr(), alignment, width, height, margin) })

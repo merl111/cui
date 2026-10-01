@@ -552,6 +552,8 @@ unsafe extern "C" {
     pub fn cui_menu_add_separator(menu: *mut cui_menu) -> c_int;
     pub fn cui_window_set_menu(window: *mut cui_window, menu: *mut cui_menu);
     pub fn cui_menu_popup(menu: *mut cui_menu, anchor: *mut cui_widget);
+    pub fn cui_window_popup_at(panel: *mut cui_window, anchor: *mut cui_widget, x: c_double, y: c_double, width: c_double, height: c_double) -> c_int;
+    pub fn cui_window_popup_region(panel: *mut cui_window, canvas: *mut cui_widget, region: c_uint) -> c_int;
     pub fn cui_menu_popup_at(menu: *mut cui_menu, anchor: *mut cui_widget, x: c_double, y: c_double, width: c_double, height: c_double) -> c_int;
     pub fn cui_menu_popup_region(menu: *mut cui_menu, canvas: *mut cui_widget, region: c_uint) -> c_int;
     pub fn cui_toolbar(parent: *mut cui_widget, commands: *const *mut cui_command, count: usize) -> *mut cui_widget;
@@ -594,6 +596,7 @@ unsafe extern "C" {
     pub fn cui_field_is_valid(field: *const cui_widget) -> c_int;
     pub fn cui_stack(parent: *mut cui_widget) -> *mut cui_widget;
     pub fn cui_stack_layer(stack: *mut cui_widget, alignment: cui_layer_alignment, width: c_int, height: c_int, margin: c_int) -> *mut cui_widget;
+    pub fn cui_stack_backdrop(stack: *mut cui_widget, label: *const c_char) -> *mut cui_widget;
     pub fn cui_grid(parent: *mut cui_widget, columns: c_uint, gap: c_int) -> *mut cui_widget;
     pub fn cui_grid_cell(grid: *mut cui_widget, row: c_uint, column: c_uint, row_span: c_uint, column_span: c_uint) -> *mut cui_widget;
     pub fn cui_wrap(parent: *mut cui_widget, gap: c_int) -> *mut cui_widget;

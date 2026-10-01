@@ -20,6 +20,9 @@ pub fn main() !void {
     const window=try app.window("Shared C chat · Zig",800,700);
     const stack=try window.root().stack();
     _=try stack.stackLayer(c.CUI_LAYER_FILL,0,0,0);
+    _=try stack.stackBackdrop("Dismiss");
+    try std.testing.expect(!window.popupAt(window.root(),.{0,0,0,20}));
+    try std.testing.expect(!window.popupRegion(window.root(),0));
     const overlay=try stack.stackLayer(c.CUI_LAYER_CENTER,220,100,12);
     const action=try overlay.button("Continue");check(action.iconTrailing(true));
     c.cui_set_visible(stack.raw,0);

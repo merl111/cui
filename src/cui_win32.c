@@ -438,6 +438,9 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT message, WPARAM wp, LPARAM l
     if (!window) return DefWindowProcW(hwnd, message, wp, lp);
     switch (message) {
     case WM_CLOSE: cui_window_close(window); return 0;
+    case WM_ACTIVATE:
+        if(window->popup&&LOWORD(wp)==WA_INACTIVE)cui_window_close(window);
+        break;
     case WM_MOVE:
         for(cui_window *p=window->app->windows;p;p=p->next)
             if(p->anchor_parent==window)cui__backend_window_anchor(p);
@@ -633,6 +636,7 @@ static int route_message(cui_app *app, MSG *message)
     HWND active=GetActiveWindow();
     for(cui_window *w=app->windows;w;w=w->next){
         if(!w->visible || active!=(HWND)w->native)continue;
+        if(key&&w->popup&&message->wParam==VK_ESCAPE){cui_window_close(w);return 1;}
         if(cui__win32_key_message(message))return 1;
         if(key && cui__desktop_key(w,(unsigned)message->wParam,key_modifiers()))return 1;
         return IsDialogMessageW((HWND)w->native,message);
@@ -1209,7 +1213,17 @@ int cui__backend_window_anchor(cui_window *w)
     SetWindowLongPtrW((HWND)w->native,GWLP_HWNDPARENT,(LONG_PTR)parent);
     double scale=cui_window_scale(w->anchor_parent);
     POINT point={(LONG)((w->anchor_x+w->anchor_width+16)*scale),(LONG)(w->anchor_y*scale)};
+    if(w->popup){point.x=(LONG)(w->anchor_x*scale);point.y=(LONG)((w->anchor_y+w->anchor_height)*scale);}
     ClientToScreen(parent,&point);
+    if(w->popup){
+        MONITORINFO info={sizeof(info)};RECT frame;GetWindowRect((HWND)w->native,&frame);
+        if(GetMonitorInfoW(MonitorFromWindow(parent,MONITOR_DEFAULTTONEAREST),&info)){
+            LONG width=frame.right-frame.left,height=frame.bottom-frame.top;
+            if(point.y+height>info.rcWork.bottom)point.y-=(LONG)(w->anchor_height*scale)+height;
+            point.x=max(info.rcWork.left,min(point.x,info.rcWork.right-width));
+            point.y=max(info.rcWork.top,min(point.y,info.rcWork.bottom-height));
+        }
+    }
     return SetWindowPos((HWND)w->native,NULL,point.x,point.y,0,0,SWP_NOSIZE|SWP_NOACTIVATE|SWP_NOZORDER)!=0;
 }
 
@@ -1219,4 +1233,13 @@ int cui_widget_get_size(const cui_widget *w, int *width, int *height)
     int x = (int)w->frame.width, y = (int)w->frame.height;
     if (x <= 0 || y <= 0) return 0;
     *width = x; *height = y; return 1;
+}
+
+int cui__backend_popup_anchor(cui_window *panel,cui_widget *anchor,double x,double y,double width,double height)
+{
+    panel->anchor_parent=anchor->window;
+    panel->anchor_x=(int)floor(anchor->frame.x+x-anchor->window->scroll_x);
+    panel->anchor_y=(int)floor(anchor->frame.y+y-anchor->window->scroll_y);
+    panel->anchor_width=(int)ceil(width);panel->anchor_height=(int)ceil(height);
+    return cui__backend_window_anchor(panel);
 }

@@ -420,6 +420,7 @@
       "api": [
         "cui_stack",
         "cui_stack_layer",
+        "cui_stack_backdrop",
         "cui_set_visible"
       ],
       "example": "examples/showcase/cases.inc",

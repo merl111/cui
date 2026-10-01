@@ -547,6 +547,9 @@ fn main() -> Result<()> {
 fn contracts(d: &Demo, palette: &Palette) -> Result<()> {
     let stack=d.window.root()?.stack()?;
     let _base=stack.stack_layer(sys::CUI_LAYER_FILL,0,0,0)?;
+    let _backdrop=stack.stack_backdrop("Dismiss")?;
+    assert!(!d.window.popup_at(&stack,[0.,0.,0.,20.])?);
+    assert!(!d.window.popup_region(&stack,0)?);
     let overlay=stack.stack_layer(sys::CUI_LAYER_CENTER,220,100,12)?;
     assert!(overlay.button("Continue")?.set_icon_trailing(true)?);
     stack.set_visible(false)?;

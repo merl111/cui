@@ -350,6 +350,14 @@ impl Window {
             )
         } != 0)
     }
+    pub fn popup_at(&self, anchor: &Widget, rect: [f64; 4]) -> Result<bool> {
+        let _rt = self.handle.live()?; self.handle.same(&anchor.handle)?;
+        Ok(unsafe { sys::cui_window_popup_at(self.handle.ptr.as_ptr(),anchor.handle.ptr.as_ptr(),rect[0],rect[1],rect[2],rect[3]) } != 0)
+    }
+    pub fn popup_region(&self, canvas: &Widget, region: u32) -> Result<bool> {
+        let _rt = self.handle.live()?; self.handle.same(&canvas.handle)?;
+        Ok(unsafe { sys::cui_window_popup_region(self.handle.ptr.as_ptr(),canvas.handle.ptr.as_ptr(),region) } != 0)
+    }
     pub fn is_visible(&self) -> Result<bool> {
         let _rt = self.handle.live()?;
         Ok(unsafe { sys::cui_window_is_visible(self.handle.ptr.as_ptr()) } != 0)

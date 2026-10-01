@@ -35,6 +35,7 @@ for name in ('create',):
 for name in ('run', 'quit', 'destroy'):
     _bind('app_'+name, None, P)
 _bind('stack',P,P)
+_bind('stack_backdrop',P,P,S)
 _bind('stack_layer',P,P,I,I,I,I)
 LAYER_FILL,LAYER_CENTER,LAYER_TOP,LAYER_BOTTOM,LAYER_BOTTOM_RIGHT=range(5)
 _bind('app_error', S, P)
@@ -51,6 +52,8 @@ _bind('widget_get_size', I, P, C.POINTER(I), C.POINTER(I))
 _bind('textarea_set_height', I, P, I)
 _bind('window_get_size', I, P, C.POINTER(I), C.POINTER(I))
 _bind('window_begin_resize', I, P, I)
+_bind('window_popup_at',I,P,P,D,D,D,D)
+_bind('window_popup_region',I,P,P,C.c_uint)
 _bind('window_set_anchor', I, P, P, I, I, I, I)
 _bind('window_is_visible', I, P)
 _bind('window_create', P, P, S, I, I)
@@ -511,6 +514,8 @@ class Window(Handle):
         if not lib.cui_window_get_size(self.ptr, C.byref(width), C.byref(height)):
             raise RuntimeError('Could not read window size')
         return width.value, height.value
+    def popup_at(self, anchor, rect): return bool(lib.cui_window_popup_at(self.ptr, anchor.ptr, *rect))
+    def popup_region(self, canvas, region): return bool(lib.cui_window_popup_region(self.ptr, canvas.ptr, region))
     def anchor(self, parent, rect): return bool(lib.cui_window_set_anchor(self.ptr, parent.ptr, *rect))
     def begin_resize(self, corner): return bool(lib.cui_window_begin_resize(self.ptr, corner))
     def begin_move(self): return bool(lib.cui_window_begin_move(self.ptr))
@@ -773,6 +778,7 @@ class Widget(Handle):
         return event, id.value
 
     def stack(self): return Widget(self.app, lib.cui_stack(self.ptr))
+    def stack_backdrop(self, label): return Widget(self.app, lib.cui_stack_backdrop(self.ptr, _s(label)))
     def stack_layer(self, alignment=LAYER_FILL, width=0, height=0, margin=0): return Widget(self.app, lib.cui_stack_layer(self.ptr,alignment,width,height,margin))
     def grid(self, columns, gap=12): return Widget(self.app, lib.cui_grid(self.ptr, columns, gap))
     def cell(self, row, column, row_span=1, column_span=1): return Widget(self.app, lib.cui_grid_cell(self.ptr, row, column, row_span, column_span))

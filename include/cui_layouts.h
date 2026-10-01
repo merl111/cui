@@ -15,6 +15,12 @@ typedef enum cui_layer_alignment {
 cui_widget *cui_stack(cui_widget *parent);
 cui_widget *cui_stack_layer(cui_widget *stack, cui_layer_alignment alignment,
     int width, int height, int margin);
+/* A full-stack dimming button, inserted after the base and before dialog layers.
+ * Emits on_action on activation; the application closes its dialog and hides
+ * both layers. Native hit testing prevents clicks inside a later dialog layer
+ * from activating the backdrop. label is its accessible dismissal name, never
+ * visible text. Customize the dimming color with cui_set_style. */
+cui_widget *cui_stack_backdrop(cui_widget *stack, const char *label);
 /* Grid cells are owned boxes. Coordinates are zero-based, at most 64 columns
  * and 256 rows. Spans must not overlap existing cells. */
 cui_widget *cui_grid(cui_widget *parent, unsigned columns, int gap);

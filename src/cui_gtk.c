@@ -566,18 +566,19 @@ cui_icon_asset *cui_icon_load_image(const char *path)
 static void window_shape(cui_window *w)
 {
 #ifdef GDK_WINDOWING_X11
-    GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(w->native));
+    GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(w->attached_native?w->attached_native:w->native));
     if (!surface || !GDK_IS_X11_SURFACE(surface)) return;
     Display *display = gdk_x11_display_get_xdisplay(gdk_surface_get_display(surface));
     Window xid = gdk_x11_surface_get_xid(surface);
-    if (w->decorated || w->corner_radius == 0 || gdk_display_is_composited(gdk_surface_get_display(surface))) {
+    double logical_radius=w->popup&&w->root->styled?w->root->style.radius:w->corner_radius;
+    if (w->decorated || logical_radius == 0 || gdk_display_is_composited(gdk_surface_get_display(surface))) {
         XShapeCombineMask(display,xid,ShapeBounding,0,0,None,ShapeSet); return;
     }
     int scale = gdk_surface_get_scale_factor(surface);
     /* XShape coordinates are signed 16-bit, even on a 64-bit host. */
-    int width = (int)fmin((double)w->width*scale,32767.);
-    int height = (int)fmin((double)w->height*scale,32767.);
-    double radius = fmin(w->corner_radius*scale,fmin(width,height)/2.);
+    int width = (int)fmin((double)(w->attached_native?gdk_surface_get_width(surface):w->width)*scale,32767.);
+    int height = (int)fmin((double)(w->attached_native?gdk_surface_get_height(surface):w->height)*scale,32767.);
+    double radius = fmin(logical_radius*scale,fmin(width,height)/2.);
     Region region = XCreateRegion();
     if (!region) return;
     for (int y=0;y<height;++y) {
@@ -606,9 +607,10 @@ int cui__backend_window_frame(cui_window *w)
             GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_APPLICATION+1);
         g_object_set_data_full(G_OBJECT(native),"cui-frame-css",css,g_object_unref);
     }
-    char style[256];
+    char style[256], radius[G_ASCII_DTOSTR_BUF_SIZE];
+    g_ascii_dtostr(radius,sizeof(radius),w->corner_radius);
     if (w->decorated) style[0]=0;
-    else g_snprintf(style,sizeof(style),"window.cui-window { background: transparent; background-image: none; border: none; padding: 0; margin: 0; outline: none; box-shadow: none; border-radius: %.3fpx; }",w->corner_radius);
+    else g_snprintf(style,sizeof(style),"window.cui-window { background: transparent; background-image: none; border: none; padding: 0; margin: 0; outline: none; box-shadow: none; border-radius: %spx; }",radius);
     load_css(css,style);
     gtk_widget_realize(GTK_WIDGET(native));
     window_shape(w);
@@ -684,6 +686,26 @@ int cui__backend_window_resize(cui_window *w, int corner)
     return 1;
 }
 
+static void attached_layout(GdkSurface *surface,int width,int height,gpointer data)
+{ (void)surface;(void)width;(void)height;window_shape(data); }
+static void attached_mapped(GtkWidget *popover,gpointer data)
+{
+    GdkSurface *surface=gtk_native_get_surface(GTK_NATIVE(popover));
+    if(surface&&!g_object_get_data(G_OBJECT(surface),"cui-attached-shape")){
+        g_signal_connect_after(surface,"layout",G_CALLBACK(attached_layout),data);
+        g_object_set_data(G_OBJECT(surface),"cui-attached-shape",GINT_TO_POINTER(1));
+    }
+    window_shape(data);
+}
+
+static gboolean popup_key(GtkEventControllerKey *controller,guint key,guint code,GdkModifierType modifiers,gpointer data)
+{
+    (void)controller;(void)code;(void)modifiers;
+    cui_window *window=data;
+    if(window->popup&&key==GDK_KEY_Escape){cui_window_close(window);return TRUE;}
+    return FALSE;
+}
+
 static void attached_panel_closed(GtkPopover *popover, gpointer data)
 {
     (void)popover;
@@ -696,6 +718,11 @@ int cui__backend_window_anchor(cui_window *w)
     GtkWidget *parent=w->anchor_parent->root->native;
     if(!w->attached_native) {
         GtkWidget *popover=gtk_popover_new();
+        GtkEventController *keys=gtk_event_controller_key_new();
+        gtk_event_controller_set_propagation_phase(keys,GTK_PHASE_CAPTURE);
+        g_signal_connect(keys,"key-pressed",G_CALLBACK(popup_key),w);
+        gtk_widget_add_controller(popover,keys);
+        g_signal_connect(popover,"map",G_CALLBACK(attached_mapped),w);
         g_signal_connect(popover,"closed",G_CALLBACK(attached_panel_closed),w);
         gtk_widget_add_css_class(popover,"cui-window");
         gtk_widget_add_css_class(popover,"cui-attached-panel");
@@ -719,6 +746,8 @@ int cui__backend_window_anchor(cui_window *w)
     if(gtk_widget_get_parent(w->attached_native)!=parent) {
         gtk_widget_unparent(w->attached_native);gtk_widget_set_parent(w->attached_native,parent);
     }
+    gtk_popover_set_autohide(GTK_POPOVER(w->attached_native),w->popup);
+    gtk_popover_set_position(GTK_POPOVER(w->attached_native),w->popup?GTK_POS_BOTTOM:GTK_POS_RIGHT);
     GdkRectangle rect={w->anchor_x,w->anchor_y,w->anchor_width,w->anchor_height};
     int parent_width=gtk_widget_get_width(parent),parent_height=gtk_widget_get_height(parent);
     if(parent_width>0 && parent_height>0) {
@@ -730,7 +759,7 @@ int cui__backend_window_anchor(cui_window *w)
     /* Wayland compositors may dismiss popups whose buffer is neither adjacent
      * to nor overlapping the parent. Keep the decorative gap inside the
      * parent's transparent padding, including during asynchronous resizing. */
-    int gap=MIN(16,MAX(0,parent_width-rect.x-rect.width-1));
+    int gap=w->popup?0:MIN(16,MAX(0,parent_width-rect.x-rect.width-1));
     gtk_popover_set_offset(GTK_POPOVER(w->attached_native),gap,0);
     if(w->visible) {
         if(gtk_widget_get_visible(w->attached_native))gtk_popover_present(GTK_POPOVER(w->attached_native));
@@ -748,6 +777,14 @@ int cui_widget_get_size(const cui_widget *w, int *width, int *height)
     *width = x; *height = y; return 1;
 }
 
+/* CSS uses a decimal point regardless of the user's LC_NUMERIC setting. */
+static void css_color(char *out,size_t size,unsigned rgba)
+{
+    char alpha[G_ASCII_DTOSTR_BUF_SIZE];
+    g_ascii_dtostr(alpha,sizeof(alpha),(rgba&255)/255.);
+    g_snprintf(out,size,"rgba(%u,%u,%u,%s)",rgba>>24,(rgba>>16)&255,(rgba>>8)&255,alpha);
+}
+
 void cui__backend_style(cui_widget *w)
 {
     GtkWidget *native=GTK_WIDGET(w->native);if(!native)return;
@@ -763,15 +800,18 @@ void cui__backend_style(cui_widget *w)
     }
     unsigned bg=w->style.background,fg=w->style.foreground,bc=w->style.border;
     char background[80],foreground[80],border[80];
-    g_snprintf(background,sizeof(background),"rgba(%u,%u,%u,%.4f)",bg>>24,(bg>>16)&255,(bg>>8)&255,(bg&255)/255.);
-    g_snprintf(foreground,sizeof(foreground),"rgba(%u,%u,%u,%.4f)",fg>>24,(fg>>16)&255,(fg>>8)&255,(fg&255)/255.);
-    g_snprintf(border,sizeof(border),"rgba(%u,%u,%u,%.4f)",bc>>24,(bc>>16)&255,(bc>>8)&255,(bc&255)/255.);
-    g_snprintf(css,sizeof(css),".%s { background-image:none; background-color:%s; color:%s; border:%.2fpx solid %s; border-radius:%.2fpx; padding:%dpx; min-width:0; min-height:0; box-shadow:none; } .%s textview, .%s textview text {background-color:%s; color:%s;} .%s > viewport {background-color:transparent;} .%s > box {min-height:0;} .%s:disabled {opacity:1;}",name,background,foreground,w->style.border_width,border,w->style.radius,w->style.padding,name,name,background,foreground,name,name,name);
+    css_color(background,sizeof(background),bg);
+    css_color(foreground,sizeof(foreground),fg);
+    css_color(border,sizeof(border),bc);
+    char radius[G_ASCII_DTOSTR_BUF_SIZE],width[G_ASCII_DTOSTR_BUF_SIZE];
+    g_ascii_dtostr(radius,sizeof(radius),w->style.radius);
+    g_ascii_dtostr(width,sizeof(width),w->style.border_width);
+    g_snprintf(css,sizeof(css),".%s { background-image:none; background-color:%s; color:%s; border:%spx solid %s; border-radius:%spx; padding:%dpx; min-width:0; min-height:0; box-shadow:none; } .%s textview, .%s textview text {background-color:%s; color:%s;} .%s > viewport {background-color:transparent;} .%s > box {min-height:0;} .%s:disabled {opacity:1;}",name,background,foreground,width,border,radius,w->style.padding,name,name,background,foreground,name,name,name);
     if(w->kind==CUI_SELECT){
         /* GtkDropDown's visible surface belongs to its child button. Styling
          * both levels gives it a second border and twice the requested inset. */
         size_t used=strlen(css);
-        g_snprintf(css+used,sizeof(css)-used," .%s {padding:0;border:none;background-color:transparent;} .%s > button {background-image:none;background-color:%s;color:%s;border:%.2fpx solid %s;border-radius:%.2fpx;padding:%dpx;box-shadow:none;}",name,name,background,foreground,w->style.border_width,border,w->style.radius,w->style.padding);
+        g_snprintf(css+used,sizeof(css)-used," .%s {padding:0;border:none;background-color:transparent;} .%s > button {background-image:none;background-color:%s;color:%s;border:%spx solid %s;border-radius:%spx;padding:%dpx;box-shadow:none;}",name,name,background,foreground,width,border,radius,w->style.padding);
     }
     if(w->kind==CUI_BUTTON||w->kind==CUI_SELECT){
         size_t used=strlen(css);
@@ -782,4 +822,14 @@ void cui__backend_style(cui_widget *w)
         g_snprintf(css+used,sizeof(css)-used," .%s columnview, .%s columnview listview {background-color:%s;color:%s;} .%s columnview row {background-color:transparent;border:none;} .%s columnview row:selected {background-color:%s;color:%s;} .%s columnview cell {border:none;}",name,name,background,foreground,name,name,foreground,background,name);
     }
     load_css(provider,css);
+}
+
+int cui__backend_popup_anchor(cui_window *panel,cui_widget *anchor,double x,double y,double width,double height)
+{
+    graphene_point_t from={(float)x,(float)y},to;
+    if(!gtk_widget_compute_point(anchor->native,anchor->window->root->native,&from,&to))return 0;
+    panel->anchor_parent=anchor->window;
+    panel->anchor_x=(int)floor(to.x);panel->anchor_y=(int)floor(to.y);
+    panel->anchor_width=(int)ceil(width);panel->anchor_height=(int)ceil(height);
+    return cui__backend_window_anchor(panel);
 }
