@@ -1,0 +1,14 @@
+# Fontconfig/Pango allocations reproduced without CUI by gtk_baseline.c on
+# GTK 4.22.4 / Pango 1.58.2 / Fontconfig 2.18.3 (see memory-safety guide).
+# Match individual font-cache construction paths, never CUI, malloc, GTK or GLib
+# wholesale. Remove entries when upstream teardown no longer reports them.
+leak:FcFontSetList
+leak:FcFontRenderPrepare
+leak:pango_fc_default_substitute
+leak:FcCharSetAddChar
+# GTK 4.22.4 font chooser template parsing: gtk_baseline pickers reproduces
+# exactly 5488 bytes/102 allocations for two chooser instances without CUI.
+# CUI has no GMarkup parser. This parser-specific exception can conceal future
+# GMarkup leaks; review/remove it on GTK/GLib upgrades. Never suppress g_malloc.
+leak:g_markup_parse_context_parse
+leak:g_markup_parse_context_new

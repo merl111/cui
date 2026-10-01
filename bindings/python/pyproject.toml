@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cui-native"
+version = "0.2.0"
+description = "Python bindings for the small CUI native C GUI framework"
+requires-python = ">=3.9"
+dependencies = []
+
+[tool.setuptools]
+packages = ["cui"]

@@ -1,0 +1,13 @@
+/build*/
+/.ripwire/
+*.o
+*.a
+*.exe
+
+/zig-out/
+/.zig-cache/
+__pycache__/
+*.pyc
+*.egg-info/
+
+/bindings/rust/target/

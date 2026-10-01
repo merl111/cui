@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "backend": "GTK",
+  "platform": "Linux",
+  "display_scale": "1",
+  "description": "Real native windows. Cadence and Waypoint use dark theme; Relay and Postbox use light theme.",
+  "apps": {
+    "waypoint": {
+      "source": "bindings/rust/examples/simulator.rs",
+      "source_sha256": "2dd20289dcf6882c6d8d32639be7ea46964fd566fcc13d3658b510ecfd592df7",
+      "image_sha256": "35c4d816cce75afd9c63aa2e2a45484389a37c8da55bae715857b1433e08ebff",
+      "capture_environment": "Xvfb 1200x1000, scale 1, isolated XComposite/XRender compositor with a synthetic gradient desktop; Settings panel explicitly opened for the screenshot."
+    },
+    "relay": {
+      "source": "bindings/go/cmd/messenger/main.go",
+      "source_sha256": "757758645960b9916055467b4b7dceed6b1b81dcc81bec6f2fa33deda2c2b83f",
+      "image_sha256": "bbd7fe436a3cf3bf2205cb6673683fa1174f4549c45da9d0f78dda1d21471d3a"
+    },
+    "cadence": {
+      "source": "examples/python/music.py",
+      "source_sha256": "757a28fb2acbcfbc93f698aa1358b8108a79e82bd155cc68d032b27e7433f838",
+      "image_sha256": "0cd7147a4044ae21651a65066e9a546b40a952f81f26bb1038b57426a8513a5b"
+    },
+    "postbox": {
+      "source": "examples/zig/mail.zig",
+      "source_sha256": "1a9349ffc31f701b4bf181354cc1a704eca6a40c1b49be3b72f7776898622a28",
+      "image_sha256": "5f64200874d13985cf3425cb237f3284fbcfb0c43fe30656ed3aa97e944792d1"
+    }
+  }
+}

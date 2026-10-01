@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "apps": [
+    {
+      "id": "relay",
+      "name": "Relay",
+      "language": "Go",
+      "kind": "Messenger",
+      "summary": "A quieter place for your conversations.",
+      "description": "A Telegram-inspired messenger in Go with a focused two-pane layout, incoming and outgoing bubbles, an optional conversation inspector, searchable message history, reactions, quoted replies, editable sent messages and sample attachments. Organize conversations with pins, unread and group filters, or archive them for later.",
+      "source": "bindings/go/cmd/messenger/main.go",
+      "command": "cmake -S . -B build\ncmake --build build\ncd bindings/go\ngo run -buildvcs=false ./cmd/messenger",
+      "test": "go_messenger",
+      "image": "images/apps/relay.png",
+      "interactions": [
+        "Use the header icons to open conversation search, show shared files and details, or reveal actions such as mute, pin, archive and edit. The pencil beside Relay starts a conversation; the paperclip opens attachment selection.",
+        "Pin a conversation, mark it unread, then use All chats, Unread, Groups and Archived to organize your inbox. Search matches names while each row shows its latest message.",
+        "Create a conversation with a unique name and topic. Its empty state is ready for your first message; no invitation is sent. Up to 20 conversations are supported.",
+        "Send messages and switch away before a simulated reply arrives. The reply goes to the original chat and updates its unread count. Drafts are kept per conversation.",
+        "Use Older and Newer to browse the complete history four messages at a time. Search inside a conversation, react with a heart, or choose Reply to quote a message.",
+        "Choose Edit last sent, change the text, and send to save. Cancel restores your unsent draft. Attach a selected shared sample to send its filename as mock attachment metadata."
+      ],
+      "model": "The Go controller owns conversations, per-chat drafts and reply/attachment context, unread counters, pins, archive state and bounded message histories. Filtered rows retain stable conversation indices. Four reusable message cards map to search results and history pages; reactions and replies address those mapped messages. Timers deliver replies to their original chat. A reusable creation window validates names before changing the model.",
+      "limits": "Memory-only mock with up to 20 conversations and 32 messages per conversation, including simulated replies. One reply may be pending per conversation. New message input is limited to 240 characters. Four messages are displayed per page; all stored history is browsable. Attachment entries contain fictional filenames and sizes only. Muting changes local state. No Telegram integration, file transfer, notifications, persistence or encryption.",
+      "features": [
+        "Conversation bubbles",
+        "Vector icon actions",
+        "Optional inspector"
+      ]
+    },
+    {
+      "id": "cadence",
+      "name": "Cadence",
+      "language": "Python",
+      "kind": "Music player",
+      "summary": "Find your quieter rhythm.",
+      "description": "A Spotify-inspired Python music app with a 12-track catalog, user-created playlists, a reorderable playback queue, history, favorites and simulated playback. A dark native workspace keeps the library, queue and transport visible together. Play and pause use imported SVG assets; transport, shuffle, repeat, reactions and volume use native icon controls.",
+      "source": "examples/python/music.py",
+      "command": "cmake -S . -B build -DCUI_BUILD_SHARED=ON\ncmake --build build\nPYTHONPATH=bindings/python python3 examples/python/music.py",
+      "test": "python_music",
+      "image": "images/apps/cadence.png",
+      "interactions": [
+        "Search songs, artists or albums, select a track and use Play/Pause or seek. Likes appear immediately in Liked songs. Collections show their total duration.",
+        "Create a uniquely named playlist, choose tracks from the library, select the target playlist and add them. Repeated additions do not duplicate tracks. Open the playlist to remove a selected track without deleting it from the library.",
+        "Add tracks to Up next. Select an entry to move it up or down, remove it, or play it immediately. Clear queue removes queued entries; the current track keeps playing.",
+        "Next consumes the explicit queue before following the visible collection. Previous returns through playback history. Shuffle chooses another track after the queue is exhausted; Repeat track restarts the current track at its end.",
+        "Mute and unmute to restore the previous volume setting. Try duplicate playlist names, empty search results and an empty queue: controls and status messages reflect the available actions."
+      ],
+      "model": "The Python controller separates the immutable 12-track catalog from filtered rows, user playlists, favorites, a bounded explicit queue and recent playback history. Queue entries refer to stable track indices and can repeat. Table source-row mapping preserves identity after sorting. Main-thread timers advance a simulated monotonic playback clock. Ordinary setters are silent; actions update the model and then refresh affected views.",
+      "limits": "Twelve fictional tracks, up to eight user playlists, 32 queued tracks and 12 recent-history entries. Playlist names are limited to 32 characters and cannot duplicate built-in collections. Playback, repeat, shuffle, seeking and volume are local simulations; no sound is produced. The procedural cover is 640×640 RGBA. No Spotify integration, streaming, decoding, downloads, account connection or persistence.",
+      "features": [
+        "SVG playback controls",
+        "Editable playlists",
+        "Queue & shuffle"
+      ]
+    },
+    {
+      "id": "postbox",
+      "name": "Postbox",
+      "language": "Zig",
+      "kind": "Mail client",
+      "summary": "A little space for a good conversation.",
+      "description": "A three-pane Zig mailbox with a multi-select message table, smart filters, bulk moves with undo, saved drafts, reply/forward flows and sample attachments. Compose in a reusable second window, validate the fields and deliver locally into Sent.",
+      "source": "examples/zig/mail.zig",
+      "command": "zig build -Dexample=mail run",
+      "test": "zig_mail",
+      "image": "images/apps/postbox.png",
+      "interactions": [
+        "Search the selected folder and filter by Unread, Starred or With attachments. Select a message to read it, toggle its star or mark it unread. Folder counts follow local message moves.",
+        "Use Ctrl/Shift selection or Select visible to choose a batch. Archive selected or Trash selected moves the whole batch. Undo last mailbox change restores the previous move, star or read-state change.",
+        "Compose a message and choose Save to Drafts, even if it is unfinished. Open Drafts and Resume draft to continue. Sending a resumed draft moves that same record to Sent instead of duplicating it.",
+        "Reply prefills the recipient and subject; Forward copies the body and sample attachment flag while leaving the recipient empty. Existing composer contents are preserved if you try to start another reply or forward.",
+        "Attach the sample Studio brief.pdf metadata. Invalid addresses, empty required fields and oversized fields retain the form with an explanation. No file is opened and no email is delivered."
+      ],
+      "model": "Postbox stores up to 24 messages in fixed buffers. Folder/search filters map table source rows to message identities, including multi-selection. Bulk actions snapshot mailbox state for one-step undo. Saved drafts occupy message records; a stable draft index lets Save or Send update the existing record. Sending or saving invalidates the earlier undo snapshot. The composer is reused and callback data remains alive until the event loop exits.",
+      "limits": "Eight seeded messages across Inbox, Archive and Drafts; a maximum of 24 records. Address and subject fields hold 127 UTF-8 bytes each, bodies 2047 bytes. Search uses ASCII case folding. One mailbox mutation can be undone; new draft saves and sends clear that undo point. Attachment metadata is fictional. No IMAP, SMTP, authentication, actual file attachments, delivery or disk persistence. Replying to Sent addresses the existing recipient.",
+      "features": [
+        "Bulk actions & undo",
+        "Saved drafts",
+        "Filters & forwarding"
+      ]
+    },
+    {
+      "id": "waypoint",
+      "name": "Waypoint",
+      "language": "Rust",
+      "kind": "iPhone simulator mock",
+      "summary": "A little space to explore.",
+      "description": "An iPhone-shaped native window with a translucent inspector that opens from Settings and follows the device. Built in Rust with a fictional map, route simulation, permissions and rotation. Rounded custom frames, native fonts, vector icons and shared state make this a functional desktop mock.",
+      "source": "bindings/rust/examples/simulator.rs",
+      "command": "cmake -S . -B build\ncmake --build build\nCUI_LIB_DIR=\"$PWD/build\" cargo run --offline --manifest-path bindings/rust/Cargo.toml --example simulator",
+      "test": "rust_simulator",
+      "image": "images/apps/waypoint.png",
+      "interactions": [
+        "Drag the toolbar to move the phone. Resize using any of its four corner grips; the device stays in proportion and the toolbar stays directly above it. Click the percentage to restore 100%. The inspector starts hidden: open it with Settings or Ctrl/Command+I. It stays beside the phone when moved or resized. Close it with × without losing state. Ctrl/Command+Q quits.",
+        "Click the map to move the simulated GPS marker, drag to pan, and scroll or use the zoom buttons. Choose a saved place or save a custom pin. Page through up to 32 locations; built-in places cannot be deleted.",
+        "Play, pause and reset the Waterfront Walk. Change playback speed between 1×, 2× and 4×. The marker follows the route while the inspector reports its progress.",
+        "Open Location permission, then allow or deny it. Toggle Precise location to change the displayed accuracy area. These controls only affect the local mock.",
+        "Rotate the phone, use the Device tab to send and dismiss a simulated notification, or capture an in-memory screenshot preview. Done closes the preview.",
+        "Use Appearance to switch the map between light and dark, or reduce transparency for a solid inspector. Tab focuses labeled action regions; Enter or Space activates them."
+      ],
+      "model": "A phone window and an anchored CUI panel share one Rust model containing locations, route progress, pan/zoom, permissions, orientation and preview state. Hiding the panel preserves its window and model; the route can keep running on the phone. Rotation resizes the phone window and recreates its surface. Timers use elapsed monotonic time. Scene owns strings and icon references; Surface releases pixels through RAII. Native size changes are observed by the existing timer; the phone scene and hit regions share the same uniform transform. The labeled Settings button toggles the inspector. The rounded toolbar stays directly above the fitted phone body in either orientation and moves with it, and four corner regions initiate native resize operations. GTK uses a non-modal native popover anchored to the device rectangle; Win32 and AppKit use owned/child windows. The inspector starts hidden and retains state across toggles.",
+      "limits": "Desktop UI mock, not an iOS runtime or Apple Simulator integration. Fictional local map, 32 memory-only locations, one route, one notification and one in-memory screenshot preview. No GPS access, networking, real permission requests, file export or persistence. At 100% the phone body is approximately 323×674 logical pixels inside a 347×774 window including toolbar and margins; the panel is 382×696. Resizing recreates the surface at the initial monitor scale; monitor changes require surface recreation. On a composited Linux desktop the panel background has real alpha transparency; its text stays opaque. This is tint transparency, without desktop backdrop blur. Uncomposited X11 cannot show background translucency. Wayland controls phone placement and keeps the native popup anchored; native dragging and resizing are delegated to the backend. Smooth alpha silhouettes are integrated on Linux; uncomposited X11 uses a binary shape. Linux is tested; Windows/macOS runtime verification is deferred.",
+      "features": [
+        "Draggable phone toolbar",
+        "Four-corner resizing",
+        "Settings inspector",
+        "Translucent panel"
+      ]
+    }
+  ]
+}

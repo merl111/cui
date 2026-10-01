@@ -1,0 +1,50 @@
+# Leak-only exceptions matching the independent GTK baseline. No suppression of
+# invalid reads/writes, uninitialized values, CUI functions or table columns.
+{
+   fontconfig-font-list
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   fun:FcFontSetList
+   ...
+}
+{
+   fontconfig-render-prepare
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   fun:FcFontRenderPrepare
+   ...
+}
+{
+   pango-default-substitute
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   fun:pango_fc_default_substitute
+   ...
+}
+{
+   fontconfig-character-set
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   fun:FcCharSetAddChar
+   ...
+}
+{
+   gtk-font-chooser-template-parser
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   fun:g_markup_parse_context_parse
+   ...
+}
+{
+   gtk-font-chooser-template-context
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   fun:g_markup_parse_context_new
+   ...
+}

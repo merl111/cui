@@ -1,0 +1,26 @@
+name: Linux memory safety
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        stage: [sanitizer, valgrind, analyzer, fuzz]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install development tools and system symbols
+        run: sudo apt-get update && sudo apt-get install -y clang clang-tools valgrind libc6-dbg libgtk-4-dev xvfb
+      - name: Check C safety
+        run: python3 tools/check_memory.py ${{ matrix.stage }} --seconds 30
+      - name: Retain diagnostics and fuzz inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: memory-${{ matrix.stage }}
+          path: |
+            build-memory/results.json
+            build-memory/logs
+            build-memory/analyzer/reports
+            build-memory/fuzz/artifacts
+            build-memory/fuzz/corpus

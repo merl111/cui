@@ -1,0 +1,35 @@
+#include "cui_internal.h"
+#include "cui_layouts.h"
+#include <gtk/gtk.h>
+#include <stdio.h>
+#include <stdlib.h>
+#define CHECK(x) do{if(!(x)){fprintf(stderr,"containers:%d: %s\n",__LINE__,#x);exit(1);}}while(0)
+static cui_app *app;static cui_window *window;static cui_widget *split,*grid,*wrap;static int changes;
+static void changed(cui_widget *sender,void *data){(void)sender;(void)data;++changes;}
+static void verify(void *data)
+{
+    cui_timer_stop((cui_timer *)data);
+    CHECK(GTK_IS_PANED(split->native)&&GTK_IS_GRID(grid->native)&&GTK_IS_FLOW_BOX(wrap->native));
+    CHECK(gtk_widget_get_width(GTK_WIDGET(split->first->native))>0);
+    CHECK(gtk_widget_get_width(GTK_WIDGET(split->last->native))>0);
+    changes=0;cui_split_set_position(split,0.6);CHECK(changes==0);
+    gtk_paned_set_position(GTK_PANED(split->native),180);CHECK(changes>0&&cui_split_get_position(split)>0);
+    CHECK(cui_grid_cell(grid,0,0,1,1)==NULL);
+    CHECK(cui_grid_cell(grid,0,2,1,1)==NULL);
+    CHECK(cui_split_pane(split,2)==NULL);
+    cui_app_quit(app);
+}
+static cui_timer *timer;
+static void tick(void *data){(void)data;verify(timer);}
+int main(void)
+{
+    app=cui_app_create();CHECK(app);window=cui_window_create(app,"Container integration",1000,700);CHECK(window);
+    split=cui_split(cui_window_root(window),CUI_HORIZONTAL,0.35);CHECK(split);cui_on_action(split,changed,NULL);
+    grid=cui_grid(cui_split_pane(split,0),2,12);CHECK(grid);
+    cui_label(cui_grid_cell(grid,0,0,1,2),"Spanning heading");
+    cui_button(cui_grid_cell(grid,1,0,1,1),"Left");cui_button(cui_grid_cell(grid,1,1,1,1),"Right");
+    wrap=cui_wrap(cui_split_pane(split,1),8);CHECK(wrap);
+    for(int i=0;i<12;++i)cui_button(wrap,"Wrap item");
+    timer=cui_every(app,200,tick,NULL);cui_window_show(window);cui_app_run(app);cui_app_destroy(app);
+    puts("containers: grid spans, overlap rejection, native wrapping, splitter position and callbacks passed");return 0;
+}

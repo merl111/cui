@@ -1,0 +1,1205 @@
+{
+  "schema_version": 1,
+  "library_version": "0.2.0",
+  "components": [
+    {
+      "id": "button",
+      "name": "Button",
+      "category": "Inputs",
+      "summary": "A clear action, with a native focus ring.",
+      "behavior": "User activation invokes on_action; cui_activate invokes the same action synchronously and respects enabled and visible ancestors.",
+      "limitations": "The PRIMARY role is a semantic style, not a custom color API.",
+      "api": [
+        "cui_button",
+        "cui_set_role",
+        "cui_on_action"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/button.png"
+    },
+    {
+      "id": "icon",
+      "name": "Icon assets",
+      "category": "Display",
+      "summary": "Your vector artwork, sharp at every display scale.",
+      "behavior": "Reusable, reference-counted vector and RGBA assets; compiled SVG import, system raster loading and optional symbols. Standalone views fit the asset proportionally in logical units.",
+      "limitations": "SVG import is build-time and rejects unsupported document features. Asset references require explicit release. Raster resolution is limited by its source.",
+      "api": [
+        "cui_icon",
+        "cui_icon_vector",
+        "cui_icon_rgba",
+        "cui_icon_symbol",
+        "cui_icon_load",
+        "cui_icon_load_image",
+        "cui_icon_decode",
+        "cui_icon_retain",
+        "cui_icon_release",
+        "cui_set_icon_size"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/icon.png"
+    },
+    {
+      "id": "icon-button",
+      "name": "Icon button",
+      "category": "Inputs",
+      "summary": "Native actions with vector artwork and accessible names.",
+      "behavior": "Icon-only buttons keep native keyboard, focus and action semantics. Ordinary buttons and toggles accept leading icons and can switch to icon-only presentation. Widgets retain assigned assets.",
+      "limitations": "A nonempty accessible name is required for icon-only buttons. Appearance follows native foreground colors; explicit asset colors are preserved.",
+      "api": [
+        "cui_icon_button",
+        "cui_set_icon",
+        "cui_get_icon",
+        "cui_set_icon_only",
+        "cui_on_action"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/icon-button.png"
+    },
+    {
+      "id": "label",
+      "name": "Label & typography",
+      "category": "Display",
+      "summary": "Hierarchy built with system typography.",
+      "behavior": "Use BODY, TITLE, HEADING and CAPTION roles. Fonts inherit from containers; explicit font overrides are supported.",
+      "limitations": "Installed fonts determine glyph coverage. Labels are not a rich text renderer.",
+      "api": [
+        "cui_set_role",
+        "cui_label"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/label.png"
+    },
+    {
+      "id": "entry",
+      "name": "Text entry",
+      "category": "Inputs",
+      "summary": "Single-line editing with native selection and IME.",
+      "behavior": "Read the full UTF-8 value with the two-call cui_get_text pattern. User edits emit on_action; setting text is silent.",
+      "limitations": "Business validation and persistence belong to the application.",
+      "api": [
+        "cui_entry",
+        "cui_set_min_size"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/entry.png"
+    },
+    {
+      "id": "password",
+      "name": "Password",
+      "category": "Inputs",
+      "summary": "A masked native text entry.",
+      "behavior": "Read the full UTF-8 value with the two-call cui_get_text pattern. User edits emit on_action; setting text is silent.",
+      "limitations": "Business validation and persistence belong to the application.",
+      "api": [
+        "cui_password",
+        "cui_set_min_size"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/password.png"
+    },
+    {
+      "id": "search-field",
+      "name": "Search field",
+      "category": "Inputs",
+      "summary": "A native text field for application search.",
+      "behavior": "Read the full UTF-8 value with the two-call cui_get_text pattern. User edits emit on_action; setting text is silent.",
+      "limitations": "Business validation and persistence belong to the application.",
+      "api": [
+        "cui_search",
+        "cui_set_min_size"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/search-field.png"
+    },
+    {
+      "id": "textarea",
+      "name": "Text area",
+      "category": "Inputs",
+      "summary": "Multiline editing with native text behavior.",
+      "behavior": "Read the full UTF-8 value with the two-call cui_get_text pattern. User edits emit on_action; setting text is silent.",
+      "limitations": "Business validation and persistence belong to the application.",
+      "api": [
+        "cui_textarea",
+        "cui_set_min_size"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/textarea.png"
+    },
+    {
+      "id": "code",
+      "name": "Code surface",
+      "category": "Display",
+      "summary": "Selectable monospace text with native rendering.",
+      "behavior": "Read the full UTF-8 value with the two-call cui_get_text pattern. User edits emit on_action; setting text is silent.",
+      "limitations": "Code is read-only and has no syntax highlighting.",
+      "api": [
+        "cui_code",
+        "cui_button",
+        "cui_set_min_size"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/code.png"
+    },
+    {
+      "id": "checkbox",
+      "name": "Checkbox",
+      "category": "Inputs",
+      "summary": "A native boolean choice.",
+      "behavior": "Read checked state in on_action; cui_set_checked updates state without emitting an action.",
+      "limitations": "Keep the label meaningful when read independently.",
+      "api": [
+        "cui_checkbox",
+        "cui_on_action"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/checkbox.png"
+    },
+    {
+      "id": "toggle",
+      "name": "Toggle button",
+      "category": "Inputs",
+      "summary": "A native boolean choice.",
+      "behavior": "Read checked state in on_action; cui_set_checked updates state without emitting an action.",
+      "limitations": "Keep the label meaningful when read independently.",
+      "api": [
+        "cui_toggle",
+        "cui_on_action"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/toggle.png"
+    },
+    {
+      "id": "switch",
+      "name": "Switch",
+      "category": "Inputs",
+      "summary": "A native boolean choice.",
+      "behavior": "Read checked state in on_action; cui_set_checked updates state without emitting an action.",
+      "limitations": "Keep the label meaningful when read independently.",
+      "api": [
+        "cui_switch",
+        "cui_on_action"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/switch.png"
+    },
+    {
+      "id": "radio",
+      "name": "Radio group",
+      "category": "Inputs",
+      "summary": "One choice from a small set.",
+      "behavior": "Radio controls sharing an immediate parent form one exclusive group.",
+      "limitations": "Separate groups must have distinct parent boxes.",
+      "api": [
+        "cui_box",
+        "cui_radio"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/radio.png"
+    },
+    {
+      "id": "select",
+      "name": "Dropdown",
+      "category": "Inputs",
+      "summary": "A compact choice model with copied text.",
+      "behavior": "Use zero-based selected indices; -1 clears selection. Replacing items clears selection.",
+      "limitations": "Items are strings; rich cells and icons are not part of this API.",
+      "api": [
+        "cui_select",
+        "cui_set_selected"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/select.png"
+    },
+    {
+      "id": "list",
+      "name": "List",
+      "category": "Inputs",
+      "summary": "A compact choice model with copied text.",
+      "behavior": "Use zero-based selected indices; -1 clears selection. Replacing items clears selection.",
+      "limitations": "Items are strings; rich cells and icons are not part of this API.",
+      "api": [
+        "cui_list",
+        "cui_set_selected"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/list.png"
+    },
+    {
+      "id": "table",
+      "name": "Data table",
+      "category": "Data",
+      "summary": "Editable, sortable, native rows.",
+      "behavior": "Enable editing by column, select multiple rows and sort by text or finite numeric values. Map displayed rows back to source indices after sorting.",
+      "limitations": "Rows are copied in memory. Lazy providers, rich cells and reordering remain. GTK header clicks need 4.10; programmatic sorting works with 4.6.",
+      "api": [
+        "cui_table",
+        "cui_table_set_rows",
+        "cui_table_set_multiple",
+        "cui_table_set_editable",
+        "cui_table_select_row"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/table.png"
+    },
+    {
+      "id": "slider",
+      "name": "Slider",
+      "category": "Inputs",
+      "summary": "Adjust a value smoothly.",
+      "behavior": "Values are normalized to 0\u20261; finite out-of-range values clamp. Map this range to your own units in the application.",
+      "limitations": "Use a numeric input when users must enter an exact value.",
+      "api": [
+        "cui_label",
+        "cui_slider"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/slider.png"
+    },
+    {
+      "id": "progress",
+      "name": "Progress",
+      "category": "Feedback",
+      "summary": "Show measurable work.",
+      "behavior": "Set a normalized value between 0 and 1 as application work advances.",
+      "limitations": "The application supplies progress; no worker thread is created.",
+      "api": [
+        "cui_label",
+        "cui_progress"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/progress.png"
+    },
+    {
+      "id": "spinner",
+      "name": "Spinner",
+      "category": "Feedback",
+      "summary": "Indicate work without a known duration.",
+      "behavior": "The native indicator animates while shown; hide it when work completes.",
+      "limitations": "Provide a textual description and a cancellation action where useful.",
+      "api": [
+        "cui_spinner",
+        "cui_label"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/spinner.png"
+    },
+    {
+      "id": "separator",
+      "name": "Separator",
+      "category": "Display",
+      "summary": "A quiet boundary between related sections.",
+      "behavior": "A native separator participates in the containing layout.",
+      "limitations": "Use labels and spacing to retain structure beyond a visual rule.",
+      "api": [
+        "cui_label",
+        "cui_separator"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/separator.png"
+    },
+    {
+      "id": "badge",
+      "name": "Badge",
+      "category": "Display",
+      "summary": "Compact semantic status.",
+      "behavior": "Tone uses semantic roles and follows the application theme. Text is copied and may be replaced.",
+      "limitations": "A badge is display content, not an action.",
+      "api": [
+        "cui_badge"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/badge.png"
+    },
+    {
+      "id": "chart",
+      "name": "Line chart",
+      "category": "Data",
+      "summary": "Native vector drawing that stays sharp.",
+      "behavior": "Supply copied numeric series and replace them with cui_chart_set_values.",
+      "limitations": "The current chart has no rich accessibility model or axis/legend API.",
+      "api": [
+        "cui_chart",
+        "cui_set_min_size"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/chart.png"
+    },
+    {
+      "id": "image",
+      "name": "RGBA image",
+      "category": "Display",
+      "summary": "Your pixels, rendered on a native surface.",
+      "behavior": "cui_image_set_rgba copies tightly packed RGBA8 data and preserves its aspect ratio when drawing.",
+      "limitations": "Maximum source size is 4096\u00d74096. Image decoding, capture and networking belong to the application.",
+      "api": [
+        "cui_image",
+        "cui_image_set_rgba",
+        "cui_set_min_size"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/image.png"
+    },
+    {
+      "id": "box",
+      "name": "Rows & columns",
+      "category": "Layout",
+      "summary": "Content-driven layout with flexible space.",
+      "behavior": "Children append in keyboard/layout order. Padding and gaps are logical units; expanding children share spare space.",
+      "limitations": "Native minimum sizes are preserved. Enable window scrolling for oversized content.",
+      "api": [
+        "cui_box",
+        "cui_expand",
+        "cui_set_role",
+        "cui_box_set_padding",
+        "cui_label"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/box.png"
+    },
+    {
+      "id": "grid",
+      "name": "Grid",
+      "category": "Layout",
+      "summary": "Structured forms with rows, columns and spans.",
+      "behavior": "Each grid cell is an owned box; coordinates are zero-based and spans must not overlap.",
+      "limitations": "Maximum 64 columns and 256 rows. Invalid spans return NULL.",
+      "api": [
+        "cui_grid",
+        "cui_entry",
+        "cui_grid_cell"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/grid.png"
+    },
+    {
+      "id": "wrap",
+      "name": "Wrapping row",
+      "category": "Layout",
+      "summary": "Controls that reflow as space changes.",
+      "behavior": "The row recomputes line breaks from available width and native child minimums.",
+      "limitations": "This is a wrapping row, not a CSS layout engine.",
+      "api": [
+        "cui_wrap",
+        "cui_button"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/wrap.png"
+    },
+    {
+      "id": "split",
+      "name": "Split panes",
+      "category": "Layout",
+      "summary": "Give users control of their workspace.",
+      "behavior": "The divider supports pointer and keyboard adjustment. Observe user changes on the split root; set_position is silent.",
+      "limitations": "Each of the two panes is a normal owned box. Native minimum sizes constrain available positions.",
+      "api": [
+        "cui_split",
+        "cui_label",
+        "cui_split_pane",
+        "cui_textarea",
+        "cui_set_min_size"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/split.png"
+    },
+    {
+      "id": "tabs",
+      "name": "Tabs",
+      "category": "Navigation",
+      "summary": "Keep related views in one place.",
+      "behavior": "Add titled pages with cui_tab_add; each page is a parent box. Selected-page changes use the normal composed-control behavior.",
+      "limitations": "Tabs use buttons and boxes. Dedicated native tab semantics and a screen-reader audit remain.",
+      "api": [
+        "cui_tabs",
+        "cui_label",
+        "cui_tab_add"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/tabs.png"
+    },
+    {
+      "id": "disclosure",
+      "name": "Disclosure",
+      "category": "Navigation",
+      "summary": "Details when you need them.",
+      "behavior": "Use the content box for child widgets; expanded state can be read or set without replacing internal callbacks.",
+      "limitations": "This is a composed control built from native buttons and boxes.",
+      "api": [
+        "cui_disclosure",
+        "cui_checkbox",
+        "cui_disclosure_content"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/disclosure.png"
+    },
+    {
+      "id": "tree",
+      "name": "Tree",
+      "category": "Navigation",
+      "summary": "Hierarchical models with stable IDs.",
+      "behavior": "Parents precede children; IDs are unique and nonzero. Selection opens ancestors, and replacement clears selection. User events distinguish select, expand, collapse and activate.",
+      "limitations": "At most 65,536 items and 128 levels. Single selection; icons and lazy child providers remain.",
+      "api": [
+        "cui_tree",
+        "cui_tree_select"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/tree.png"
+    },
+    {
+      "id": "breadcrumbs",
+      "name": "Breadcrumbs",
+      "category": "Navigation",
+      "summary": "An actionable path to the current location.",
+      "behavior": "Ancestors are focusable buttons; the final segment is a label. Read the activated ID and let the application update its navigation state.",
+      "limitations": "Up to 128 unique nonzero IDs. Replacement is silent and resets the activated ID.",
+      "api": [
+        "cui_breadcrumbs"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/breadcrumbs.png"
+    },
+    {
+      "id": "number",
+      "name": "Numeric input",
+      "category": "Inputs",
+      "summary": "Precise values with native stepper arrows.",
+      "behavior": "Typing commits on Enter or focus loss; arrows commit immediately. Invalid text restores the last committed value. Values round and clamp to configured bounds.",
+      "limitations": "Bounds \u00b11e9; precision 0\u20269. Bounds and step must be representable at the chosen precision.",
+      "api": [
+        "cui_label",
+        "cui_number"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/number.png"
+    },
+    {
+      "id": "date",
+      "name": "Date input",
+      "category": "Inputs",
+      "summary": "A civil date in the platform\u2019s own format.",
+      "behavior": "Pass Gregorian year/month/day values; invalid replacements leave the previous date unchanged.",
+      "limitations": "Years 1601\u20269999. Timezone-free civil values, not timestamps.",
+      "api": [
+        "cui_label",
+        "cui_date"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/date.png"
+    },
+    {
+      "id": "time",
+      "name": "Time input",
+      "category": "Inputs",
+      "summary": "A native wall-clock time.",
+      "behavior": "Pass hour/minute/second values and read the committed value through cui_time_get.",
+      "limitations": "Values are timezone-free and use 24-hour fields regardless of displayed locale formatting.",
+      "api": [
+        "cui_label",
+        "cui_time_input"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/time.png"
+    },
+    {
+      "id": "field",
+      "name": "Validation field",
+      "category": "Inputs",
+      "summary": "A label, useful help, and an inline error.",
+      "behavior": "Listen on the field root to validate user edits. Set an empty error to clear invalid state. The entry remains available for ordinary setters.",
+      "limitations": "Replacing the internal entry action callback bypasses event forwarding. Business rules belong to the application.",
+      "api": [
+        "cui_field",
+        "cui_field_set_error"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/field.png"
+    },
+    {
+      "id": "autocomplete",
+      "name": "Autocomplete",
+      "category": "Navigation",
+      "summary": "Find a choice without leaving the keyboard.",
+      "behavior": "Copied choices have stable IDs, details, keywords and disabled state. Unicode search, arrow navigation, Enter, Escape and IME-aware key handling are supported.",
+      "limitations": "Results expand in normal layout flow. This is not a floating popup or modal overlay.",
+      "api": [
+        "cui_picker",
+        "cui_picker_set_items",
+        "cui_picker_open"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/autocomplete.png"
+    },
+    {
+      "id": "command-palette",
+      "name": "Command palette",
+      "category": "Navigation",
+      "summary": "Find a choice without leaving the keyboard.",
+      "behavior": "Copied choices have stable IDs, details, keywords and disabled state. Unicode search, arrow navigation, Enter, Escape and IME-aware key handling are supported.",
+      "limitations": "Results expand in normal layout flow. This is not a floating popup or modal overlay.",
+      "api": [
+        "cui_picker",
+        "cui_picker_set_items",
+        "cui_picker_open"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/command-palette.png"
+    },
+    {
+      "id": "tokens",
+      "name": "Token field",
+      "category": "Inputs",
+      "summary": "Ordered, removable choices that wrap naturally.",
+      "behavior": "A copied choice model backs unique selected IDs. Enter accepts; Backspace on empty input removes the last token. Listen on the root for typed token events.",
+      "limitations": "Selection limit 1\u2026128. Unmatched text emits a submit request; the application validates or creates the choice.",
+      "api": [
+        "cui_tokens",
+        "cui_tokens_set_items",
+        "cui_tokens_set_selected"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/tokens.png"
+    },
+    {
+      "id": "banner",
+      "name": "Banner",
+      "category": "Feedback",
+      "summary": "Useful status with a clear next action.",
+      "behavior": "Reusable and initially hidden. Show copies content; user action, dismiss and expiry have distinct events. Actions do not automatically dismiss.",
+      "limitations": "In-layout region, not an OS notification or floating overlay. Only toast regions accept nonzero timeouts; hover/focus/hidden states pause expiry.",
+      "api": [
+        "cui_feedback",
+        "cui_feedback_show",
+        "cui_on_action"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/banner.png"
+    },
+    {
+      "id": "toast",
+      "name": "Toast region",
+      "category": "Feedback",
+      "summary": "Useful status with a clear next action.",
+      "behavior": "Reusable and initially hidden. Show copies content; user action, dismiss and expiry have distinct events. Actions do not automatically dismiss.",
+      "limitations": "In-layout region, not an OS notification or floating overlay. Only toast regions accept nonzero timeouts; hover/focus/hidden states pause expiry.",
+      "api": [
+        "cui_feedback",
+        "cui_feedback_show",
+        "cui_on_action"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/toast.png"
+    },
+    {
+      "id": "empty-state",
+      "name": "Empty state",
+      "category": "Feedback",
+      "summary": "Useful status with a clear next action.",
+      "behavior": "Reusable and initially hidden. Show copies content; user action, dismiss and expiry have distinct events. Actions do not automatically dismiss.",
+      "limitations": "In-layout region, not an OS notification or floating overlay. Only toast regions accept nonzero timeouts; hover/focus/hidden states pause expiry.",
+      "api": [
+        "cui_feedback",
+        "cui_feedback_show",
+        "cui_on_action"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/empty-state.png"
+    },
+    {
+      "id": "error-state",
+      "name": "Error state",
+      "category": "Feedback",
+      "summary": "Useful status with a clear next action.",
+      "behavior": "Reusable and initially hidden. Show copies content; user action, dismiss and expiry have distinct events. Actions do not automatically dismiss.",
+      "limitations": "In-layout region, not an OS notification or floating overlay. Only toast regions accept nonzero timeouts; hover/focus/hidden states pause expiry.",
+      "api": [
+        "cui_feedback",
+        "cui_feedback_show",
+        "cui_on_action"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/error-state.png"
+    },
+    {
+      "id": "file-dialog",
+      "name": "File dialogs",
+      "category": "Desktop",
+      "summary": "Choose local files with named filters and multiple selection.",
+      "behavior": "Creation defers opening to the event loop. Check the completion result before reading typed values. Cancellation completes at most once; teardown suppresses callbacks.",
+      "limitations": "Preview shows the working launcher. Click it in the native showcase to open the system dialog; the browser image cannot open a desktop dialog.",
+      "api": [
+        "cui_file_dialog",
+        "cui_file_dialog_ex"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "launcher",
+      "status": "implemented",
+      "image": "images/components/file-dialog.png"
+    },
+    {
+      "id": "alert",
+      "name": "Alert",
+      "category": "Desktop",
+      "summary": "Ask for a decision with a native dialog.",
+      "behavior": "Creation defers opening to the event loop. Check the completion result before reading typed values. Cancellation completes at most once; teardown suppresses callbacks.",
+      "limitations": "Preview shows the working launcher. Click it in the native showcase to open the system dialog; the browser image cannot open a desktop dialog.",
+      "api": [
+        "cui_alert"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "launcher",
+      "status": "implemented",
+      "image": "images/components/alert.png"
+    },
+    {
+      "id": "color-dialog",
+      "name": "Color picker",
+      "category": "Desktop",
+      "summary": "Choose an opaque sRGB color with the system picker.",
+      "behavior": "Creation defers opening to the event loop. Check the completion result before reading typed values. Cancellation completes at most once; teardown suppresses callbacks.",
+      "limitations": "Preview shows the working launcher. Click it in the native showcase to open the system dialog; the browser image cannot open a desktop dialog.",
+      "api": [
+        "cui_color_dialog"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "launcher",
+      "status": "implemented",
+      "image": "images/components/color-dialog.png"
+    },
+    {
+      "id": "font-dialog",
+      "name": "Font picker",
+      "category": "Desktop",
+      "summary": "Choose installed typography with a native picker.",
+      "behavior": "Creation defers opening to the event loop. Check the completion result before reading typed values. Cancellation completes at most once; teardown suppresses callbacks.",
+      "limitations": "Preview shows the working launcher. Click it in the native showcase to open the system dialog; the browser image cannot open a desktop dialog.",
+      "api": [
+        "cui_font_dialog"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "launcher",
+      "status": "implemented",
+      "image": "images/components/font-dialog.png"
+    },
+    {
+      "id": "toolbar",
+      "name": "Toolbar",
+      "category": "Desktop",
+      "summary": "Shared commands in a compact action row.",
+      "behavior": "Menus, shortcuts and toolbar buttons share each command\u2019s enabled and checked state. PRIMARY maps to Command on macOS and Control elsewhere.",
+      "limitations": "Commands are application-owned; callback context must remain valid through app teardown.",
+      "api": [
+        "cui_toolbar",
+        "cui_command_create"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/toolbar.png"
+    },
+    {
+      "id": "menu",
+      "name": "Menus & context menus",
+      "category": "Desktop",
+      "summary": "One command model across desktop actions.",
+      "behavior": "Menu bars contain named submenus; context menus open at a widget anchor. macOS preserves standard application and editing actions.",
+      "limitations": "Preview shows the menu launcher. Run the native example to interact with the actual menu.",
+      "api": [
+        "cui_menu_create",
+        "cui_menu_popup"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "launcher",
+      "status": "implemented",
+      "image": "images/components/menu.png"
+    },
+    {
+      "id": "pattern-loading-state",
+      "name": "Loading State",
+      "category": "Patterns",
+      "summary": "Spinner, elapsed timer, progress, cancel action",
+      "behavior": "Spinner, elapsed timer, progress, cancel action. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Application reports progress and cancels its work",
+      "api": [
+        "cui_pattern_create"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-loading-state.png",
+      "pattern": "CUI_LOADING"
+    },
+    {
+      "id": "pattern-thinking",
+      "name": "Thinking",
+      "category": "Patterns",
+      "summary": "Expandable trace and selectable text",
+      "behavior": "Expandable trace and selectable text. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Application supplies reasoning/status content",
+      "api": [
+        "cui_pattern_create"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-thinking.png",
+      "pattern": "CUI_THINKING"
+    },
+    {
+      "id": "pattern-streaming-text",
+      "name": "Streaming Text",
+      "category": "Patterns",
+      "summary": "Incremental UTF-8 append, copy, stop",
+      "behavior": "Incremental UTF-8 append, copy, stop. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Application supplies chunks; plain text, no Markdown renderer",
+      "api": [
+        "cui_pattern_create"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-streaming-text.png",
+      "pattern": "CUI_STREAMING"
+    },
+    {
+      "id": "pattern-approval-card",
+      "name": "Approval Card",
+      "category": "Patterns",
+      "summary": "Choices, custom answer, continue/skip events",
+      "behavior": "Choices, custom answer, continue/skip events. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Application performs the approved action",
+      "api": [
+        "cui_pattern_create"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-approval-card.png",
+      "pattern": "CUI_APPROVAL"
+    },
+    {
+      "id": "pattern-tool-chips",
+      "name": "Tool Chips",
+      "category": "Patterns",
+      "summary": "Stable-ID tool collection, independent disclosure, copied result text/metadata, open/removal events",
+      "behavior": "Stable-ID tool collection, independent disclosure, copied result text/metadata, open/removal events. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Plain selectable text; rich inline content and icons remain",
+      "api": [
+        "cui_pattern_create",
+        "cui_pattern_set_items",
+        "cui_pattern_upsert_item",
+        "cui_pattern_remove_item",
+        "cui_pattern_item_at",
+        "cui_pattern_item_count",
+        "cui_pattern_item_part",
+        "cui_pattern_item_event_id"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-tool-chips.png",
+      "pattern": "CUI_TOOL_CHIPS"
+    },
+    {
+      "id": "pattern-task-rows",
+      "name": "Task Rows",
+      "category": "Patterns",
+      "summary": "Stable-ID task collection, independent expansion, per-task progress/completion and removal",
+      "behavior": "Stable-ID task collection, independent expansion, per-task progress/completion and removal. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Application supplies task state; drag reordering remains",
+      "api": [
+        "cui_pattern_create",
+        "cui_pattern_set_items",
+        "cui_pattern_upsert_item",
+        "cui_pattern_remove_item",
+        "cui_pattern_item_at",
+        "cui_pattern_item_count",
+        "cui_pattern_item_part",
+        "cui_pattern_item_event_id"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-task-rows.png",
+      "pattern": "CUI_TASK_ROWS"
+    },
+    {
+      "id": "pattern-chat",
+      "name": "Chat",
+      "category": "Patterns",
+      "summary": "Copied message collection, author/badge/metadata, selectable bodies, copy/removal, composer/send",
+      "behavior": "Copied message collection, author/badge/metadata, selectable bodies, copy/removal, composer/send. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Gallery appends local messages; rich text, avatars and virtualized history remain",
+      "api": [
+        "cui_pattern_create",
+        "cui_pattern_set_items",
+        "cui_pattern_upsert_item",
+        "cui_pattern_remove_item",
+        "cui_pattern_item_at",
+        "cui_pattern_item_count",
+        "cui_pattern_item_part",
+        "cui_pattern_item_event_id"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-chat.png",
+      "pattern": "CUI_CHAT"
+    },
+    {
+      "id": "pattern-prompt-bar",
+      "name": "Prompt Bar",
+      "category": "Patterns",
+      "summary": "Composer, model/source selectors, send/dictate events",
+      "behavior": "Composer, model/source selectors, send/dictate events. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Speech capture, command completion and attachment ingestion are application integrations",
+      "api": [
+        "cui_pattern_create"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-prompt-bar.png",
+      "pattern": "CUI_PROMPT_BAR"
+    },
+    {
+      "id": "pattern-recommendation-card",
+      "name": "Recommendation Card",
+      "category": "Patterns",
+      "summary": "Alternatives, confidence progress, custom answer, accept/skip",
+      "behavior": "Alternatives, confidence progress, custom answer, accept/skip. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Application supplies scores and recommendations",
+      "api": [
+        "cui_pattern_create"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-recommendation-card.png",
+      "pattern": "CUI_RECOMMENDATION"
+    },
+    {
+      "id": "pattern-context-cards",
+      "name": "Context Cards",
+      "category": "Patterns",
+      "summary": "Individual source cards with stable IDs, searchable body/metadata, selection, open/removal events",
+      "behavior": "Individual source cards with stable IDs, searchable body/metadata, selection, open/removal events. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Application loads source contents; rich previews and icons remain",
+      "api": [
+        "cui_pattern_create",
+        "cui_pattern_set_items",
+        "cui_pattern_upsert_item",
+        "cui_pattern_remove_item",
+        "cui_pattern_item_at",
+        "cui_pattern_item_count",
+        "cui_pattern_item_part",
+        "cui_pattern_item_event_id",
+        "cui_pattern_set_filters",
+        "cui_pattern_set_query",
+        "cui_pattern_record_source"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-context-cards.png",
+      "pattern": "CUI_CONTEXT"
+    },
+    {
+      "id": "pattern-diff-table",
+      "name": "Diff Table",
+      "category": "Patterns",
+      "summary": "Before/after columns, selected change, include checkbox, apply/reject",
+      "behavior": "Before/after columns, selected change, include checkbox, apply/reject. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Application applies changes; multiple selection is available, per-row checkboxes remain",
+      "api": [
+        "cui_pattern_create",
+        "cui_pattern_set_filters",
+        "cui_pattern_set_query",
+        "cui_pattern_record_source"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-diff-table.png",
+      "pattern": "CUI_DIFF_TABLE"
+    },
+    {
+      "id": "pattern-records-table",
+      "name": "Records Table",
+      "category": "Patterns",
+      "summary": "Virtualized native rows, resizing, multiple selection, column sorting; optional cell editing via `cui_tables.h`",
+      "behavior": "Virtualized native rows, resizing, multiple selection, column sorting; optional cell editing via `cui_tables.h`. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Copied in-memory data; lazy remote data, column reordering and richer cell types remain",
+      "api": [
+        "cui_pattern_create",
+        "cui_pattern_set_filters",
+        "cui_pattern_set_query",
+        "cui_pattern_record_source"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-records-table.png",
+      "pattern": "CUI_RECORDS_TABLE"
+    },
+    {
+      "id": "pattern-filter-table",
+      "name": "Filter Table",
+      "category": "Patterns",
+      "summary": "Live Unicode search, copied text/numeric predicates with AND/OR, active-status filter, source-row mapping",
+      "behavior": "Live Unicode search, copied text/numeric predicates with AND/OR, active-status filter, source-row mapping. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Application supplies predicates; a visual nested-expression editor remains",
+      "api": [
+        "cui_pattern_create",
+        "cui_pattern_set_filters",
+        "cui_pattern_set_query",
+        "cui_pattern_record_source"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-filter-table.png",
+      "pattern": "CUI_FILTER_TABLE"
+    },
+    {
+      "id": "pattern-sidebar-nav",
+      "name": "Sidebar Nav",
+      "category": "Patterns",
+      "summary": "Native nested tree, stable IDs, searchable names/details, ancestor-preserving results, selection/open events, restored expansion state",
+      "behavior": "Native nested tree, stable IDs, searchable names/details, ancestor-preserving results, selection/open events, restored expansion state. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Icon items remain; search uses platform Unicode normalization",
+      "api": [
+        "cui_pattern_create"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-sidebar-nav.png",
+      "pattern": "CUI_SIDEBAR"
+    },
+    {
+      "id": "pattern-search",
+      "name": "Search",
+      "category": "Patterns",
+      "summary": "Live matching, selection, empty state",
+      "behavior": "Live matching, selection, empty state. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Unicode-normalized matching; ranking and async providers remain",
+      "api": [
+        "cui_pattern_create",
+        "cui_pattern_set_filters",
+        "cui_pattern_set_query",
+        "cui_pattern_record_source"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-search.png",
+      "pattern": "CUI_SEARCH_PANEL"
+    },
+    {
+      "id": "pattern-flowchart",
+      "name": "Flowchart",
+      "category": "Patterns",
+      "summary": "Trigger selector, editable condition rows, add condition, action field",
+      "behavior": "Trigger selector, editable condition rows, add condition, action field. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Structured vertical editor; freeform node dragging/connectors remain",
+      "api": [
+        "cui_pattern_create"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-flowchart.png",
+      "pattern": "CUI_FLOWCHART"
+    },
+    {
+      "id": "pattern-insight-cards",
+      "name": "Insight Cards",
+      "category": "Patterns",
+      "summary": "Copied named datasets/point labels, ID-preserving replacement, previous/next, exact point scrubbing, empty states",
+      "behavior": "Copied named datasets/point labels, ID-preserving replacement, previous/next, exact point scrubbing, empty states. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Single-series line chart; axes, zoom and multi-series plots are outside this component",
+      "api": [
+        "cui_pattern_create",
+        "cui_insights_set_series",
+        "cui_insights_select",
+        "cui_insights_selection"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/pattern-insight-cards.png",
+      "pattern": "CUI_INSIGHTS"
+    },
+    {
+      "id": "pattern-code-block",
+      "name": "Code Block",
+      "category": "Patterns",
+      "summary": "Selectable monospace text, copy",
+      "behavior": "Selectable monospace text, copy. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Unified diffs can be supplied as text; syntax highlighting and split diff view remain",
+      "api": [
+        "cui_pattern_create"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-code-block.png",
+      "pattern": "CUI_CODE_BLOCK"
+    },
+    {
+      "id": "pattern-fine-tune-card",
+      "name": "Fine-tune Card",
+      "category": "Patterns",
+      "summary": "Width/height sliders, text field, live preview dimensions/title",
+      "behavior": "Width/height sliders, text field, live preview dimensions/title. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Additional properties such as radius, opacity and color remain",
+      "api": [
+        "cui_pattern_create"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-fine-tune-card.png",
+      "pattern": "CUI_FINE_TUNE"
+    },
+    {
+      "id": "pattern-selection-actions",
+      "name": "Selection Actions",
+      "category": "Patterns",
+      "summary": "Native text selection, selected UTF-8 extraction, action requests",
+      "behavior": "Native text selection, selected UTF-8 extraction, action requests. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Application provides the transformation; no AI service bundled",
+      "api": [
+        "cui_pattern_create"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-selection-actions.png",
+      "pattern": "CUI_SELECTION_ACTIONS"
+    },
+    {
+      "id": "pattern-agent-screen",
+      "name": "Agent Screen",
+      "category": "Patterns",
+      "summary": "Copied RGBA frame, loading state, open event",
+      "behavior": "Copied RGBA frame, loading state, open event. Listen on the root and preserve internal callbacks. Model setters are silent; see the Pattern data models guide for detailed contracts.",
+      "limitations": "Gallery opens a sample frame; capture, remote streaming and recording are application integrations",
+      "api": [
+        "cui_pattern_create"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "prototype",
+      "image": "images/components/pattern-agent-screen.png",
+      "pattern": "CUI_AGENT_SCREEN"
+    },
+    {
+      "id": "canvas",
+      "name": "Canvas & compositing",
+      "category": "Display",
+      "summary": "Custom controls, layered color and translucent materials.",
+      "behavior": "Transactional RGBA surfaces with native text and icon rasterization, group alpha, rounded clips, blur and labeled interaction regions. Canvas copies the displayed frame and retains the source surface.",
+      "limitations": "CPU renderer; fixed surface dimensions/scale. Text is single-line with ellipsis. Native child-widget opacity varies by backend. No desktop backdrop capture or GPU context.",
+      "api": [
+        "cui_canvas",
+        "cui_canvas_set_surface",
+        "cui_canvas_set_regions",
+        "cui_canvas_on_event",
+        "cui_surface_create",
+        "cui_surface_render",
+        "cui_set_opacity"
+      ],
+      "example": "examples/showcase/cases.inc",
+      "capture_kind": "control",
+      "status": "implemented",
+      "image": "images/components/canvas.png"
+    }
+  ]
+}

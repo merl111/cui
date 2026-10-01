@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-01",
+  "cpu": "Intel Core i9-12900K",
+  "os": "Linux-7.1.9-1-MANJARO-x86_64-with-glibc2.44",
+  "compiler": "cc (GCC) 16.2.1 20260810",
+  "gtk": "4.22.4",
+  "library_flags": "Release -O3 -DNDEBUG",
+  "benchmark_flags": "-O2, assertions enabled",
+  "display": "Xvfb, GSK_RENDERER=cairo, GTK_A11Y=none, GDK_DISABLE=gl,vulkan",
+  "surface_logical": [
+    1280,
+    900
+  ],
+  "scales": [
+    1,
+    2
+  ],
+  "samples": 11,
+  "warmups": {
+    "drawing_and_models": 2,
+    "button_construction": 1
+  },
+  "scope": "Synchronous API time; excludes native presentation, accessibility service and compositor latency. Waypoint samples cover 24 mixed scripted states at each scale; 2x uses GDK_SCALE=2 and CUI_LARGE_TEXT=1.",
+  "schema_version": 1,
+  "os_distribution": "Manjaro Linux (rolling)",
+  "kernel": "7.1.9-1-MANJARO",
+  "architecture": "x86_64",
+  "logical_cpus": 24,
+  "memory_bytes": 33335578624,
+  "backend": "GTK 4 / Cairo software renderer",
+  "cpu_affinity": "Not pinned; frequency scaling enabled",
+  "gpu": "Not used for the measured synchronous rendering; native presentation excluded",
+  "runs": 2,
+  "order": [
+    "before-1",
+    "after-1",
+    "before-2",
+    "after-2"
+  ],
+  "baseline_library_sha256": "f6c76f7d3b11521a2c4c453a103a972e667cbb54883dfbc3100a0cd785b14824",
+  "optimized_library_sha256": "019b06f8308c1f664268919cb0182c9c56d2d6ec8a58eaae8a5028b442e00f8b",
+  "benchmark_sha256": "27eceaeb18f1933af3c18ac97b6ad118540eae53a0ea28f486d46aae6885e68d",
+  "measurement_scope": "Synchronous API work with an unshown window; excludes native presentation/layout/compositor, GPU upload, accessibility-service costs and sustained FPS. Partial-update baseline uses full replay for the same pixels; optimized uses render_region.",
+  "warmup_note": "Repeated-input blur results represent warmed caches. Changed-input blur is measured separately. 2x full-surface blur exceeds the 32 MiB cache budget.",
+  "baseline_rust_profile": "Original single-stage Waypoint source, 24 scripted states at each scale; unchanged workload before/after. Rust debug code and C Release renderer. This is historical workload evidence, not the later two-window demo."
+}
