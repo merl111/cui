@@ -173,7 +173,7 @@ void cui__mac_canvas_detach(NSView *view);
         if(flags&NSEventModifierFlagCommand)mods|=CUI_MOD_PRIMARY;
         if(key && cui__key(widget,key,mods))return;
     }
-    NSString *value=[e charactersIgnoringModifiers];if(widget->kind==CUI_CANVAS&&[value length]){unichar key=[value characterAtIndex:0];if(key==9||key==NSBackTabCharacter){cui__canvas_key(widget,([e modifierFlags]&NSEventModifierFlagShift)!=0,0);return;}if(key==13||key==32){cui__canvas_key(widget,0,1);return;}}[super keyDown:e]; }
+    NSString *value=[e charactersIgnoringModifiers];if(widget->kind==CUI_CANVAS&&[value length]){unichar key=[value characterAtIndex:0];if((key=='c'||key=='C')&&([e modifierFlags]&NSEventModifierFlagCommand)&&cui__canvas_copy(widget))return;if(key==9||key==NSBackTabCharacter){cui__canvas_key(widget,([e modifierFlags]&NSEventModifierFlagShift)!=0,0);return;}if(key==13||key==32){cui__canvas_key(widget,0,1);return;}}[super keyDown:e]; }
 
 - (BOOL)isFlipped { return YES; }
 - (void)drawRect:(NSRect)dirty
@@ -515,6 +515,10 @@ cui_theme cui__backend_resolved_theme(cui_app *app)
     return [match isEqualToString:NSAppearanceNameDarkAqua] ? CUI_THEME_DARK : CUI_THEME_LIGHT;
 }
 
+static void focus_indicators(NSView *view, int hidden) {
+    [view setFocusRingType:hidden ? NSFocusRingTypeNone : NSFocusRingTypeDefault];
+    for (NSView *child in [view subviews]) focus_indicators(child, hidden);
+}
 void cui__backend_theme(cui_app *app)
 {
     cui_window *window;
@@ -522,8 +526,10 @@ void cui__backend_theme(cui_app *app)
     if (app->theme == CUI_THEME_LIGHT) appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
     if (app->theme == CUI_THEME_DARK) appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
     [NSApp setAppearance:appearance];
-    for (window = app->windows; window; window = window->next)
+    for (window = app->windows; window; window = window->next) {
+        focus_indicators((NSView *)window->content, app->hide_focus);
         [(NSView *)window->content setNeedsDisplay:YES];
+    }
 }
 
 @interface CUIFramedWindow : NSWindow
@@ -749,7 +755,8 @@ int cui__backend_widget_create(cui_widget *widget, const char *text)
             [layer setWantsLayer:YES];widget->native=layer;
             [(NSView *)widget->window->content addSubview:layer];[layer release];
         }
-        return 1;
+        if (widget->window->app->hide_focus) focus_indicators((NSView *)widget->native, 1);
+    return 1;
     }
     NSView *control = extended_control(widget, text);
     if (!control && (widget->kind == CUI_LABEL || widget->kind == CUI_ENTRY || widget->kind == CUI_PASSWORD || widget->kind == CUI_SEARCH || widget->kind == CUI_BADGE)) {
@@ -767,6 +774,7 @@ int cui__backend_widget_create(cui_widget *widget, const char *text)
     connect_action(widget, control);
     [(NSView *)widget->window->content addSubview:control];
     [control release];
+    if (widget->window->app->hide_focus) focus_indicators((NSView *)widget->native, 1);
     return 1;
 }
 
@@ -954,8 +962,22 @@ void cui__backend_media(cui_widget *widget) { [(NSView *)widget->native setNeeds
 void cui_clipboard_set_text(cui_window *window, const char *text)
 { if (window) { NSPasteboard *board = [NSPasteboard generalPasteboard]; [board clearContents]; [board setString:native_text(text ? text : "") forType:NSPasteboardTypeString]; } }
 
+int cui__backend_insert_text(cui_widget *w, const char *text)
+{
+    NSTextView *view = (w->kind == CUI_TEXTAREA || w->kind == CUI_CODE)
+        ? (NSTextView *)w->aux : (NSTextView *)[(NSTextField *)w->native currentEditor];
+    if (!view) {
+        [(NSWindow *)w->window->native makeFirstResponder:(NSView *)w->native];
+        view = (NSTextView *)[(NSTextField *)w->native currentEditor];
+    }
+    if (!view) return 0;
+    [view insertText:native_text(text) replacementRange:[view selectedRange]];
+    return 1;
+}
+
 size_t cui_get_selected_text(const cui_widget *w, char *buffer, size_t capacity)
 {
+    if (w && (w->kind == CUI_CANVAS || w->kind == CUI_BOX)) return cui__chat_selected_text(w, buffer, capacity);
     NSTextView *view = nil;
     if (w && (w->kind == CUI_TEXTAREA || w->kind == CUI_CODE)) view = (NSTextView *)w->aux;
     else if (w && (w->kind == CUI_ENTRY || w->kind == CUI_SEARCH)) view = (NSTextView *)[(NSTextField *)w->native currentEditor];

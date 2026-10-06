@@ -19,6 +19,8 @@ pub struct Theme {
     pub accent: u32,
     pub on_accent: u32,
     pub selected: u32,
+    pub hover: u32,
+    pub rail: u32,
     pub danger: u32,
     pub online: u32,
     pub font: String,
@@ -38,6 +40,8 @@ impl Theme {
             accent: t.accent,
             on_accent: t.on_accent,
             selected: t.soft,
+            hover: t.hover,
+            rail: t.rail,
             danger: t.danger,
             online: t.online,
             font: String::new(),
@@ -110,14 +114,17 @@ impl RichText {
         self.0.iter().map(|s| s.text.as_str()).collect()
     }
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Attachment {
     pub id: u64,
     pub name: String,
     pub detail: String,
+    pub image: Option<crate::Icon>,
 }
 #[derive(Clone, Debug)]
 pub struct Reaction {
+    /// Native hover tooltip listing the people who reacted.
+    pub tooltip: String,
     pub key: String,
     pub count: u32,
     pub mine: bool,
@@ -162,6 +169,10 @@ pub struct Message {
     pub reactions: Vec<Reaction>,
     pub poll: Option<Poll>,
     pub thread: Option<ThreadSummary>,
+    /// Latest readers: title = name, detail = localized tooltip, trailing = user key.
+    pub read_by: Vec<NavItem>,
+    pub delivery: i32,
+    pub delivery_label: String,
 }
 #[derive(Clone, Debug, Default)]
 pub struct NavItem {
@@ -180,15 +191,39 @@ pub struct NavItem {
 }
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Action {
-    OpenRoom { id: u64, new_pane: bool },
+    OpenRoom {
+        id: u64,
+        new_pane: bool,
+    },
     Reply(u64),
+    Delivery(u64),
+    OpenReply {
+        message: u64,
+        original: u64,
+    },
     Thread(u64),
     More(u64),
     Copy(u64),
-    React { message: u64, key: String },
-    Vote { message: u64, option: usize },
-    Attachment { message: u64, attachment: u64 },
+    React {
+        message: u64,
+        key: String,
+    },
+    Vote {
+        message: u64,
+        option: usize,
+    },
+    Attachment {
+        message: u64,
+        attachment: u64,
+    },
     Link(String),
+    OpenProfile(u64),
+    OpenReader {
+        message: u64,
+        reader: u64,
+        user: String,
+    },
+    ComposeMore,
     LoadOlder,
     Focus,
 }
@@ -213,6 +248,17 @@ pub(crate) fn validate_messages(items: &[Message]) -> Result<()> {
         }
         if m.body.0.len() > 128 || m.reactions.len() > 32 || m.attachments.len() > 16 {
             return Err(Error::InvalidInput("message content limit"));
+        }
+        if m.read_by.len() > 128 {
+            return Err(Error::InvalidInput("128 reader limit"));
+        }
+        for reader in &m.read_by {
+            if reader.id == 0 {
+                return Err(Error::InvalidInput("reader ID"));
+            }
+            for s in [&reader.title, &reader.detail, &reader.trailing] {
+                check_text(s, 4096)?;
+            }
         }
         check_text(&m.body.plain(), 65536)?;
         for s in &m.body.0 {
@@ -279,11 +325,13 @@ mod tests {
         m.id = 1;
         m.attachments = vec![
             Attachment {
+                image: None,
                 id: 1,
                 name: "a".into(),
                 detail: String::new(),
             },
             Attachment {
+                image: None,
                 id: 1,
                 name: "b".into(),
                 detail: String::new(),

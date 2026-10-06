@@ -7,6 +7,8 @@ extern "C" {
 /* Desktop APIs use the same app ownership and main-thread contract as cui.h. */
 int cui_focus(cui_widget *widget);
 int cui_has_focus(const cui_widget *widget);
+/* Deepest focused widget in this subtree, or NULL. Borrowed until app destruction. */
+cui_widget *cui_focused_descendant(const cui_widget *widget);
 void cui_accessibility(cui_widget *widget, const char *label, const char *description);
 void cui_set_read_only(cui_widget *widget, int read_only);
 void cui_undo(cui_widget *widget);

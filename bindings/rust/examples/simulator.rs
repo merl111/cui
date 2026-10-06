@@ -427,6 +427,7 @@ impl<'a> View<'a> {
             ],
             label: label.into(),
             enabled,
+            role: 0,
         });
         if self.m.focus == id
             && id != MAP

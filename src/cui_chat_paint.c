@@ -9,6 +9,7 @@ void cui__chat_scene_free(chat_scene *p) {
     free(p->strings[i]);
   free(p->strings);
   free(p->commands);
+  free(p->words);
   memset(p, 0, sizeof(*p));
 }
 static const char *owned(chat_scene *p, const char *text) {
@@ -170,11 +171,12 @@ static void action(chat_state *s, unsigned id, float x, float y, float w,
     return;
   size_t i = p->region_count++;
   p->regions[i] = (cui_canvas_region){
-      id, left, top, right - left, bottom - top, owned(p, label), enabled};
+      id, left, top, right - left, bottom - top, owned(p, label), enabled,
+      event.action == CUI_CHAT_NONE ? CUI_CANVAS_TEXT : CUI_CANVAS_BUTTON};
   p->actions[i] = event;
   if (event.text)
     p->actions[i].text = owned(p, event.text);
-  if (s->focus_region == id) {
+  if (s->focus_region == id && !s->pointer_focus && !s->root->window->app->hide_focus) {
     int room = event.action == CUI_CHAT_OPEN_ROOM && s->kind == CUI_CHAT_ROOMS;
     float radius = room && s->presentation.rooms == CUI_CHAT_SOFT ? 12 : 5;
     unsigned color = room && event.id == s->selected &&
@@ -244,12 +246,36 @@ static size_t scalar_bytes(const char *p) {
 typedef struct paragraph_size {
   float width, height, last;
 } paragraph_size;
+static void selectable_word(chat_state *s, chat_word word) {
+  size_t a = s->selection_anchor < s->selection_end ? s->selection_anchor : s->selection_end;
+  size_t z = s->selection_anchor > s->selection_end ? s->selection_anchor : s->selection_end;
+  if (word.id == s->selection_id && a < word.offset + word.length && z > word.offset) {
+    size_t from = a > word.offset ? a - word.offset : 0;
+    size_t to = z < word.offset + word.length ? z - word.offset : word.length;
+    char *part = (char *)word.text; /* paragraph owns this temporary word */
+    char saved = part[from]; part[from] = 0;
+    float left = measure(s, part, s->theme.font_size, word.weight); part[from] = saved;
+    saved = part[to]; part[to] = 0;
+    float right = measure(s, part, s->theme.font_size, word.weight); part[to] = saved;
+    rect(s, word.x + left, word.y, right - left, word.height, 2, tint(s->theme.foreground, 70));
+  }
+  if (s->scene.word_count >= 8192) return;
+  if (s->scene.word_count == s->scene.word_capacity) {
+    size_t capacity = s->scene.word_capacity ? s->scene.word_capacity * 2 : 128;
+    chat_word *words = realloc(s->scene.words, capacity * sizeof(*words));
+    if (!words) { s->scene.failed = 1; return; }
+    s->scene.words = words; s->scene.word_capacity = capacity;
+  }
+  word.text = owned(&s->scene, word.text);
+  s->scene.words[s->scene.word_count++] = word;
+}
 static paragraph_size paragraph(chat_state *s, const cui_chat_message *m,
                                 float x, float y, float width, unsigned color,
                                 int paint) {
   float size = (float)s->theme.font_size, line = size * 1.5f, cx = 0, cy = 0,
         maximum = 0;
   int any = 0;
+  size_t span_offset = 0;
   for (size_t i = 0; i < m->span_count; ++i) {
     const cui_chat_span *span = m->spans + i;
     const char *p = span->text;
@@ -329,8 +355,17 @@ static paragraph_size paragraph(chat_state *s, const cui_chat_message *m,
                span->style == CUI_CHAT_MENTION
                    ? s->presentation.mention_background
                    : s->theme.soft);
-        text(s, x + cx, y + cy, width - cx, size, weight, ink, word);
-        if (span->link && *span->link)
+        selectable_word(s, (chat_word){m->id, span_offset + (size_t)(p - span->text), n,
+                                       word, x + cx, y + cy, w, line, weight});
+        int linked = span->link && *span->link;
+        unsigned link_ink = ink;
+        if (linked && s->presentation.mention_foreground &&
+            !(s->presentation.messages == CUI_CHAT_SOFT && (m->flags & CUI_CHAT_OUTGOING)))
+          link_ink = s->presentation.mention_foreground;
+        text(s, x + cx, y + cy, width - cx, size, weight, link_ink, word);
+        if (linked)
+          rect(s, x + cx, y + cy + size * 1.3f, w, 1, 0, link_ink);
+        if (linked)
           action(s, 0x80000000u + (unsigned)s->scene.region_count, x + cx,
                  y + cy, w, line, span->link,
                  (cui_chat_event){
@@ -343,8 +378,40 @@ static paragraph_size paragraph(chat_state *s, const cui_chat_message *m,
       p += n;
       free(word);
     }
+    span_offset += strlen(span->text);
   }
   return (paragraph_size){maximum, any ? cy + line : 0, cx};
+}
+int cui__chat_text_hit(chat_state *s, double x, double y, int nearest,
+                     cui_item_id *id, size_t *offset) {
+  const chat_word *best = NULL;
+  double distance = 1e30;
+  for (size_t i = 0; i < s->scene.word_count; ++i) {
+    const chat_word *w = s->scene.words + i;
+    if (nearest && w->id != s->selection_id) continue;
+    double dx = fmax(w->x - x, fmax(0, x - w->x - w->width));
+    double dy = fmax(w->y - y, fmax(0, y - w->y - w->height));
+    if (!nearest && (dx > 0 || dy > 0)) continue;
+    double d = dy * 10000 + dx;
+    if (d < distance) { best = w; distance = d; }
+  }
+  if (!best) return 0;
+  *id = best->id; *offset = best->offset;
+  char *part = malloc(best->length + 1);
+  if (!part) return 0;
+  memcpy(part, best->text, best->length + 1);
+  float before = 0;
+  for (size_t n = 0; n < best->length;) {
+    size_t next = n + scalar_bytes(part + n);
+    char saved = part[next]; part[next] = 0;
+    float after = measure(s, part, s->theme.font_size, best->weight);
+    part[next] = saved;
+    if (x - best->x < (before + after) / 2) break;
+    *offset = best->offset + next;
+    before = after; n = next;
+  }
+  free(part);
+  return 1;
 }
 static float date_height(const chat_state *s, const cui_chat_message *m) {
   return *m->date ? (s->presentation.messages == CUI_CHAT_SOFT      ? 49
@@ -369,6 +436,12 @@ typedef struct message_metrics {
   float x, width, body_height, height, header, padding, avatar;
   paragraph_size body;
 } message_metrics;
+static float attachment_height(chat_state *s, const cui_chat_detail *a, float width) {
+  if (a->image)
+    return fminf(240, fminf(width, 320) * a->image->height / a->image->width) + 42;
+  return s->presentation.messages == CUI_CHAT_COMPACT ? 50 :
+         s->presentation.messages == CUI_CHAT_SOFT ? 60 : 62;
+}
 static message_metrics dimensions(chat_state *s, const cui_chat_message *m) {
   int bubble = s->presentation.messages == CUI_CHAT_SOFT;
   int tiles = s->presentation.messages == CUI_CHAT_COMPACT;
@@ -377,7 +450,7 @@ static message_metrics dimensions(chat_state *s, const cui_chat_message *m) {
   float av = bubble ? 28 : tiles ? 26 : 32, gap = bubble ? 10 : tiles ? 9 : 18;
   float width = fmaxf(40, s->width - pad * 2 - av - gap);
   if (bubble)
-    width = fmaxf(40, (s->width - 44) * .78f - (outgoing ? 0 : 38) - 28);
+    width = fminf(640, fmaxf(40, (s->width - 44) * .78f - (outgoing ? 0 : 38) - 28));
   else if (!tiles)
     width = fminf(width, measure(s, "0", s->theme.font_size, 400) * 72);
   paragraph_size body =
@@ -393,7 +466,10 @@ static message_metrics dimensions(chat_state *s, const cui_chat_message *m) {
   }
   if (m->attachment_count) {
     content = fmaxf(content, bubble ? 240 : 340);
-    h += m->attachment_count * (bubble ? 66 : tiles ? 56 : 68);
+    for (size_t i = 0; i < m->attachment_count; ++i)
+      if (m->attachments[i].image) content = fmaxf(content, 320);
+    for (size_t i = 0; i < m->attachment_count; ++i)
+      h += 6 + attachment_height(s, m->attachments + i, fminf(width, content));
   }
   if (m->option_count) {
     content = fmaxf(content, bubble ? 292 : tiles ? 350 : 380);
@@ -402,8 +478,8 @@ static message_metrics dimensions(chat_state *s, const cui_chat_message *m) {
                  : 80 + m->option_count * 45;
   }
   if (bubble && m->thread_count) {
-    h += 26;
-    content = fmaxf(content, measure(s, "3 replies in thread →", 13, 700));
+    h += *m->thread_preview || m->thread_participant_count ? 54 : 26;
+    content = fmaxf(content, *m->thread_preview ? 300 : measure(s, cui__chat_label(s, CUI_CHAT_LABEL_THREAD_MANY), 13, 700));
   }
   if (bubble) {
     float stamp = measure(s, m->time, 10.5, 400) + 8;
@@ -415,6 +491,7 @@ static message_metrics dimensions(chat_state *s, const cui_chat_message *m) {
     width = fminf(width, content);
   }
   float body_h = h + (bubble ? 18 : 0);
+  if (m->read_by_count || m->delivery) h += 26;
   if (m->reaction_count)
     h += bubble ? 30 : tiles ? 28 : 32;
   if (!bubble && m->thread_count)
@@ -448,7 +525,7 @@ int cui__chat_layout(chat_state *s) {
         continue;
       if (strcmp(group, r->group)) {
         group = r->group;
-        y += 32;
+        y += s->width <= 88 ? 10 : 32;
       }
       y += s->presentation.room_height + 2;
     }
@@ -471,6 +548,26 @@ int cui__chat_layout(chat_state *s) {
 static void attachment(chat_state *s, const cui_chat_message *m, size_t index,
                        float x, float y, float width, unsigned base) {
   const cui_chat_detail *a = m->attachments + index;
+  if (a->image) {
+    float w = fminf(width, 320), h = attachment_height(s, a, width), ih = h - 42;
+    border(s, x, y, w, h, 10, 1, s->theme.border, s->theme.surface);
+    float scale = fminf(w / a->image->width, ih / a->image->height);
+    float iw = a->image->width * scale;
+    command(&s->scene, CUI_DRAW_SAVE);
+    cui_draw_command *clip = command(&s->scene, CUI_DRAW_CLIP);
+    clip->p[0] = x; clip->p[1] = y; clip->p[2] = w; clip->p[3] = h; clip->p[4] = 10;
+    cui_draw_command *c = command(&s->scene, CUI_DRAW_ICON);
+    c->icon = a->image; c->color = 0xffffffff;
+    c->p[0] = x + (w - iw) / 2; c->p[1] = y;
+    c->p[2] = iw; c->p[3] = ih;
+    command(&s->scene, CUI_DRAW_RESTORE);
+    text(s, x + 10, y + ih + 5, w - 20, 12, 600, s->theme.foreground, a->text);
+    text(s, x + 10, y + ih + 23, w - 20, 10, 400, s->theme.muted, a->detail);
+    action(s, base + 32 + (unsigned)index, x, y, w, h, a->text,
+           (cui_chat_event){.action=CUI_CHAT_ATTACHMENT, .id=m->id, .detail_id=a->id},
+           !(a->flags & CUI_CHAT_DISABLED));
+    return;
+  }
   int tiles = s->presentation.messages == CUI_CHAT_COMPACT;
   float h = tiles                                       ? 50
             : s->presentation.messages == CUI_CHAT_SOFT ? 60
@@ -550,12 +647,13 @@ static float poll(chat_state *s, const cui_chat_message *m, float x, float y,
                .action = CUI_CHAT_VOTE, .id = m->id, .index = (unsigned)i},
            !(m->flags & CUI_CHAT_CLOSED));
   }
-  char footer[80];
-  snprintf(footer, sizeof(footer), "%llu votes · %s", (unsigned long long)votes,
-           m->flags & CUI_CHAT_CLOSED ? "Poll closed" : "Select an option");
+  char count_label[16384], footer[20500];
+  cui__chat_format(s, votes == 1 ? CUI_CHAT_LABEL_VOTE_ONE : CUI_CHAT_LABEL_VOTE_MANY, votes, NULL, NULL, count_label, sizeof(count_label));
+  snprintf(footer, sizeof(footer), "%s · %s", count_label,
+           cui__chat_label(s, m->flags & CUI_CHAT_CLOSED ? CUI_CHAT_LABEL_POLL_CLOSED : CUI_CHAT_LABEL_POLL_SELECT));
   text(s, x + pad, y + h - 27, w - pad * 2, 12, 400, s->theme.muted,
-       m->selected_option < 0
-           ? (bubble ? "Tap an option to vote" : "Vote to see results")
+       m->selected_option < 0 && !(m->flags & CUI_CHAT_CLOSED)
+           ? (cui__chat_label(s, bubble ? CUI_CHAT_LABEL_POLL_TAP : CUI_CHAT_LABEL_POLL_RESULTS))
            : footer);
   return h;
 }
@@ -600,7 +698,7 @@ static void hover_actions(chat_state *s, const cui_chat_message *m, float y,
   }
 }
 static float reply_preview(chat_state *s, const cui_chat_message *m, float x,
-                           float py, float width, unsigned foreground) {
+                           float py, float width, unsigned foreground, unsigned base) {
   int bubble = s->presentation.messages == CUI_CHAT_SOFT;
   float start = py;
   if (m->reply_id || *m->reply_text) {
@@ -616,6 +714,10 @@ static float reply_preview(chat_state *s, const cui_chat_message *m, float x,
     text(s, x + 6, py + 4, rw - 12, 12, 700, foreground, m->reply_author);
     text(s, x + aw + 10, py + 4, rw - aw - 16, 12, 400,
          bubble ? foreground : s->theme.muted, m->reply_text);
+    if (m->reply_id)
+      action(s, base + 3, x - 4, py, rw + 8, 26, m->reply_text,
+             (cui_chat_event){.action = CUI_CHAT_OPEN_REPLY, .id = m->id,
+                              .detail_id = m->reply_id}, 1);
     py += 32;
   }
   return py - start;
@@ -654,22 +756,31 @@ static void thread_summary(chat_state *s, const cui_chat_message *m, float x,
   if (!m->thread_count)
     return;
   if (s->presentation.messages == CUI_CHAT_SOFT) {
-    char title[80];
-    snprintf(title, sizeof(title), "%u replies in thread →", m->thread_count);
+    char title[16384];
+    cui__chat_format(s, m->thread_count == 1 ? CUI_CHAT_LABEL_THREAD_ONE : CUI_CHAT_LABEL_THREAD_MANY, m->thread_count, NULL, NULL, title, sizeof(title));
     unsigned ink =
         m->flags & CUI_CHAT_OUTGOING ? s->theme.on_accent : s->theme.foreground;
-    text(s, x, py + 4, width, 13, 700, ink, title);
-    action(s, base + 100, x, py, width, 26, title,
+    size_t faces = m->thread_participant_count < 3 ? m->thread_participant_count : 3;
+    float inset = faces ? faces * 16 + 16 : 0;
+    float h = *m->thread_preview || faces ? 54 : 26;
+    for (size_t i = 0; i < faces; ++i) {
+      const cui_chat_room *face = m->thread_participants + i;
+      avatar(s, x + 16 * i, py + 10, 24, face->title, face->avatar_color, 0, face->avatar);
+    }
+    text(s, x + inset, py + 4, width - inset, 13, 700, ink, title);
+    if (*m->thread_preview) text(s, x + inset, py + 25, width - inset, 12, 400, ink, m->thread_preview);
+    action(s, base + 100, x, py, width, h, title,
            (cui_chat_event){.action = CUI_CHAT_THREAD, .id = m->id}, 1);
     return;
   }
   int tiles = s->presentation.messages == CUI_CHAT_COMPACT;
   py += 5;
-  char title[4200];
+  char title[20500], replies[16384];
+  cui__chat_format(s, m->thread_count == 1 ? CUI_CHAT_LABEL_REPLY_ONE : CUI_CHAT_LABEL_REPLY_MANY, m->thread_count, NULL, NULL, replies, sizeof(replies));
   if (tiles && *m->thread_preview)
-    snprintf(title, sizeof(title), "%u replies · %s", m->thread_count, m->thread_preview);
+    snprintf(title, sizeof(title), "%s · %s", replies, m->thread_preview);
   else
-    snprintf(title, sizeof(title), "%u replies", m->thread_count);
+    snprintf(title, sizeof(title), "%s", replies);
   size_t faces = tiles ? 0 : m->thread_participant_count;
   float inset = faces ? 16 * faces + 24 : 10;
   float w = fminf(width,
@@ -716,9 +827,13 @@ static void message(chat_state *s, const cui_chat_message *m, size_t index,
   int outgoing = bubble && (m->flags & CUI_CHAT_OUTGOING);
   int last_group = index + 1 == s->count ||
                    !(s->messages[index + 1].flags & CUI_CHAT_CONTINUED);
-  if (!outgoing && (bubble ? last_group : !(m->flags & CUI_CHAT_CONTINUED)))
-    avatar(s, d.padding, bubble ? top + d.height - 28 : y, d.avatar, m->author,
+  if (!outgoing && (bubble ? last_group : !(m->flags & CUI_CHAT_CONTINUED))) {
+    float ay = bubble ? top + d.height - 28 - ((m->read_by_count || m->delivery) ? 26 : 0) : y;
+    avatar(s, d.padding, ay, d.avatar, m->author,
            m->avatar_color, m->flags & ~CUI_CHAT_ONLINE, m->avatar);
+    action(s, base + 2, d.padding, ay, d.avatar, d.avatar, m->author,
+           (cui_chat_event){.action = CUI_CHAT_OPEN_PROFILE, .id = m->id}, 1);
+  }
   if (!(m->flags & CUI_CHAT_CONTINUED) && !outgoing &&
       s->presentation.show_sender) {
     if (!bubble) {
@@ -750,25 +865,37 @@ static void message(chat_state *s, const cui_chat_message *m, size_t index,
     if (last_group && s->presentation.bubble_radius >= 6)
       rect(s, tx, content_y + d.body_height - 18, 18, 18, 6, bg);
   }
+  size_t accessible_size = strlen(m->author) + strlen(m->time) + strlen(m->poll_question) + 8;
+  for (size_t i = 0; i < m->span_count; ++i) accessible_size += strlen(m->spans[i].text);
+  char *accessible = malloc(accessible_size);
+  if (!accessible) { s->scene.failed = 1; return; }
+  snprintf(accessible, accessible_size, "%s · %s\n", m->author, m->time);
+  size_t at = strlen(accessible);
+  for (size_t i = 0; i < m->span_count; ++i) {
+    size_t n = strlen(m->spans[i].text);
+    memcpy(accessible + at, m->spans[i].text, n); at += n;
+  }
+  strcpy(accessible + at, m->poll_question);
   action(s, base + 1, d.x, content_y, d.width + (bubble ? 28 : 0),
-         fmaxf(21, d.body_height), m->author,
-         (cui_chat_event){.action = CUI_CHAT_MORE, .id = m->id}, 1);
+         fmaxf(21, d.body_height), accessible,
+         (cui_chat_event){.action = CUI_CHAT_NONE, .id = m->id}, 1);
+  free(accessible);
   float x = d.x + (bubble ? 14 : 0), py = content_y + (bubble ? 9 : 0);
-  py += reply_preview(s, m, x, py, d.width, foreground);
+  py += reply_preview(s, m, x, py, d.width, foreground, base);
   if (!(bubble && m->option_count))
     paragraph(s, m, x, py, d.width, foreground, 1);
   py += d.body.height;
   for (size_t i = 0; i < m->attachment_count; ++i) {
     py += 6;
     attachment(s, m, i, x, py, d.width, base);
-    py += bubble ? 60 : tiles ? 50 : 62;
+    py += attachment_height(s, m->attachments + i, d.width);
   }
   if (m->option_count)
     py += poll(s, m, x, py + (bubble ? 0 : 6), d.width, base);
   if (bubble) {
     if (m->thread_count) {
       thread_summary(s, m, x, py, d.width, base);
-      py += 26;
+      py += *m->thread_preview || m->thread_participant_count ? 54 : 26;
     }
     float tx = x, ty = py;
     float stamp = measure(s, m->time, 10.5, 400) + 8;
@@ -784,6 +911,43 @@ static void message(chat_state *s, const cui_chat_message *m, size_t index,
   py += reactions(s, m, bubble ? d.x : x, py, base);
   if (!bubble)
     thread_summary(s, m, x, py, d.width, base);
+  if (!m->read_by_count && m->delivery) {
+    float sx = outgoing ? d.x + d.width + 6 : d.x, sy = top + d.height - 24;
+    cui_symbol symbol = m->delivery == CUI_CHAT_SEND_FAILED ? CUI_SYMBOL_INFO :
+                        m->delivery == CUI_CHAT_DELIVERED ? CUI_SYMBOL_CHECK : CUI_SYMBOL_REPEAT;
+    icon(s, symbol, sx + 2, sy + 2, 16,
+         m->delivery == CUI_CHAT_SEND_FAILED ? s->theme.danger : s->theme.muted);
+    const char *label = *m->delivery_label ? m->delivery_label :
+                        m->delivery == CUI_CHAT_SEND_FAILED ? cui__chat_label(s, CUI_CHAT_LABEL_SEND_FAILED) :
+                        m->delivery == CUI_CHAT_DELIVERED ? cui__chat_label(s, CUI_CHAT_LABEL_DELIVERED) : cui__chat_label(s, CUI_CHAT_LABEL_SENDING);
+    action(s, base + 132, sx, sy, 22, 22, label,
+           (cui_chat_event){.action=CUI_CHAT_DELIVERY, .id=m->id}, 1);
+  }
+  if (m->read_by_count) {
+    size_t faces = m->read_by_count < 3 ? m->read_by_count : 3;
+    char extra[24] = "";
+    float overflow = 0;
+    if (m->read_by_count > faces) {
+      snprintf(extra, sizeof(extra), "+%zu", m->read_by_count - faces);
+      overflow = measure(s, extra, 11, 600) + 12;
+    }
+    float rx = outgoing ? fmaxf(d.x, d.x + d.width + 28 - faces * 22 - overflow) : d.x;
+    float ry = top + d.height - 24;
+    for (size_t i = 0; i < faces; ++i) {
+      const cui_chat_room *r = m->read_by + i;
+      avatar(s, rx, ry, 20, r->title, r->avatar_color, 0, r->avatar);
+      action(s, base + 128 + (unsigned)i, rx, ry, 22, 22,
+             *r->detail ? r->detail : r->title,
+             (cui_chat_event){.action=CUI_CHAT_OPEN_PROFILE, .id=m->id,
+                              .detail_id=r->id, .index=(unsigned)i, .text=r->trailing}, 1);
+      rx += 22;
+    }
+    if (overflow) {
+      text(s, rx + 4, ry + 3, overflow - 4, 11, 600, s->theme.muted, extra);
+      action(s, base + 131, rx, ry, overflow, 22, extra,
+             (cui_chat_event){.action=CUI_CHAT_NONE, .id=m->id, .index=3}, 1);
+    }
+  }
 }
 static int matches(const cui_chat_room *r, const char *query) {
   if (!*query)
@@ -799,7 +963,8 @@ static int matches(const cui_chat_room *r, const char *query) {
 static void rooms(chat_state *s) {
   int tiles = s->presentation.rooms == CUI_CHAT_COMPACT,
       day = s->presentation.rooms == CUI_CHAT_SOFT;
-  float y = 4, margin = tiles ? 8 : day ? 10 : 8;
+  int rail = s->width <= 88;
+  float y = 4, margin = rail ? 4 : tiles ? 8 : day ? 10 : 8;
   const char *group = "";
   for (size_t i = 0; i < s->count; ++i) {
     const cui_chat_room *r = s->rooms + i;
@@ -807,15 +972,23 @@ static void rooms(chat_state *s) {
       continue;
     if (strcmp(group, r->group)) {
       group = r->group;
-      text(s, margin + 8, y + 9 - (float)s->offset, s->width - margin * 2, 11,
-           650, s->theme.muted, group);
-      y += 32;
+      if (!rail)
+        text(s, margin + 8, y + 9 - (float)s->offset, s->width - margin * 2, 11,
+             650, s->theme.muted, group);
+      else if (y > 4)
+        rect(s, 16, y + 4 - (float)s->offset, s->width - 32, 1, 0, s->theme.border);
+      y += s->width <= 88 ? 10 : 32;
     }
     float h = s->presentation.room_height, py = y - (float)s->offset,
           w = s->width - margin * 2;
     if (py + h >= 0 && py < s->height) {
       int selected = r->id == s->selected || (r->flags & CUI_CHAT_MINE);
-      unsigned fg = selected && day ? s->theme.surface : s->theme.foreground;
+      /* Daylight's inverse selection is appropriate only on a light surface. */
+      unsigned surface = s->theme.surface;
+      int dark = ((surface >> 24) * 299 + ((surface >> 16) & 255) * 587 +
+                  ((surface >> 8) & 255) * 114) < 128000;
+      unsigned selection = dark ? s->theme.hover : s->theme.foreground;
+      unsigned fg = selected && day && !dark ? s->theme.surface : s->theme.foreground;
       if (!selected && s->hover_region == i + 1)
         rect(s, margin, py, w, h, tiles ? 7 : day ? 14 : 9, s->theme.soft);
       if (selected)
@@ -825,27 +998,27 @@ static void rooms(chat_state *s) {
                      : 9,
                tiles ? 1.5f : 1,
                tiles ? s->theme.foreground
-               : day ? s->theme.foreground
+               : day ? selection
                      : s->theme.border,
-               day     ? s->theme.foreground
+               day     ? selection
                : tiles ? s->theme.surface
                        : s->theme.soft);
       float x = margin + 8;
-      if (tiles) {
+      if (tiles && !rail) {
         border(s, x, py + 12, 10, 10, (r->flags & CUI_CHAT_SQUARE) ? 3 : 5,
                1.5, s->theme.foreground, r->avatar_color);
         x += 19;
       } else {
         float size = fminf(h - 8, day ? 40 : 32);
-        avatar(s, x, py + (h - size) / 2, size, r->title, r->avatar_color,
+        avatar(s, rail ? (s->width - size) / 2 : x, py + (h - size) / 2, size, r->title, r->avatar_color,
                r->flags, r->avatar);
         x += size + (day ? 12 : 10);
       }
-      int preview = !tiles && h >= 44 && s->presentation.show_room_previews && *r->detail;
-      if (!tiles && !preview)
+      int preview = !rail && !tiles && h >= 44 && s->presentation.show_room_previews && *r->detail;
+      if (!rail && !tiles && !preview)
         centered_text(s, x, py, w - (x - margin) - 40, h, 14,
                       day || r->unread ? 650 : 550, fg, r->title);
-      else text(s, x, py + 7, w - (x - margin) - 40, tiles ? 13.5 : 14,
+      else if (!rail) text(s, x, py + 7, w - (x - margin) - 40, tiles ? 13.5 : 14,
            day         ? 650
            : r->unread ? 700
                        : 550,
@@ -853,31 +1026,30 @@ static void rooms(chat_state *s) {
       if (preview)
         text(s, x, py + 29, w - (x - margin) - (day ? 48 : 24), day ? 12.5 : 12,
              400,
-             selected && day ? tint(s->theme.surface, 180) : s->theme.muted,
+             selected && day && !dark ? tint(s->theme.surface, 180) : s->theme.muted,
              r->detail);
       if (r->unread) {
         char badge[32];
         snprintf(badge, sizeof(badge), "%u", r->unread);
-        float bw = fmaxf(20, measure(s, badge, 11, 700) + 10);
-        unsigned bg =
-            (r->flags & CUI_CHAT_HIGHLIGHT) ? (tiles ? s->theme.accent : s->theme.danger)
-                                          : (tiles ? s->theme.foreground : s->theme.soft);
-        rect(s, s->width - margin - bw - 8, py + (day ? 30 : 8), bw,
-             tiles ? 18 : 20, tiles ? 4 : 10, bg);
-        text(s, s->width - margin - bw - 3, py + (day ? 32 : 10), bw - 6, 11,
-             700,
-             tiles ? s->theme.surface : (r->flags & CUI_CHAT_HIGHLIGHT) ? s->theme.on_accent
-                                             : s->theme.foreground,
-             badge);
+        float bw = fmaxf(22, measure(s, badge, 11, 700) + 10);
+        unsigned bg = (r->flags & CUI_CHAT_HIGHLIGHT)
+                          ? s->theme.danger : s->theme.accent;
+        float bh = tiles ? 18 : 22;
+        float bx = s->width - margin - bw - 8;
+        float by = py + (rail ? h - bh : preview ? h - bh - 6 : (h - bh) / 2);
+        rect(s, bx, by, bw, bh, tiles ? 4 : bh / 2, bg);
+        float tw = measure(s, badge, 11, 700);
+        centered_text(s, bx + (bw - tw) / 2, by, tw + 1, bh, 11,
+                      700, s->theme.on_accent, badge);
       }
-      if (day) {
+      if (day && !rail) {
         float tw = measure(s, r->trailing, 10.5, 400);
         text(s, s->width - margin - 10 - tw, py + 9, tw + 1, 10.5, 400,
-             s->theme.muted, r->trailing);
-      } else if (tiles && *r->trailing) {
+             selected && day && !dark ? s->theme.surface : s->theme.muted, r->trailing);
+      } else if (tiles && !rail && *r->trailing) {
         float tw = measure(s, r->trailing, 10, 600);
         float end = s->width - margin - (r->unread ? 36 : 8);
-        text(s, end - tw, py + 10, tw + 1, 10, 600, s->theme.muted, r->trailing);
+        text(s, end - tw, py + 10, tw + 1, 10, 600, selected && day && !dark ? s->theme.surface : s->theme.muted, r->trailing);
       }
       action(s, (unsigned)i + 1, margin, py, w, h, r->title,
              (cui_chat_event){.action = CUI_CHAT_OPEN_ROOM, .id = r->id},
@@ -1080,7 +1252,7 @@ static void inspector(chat_state *s) {
     return;
   }
   avatar(s, (w - 76) / 2, 70, 76, hero->title, hero->avatar_color,
-         CUI_CHAT_SQUARE, hero->avatar);
+         hero->flags & CUI_CHAT_SQUARE, hero->avatar);
   float tw = measure(s, hero->title, 18, 800);
   text(s, (w - tw) / 2, 158, w - 28, 18, 800, s->theme.foreground, hero->title);
   cui_chat_span span = {hero->detail, "", CUI_CHAT_BODY};
@@ -1153,7 +1325,7 @@ static void element(chat_state *s) {
       poll(s, m, 12, 12, width, 256);
     break;
   case CUI_CHAT_REPLY_PREVIEW:
-    reply_preview(s, m, 16, 12, width - 8, s->theme.foreground);
+    reply_preview(s, m, 16, 12, width - 8, s->theme.foreground, 256);
     break;
   case CUI_CHAT_THREAD_SUMMARY:
     thread_summary(s, m, 12, 8, width, 256);
@@ -1215,7 +1387,7 @@ int cui__chat_paint(chat_state *s) {
       text(s, 20, status_y, s->width - 40, 12, 400, s->theme.muted, s->status);
     }
   }
-  double scale = fmin(s->scale, 4096. / fmax(s->width, s->height));
+  double scale = fmin(fmin(s->scale, 8.), 4096. / fmax(s->width, s->height));
   cui_surface *surface = cui_surface_create(s->width, s->height, scale);
   int ok = !s->scene.failed && surface &&
            cui_surface_render(surface, s->scene.commands, s->scene.count);

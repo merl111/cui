@@ -22,7 +22,7 @@ go mod edit -require=cui.local/cui@v0.0.0
 go mod edit -replace=cui.local/cui=/absolute/path/to/cui/bindings/go
 ```
 
-The default binding links the repository's `build/libcui.a`. To use another archive, build with `-tags cui_external` and set `CGO_LDFLAGS=/absolute/path/to/libcui.a`. Platform libraries are still linked by the binding. Windows cgo requires a compatible MinGW archive; see [static linking and packaging](packaging.md) for release commands on Linux, Windows and macOS. Windows/macOS native verification is deferred.
+The default binding links the repository's `build/libcui.a`. To use another archive, build with `-tags cui_external` and set `CGO_LDFLAGS=/absolute/path/to/libcui.a`. Platform libraries are still linked by the binding. Windows cgo links the MSVC-built WinUI DLL through a GNU import library; see [static linking and packaging](packaging.md) for release commands on Linux, Windows and macOS. Windows/macOS native verification is deferred.
 
 ## Your first window
 

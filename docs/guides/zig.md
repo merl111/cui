@@ -14,7 +14,7 @@ CUI_SMOKE_TEST=1 zig build -Dexample=hello run
 zig build run
 ```
 
-`-Dexample=hello` selects `examples/zig/hello.zig`; the default selects the gallery. `-Dexample=bindings` runs the convenience-wrapper integration test. The build links system GTK, Win32 libraries or AppKit for the target. Windows/macOS native verification is deferred.
+`-Dexample=hello` selects `examples/zig/hello.zig`; the default selects the gallery. `-Dexample=bindings` runs the convenience-wrapper integration test. The build links system GTK or AppKit. Windows requires a prebuilt WinUI DLL/import library selected with `-Dcui-lib-dir=build/Release`; see [packaging](packaging.md#windows). Windows/macOS native verification is deferred.
 
 To embed the binding in your own build, use [build.zig](../../build.zig) as the platform-linking reference. Register [cui.zig](../../bindings/zig/cui.zig) as a module named `cui`, give it this repository's `include` path, and link the C library or compile the backend sources as the supplied build does. There is no published Zig package dependency URL yet.
 

@@ -11,6 +11,11 @@ fn action(e: Event) -> Option<Action> {
             id: e.id,
             new_pane: e.modifiers & sys::CUI_MOD_SHIFT as u32 != 0,
         },
+        sys::CUI_CHAT_OPEN_REPLY => Action::OpenReply {
+            message: e.id,
+            original: e.detail,
+        },
+        sys::CUI_CHAT_DELIVERY => Action::Delivery(e.id),
         sys::CUI_CHAT_REPLY => Action::Reply(e.id),
         sys::CUI_CHAT_THREAD => Action::Thread(e.id),
         sys::CUI_CHAT_MORE => Action::More(e.id),
@@ -27,6 +32,13 @@ fn action(e: Event) -> Option<Action> {
             message: e.id,
             attachment: e.detail,
         },
+        sys::CUI_CHAT_OPEN_PROFILE if e.detail != 0 => Action::OpenReader {
+            message: e.id,
+            reader: e.detail,
+            user: e.text,
+        },
+        sys::CUI_CHAT_OPEN_PROFILE => Action::OpenProfile(e.id),
+        sys::CUI_CHAT_COMPOSE_MORE => Action::ComposeMore,
         sys::CUI_CHAT_LINK => Action::Link(e.text),
         sys::CUI_CHAT_LOAD_OLDER => Action::LoadOlder,
         sys::CUI_CHAT_FOCUS => Action::Focus,
@@ -39,6 +51,15 @@ fn region(native: &NativeChat, a: &Action) -> Option<u32> {
     match a {
         Action::OpenRoom { id, .. } => {
             e.action = sys::CUI_CHAT_OPEN_ROOM;
+            e.id = *id;
+        }
+        Action::OpenReply { message, original } => {
+            e.action = sys::CUI_CHAT_OPEN_REPLY;
+            e.id = *message;
+            e.detail_id = *original;
+        }
+        Action::Delivery(id) => {
+            e.action = sys::CUI_CHAT_DELIVERY;
             e.id = *id;
         }
         Action::Reply(id) => {

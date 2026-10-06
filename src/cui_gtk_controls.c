@@ -19,6 +19,10 @@ const char *cui__gtk_styles(void)
     ".cui-window switch { background: #d6dbe4; border: none; border-radius: 14px; min-width: 44px; min-height: 24px; }"
     ".cui-window switch:checked { background: #4967da; }"
     ".cui-window switch slider { background: white; border: none; border-radius: 50%; min-width: 20px; min-height: 20px; margin: 2px; }"
+    ".cui-window.cui-dark switch { background: #24302A; }"
+    ".cui-window.cui-dark switch:checked { background: #FFD100; }"
+    ".cui-window.cui-dark switch slider { background: #F4F1E6; }"
+    ".cui-window.cui-dark switch:checked slider { background: #1A1600; }"
     ".cui-window scale trough, .cui-window progressbar trough { background: #dce1eb; border: none; min-height: 6px; min-width: 2px; border-radius: 6px; }"
     ".cui-window.cui-dark scale trough, .cui-window.cui-dark progressbar trough { background: #3c4250; }"
     ".cui-window scale highlight, .cui-window progressbar progress { background: #6680e6; border: none; border-radius: 6px; min-height: 6px; min-width: 2px; }"
@@ -44,7 +48,7 @@ static GtkWidget *scrolled(cui_widget *widget, GtkWidget *child, int height)
 {
     GtkWidget *scroll = gtk_scrolled_window_new();
     gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), child);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
     gtk_widget_set_size_request(scroll, 240, height);
     gtk_widget_add_css_class(scroll, "cui-input-surface");
     widget->aux = child;
@@ -210,8 +214,11 @@ GtkWidget *cui__gtk_control(cui_widget *widget, const char *text)
         return native;
     case CUI_TEXTAREA: case CUI_CODE: return text_view(widget, text);
     case CUI_SELECT:
-        native = gtk_drop_down_new(NULL, NULL);
-        g_signal_connect(native, "notify::selected", G_CALLBACK(notify_action), widget);
+        /* GtkComboBoxText supports an actual empty selection. GtkDropDown
+         * autoselects on GTK versions where its private selection model cannot
+         * be configured, forcing an unwanted synthetic row. */
+        native = gtk_combo_box_text_new();
+        g_signal_connect(native, "changed", G_CALLBACK(cui__gtk_action), widget);
         return native;
     case CUI_LIST:
         native = gtk_list_box_new();
@@ -249,17 +256,19 @@ void cui__backend_items(cui_widget *w)
     size_t i;
     if (w->kind == CUI_TABLE) { cui__gtk_table_items(w); return; }
     if (w->kind == CUI_SELECT) {
-        GtkStringList *strings = gtk_string_list_new(NULL);
-        gtk_string_list_append(strings, ""); /* Explicit empty selection, even on GTK versions that autoselect. */
-        for (i = 0; i < w->item_count; ++i) gtk_string_list_append(strings, w->items[i]);
-        gtk_drop_down_set_model(GTK_DROP_DOWN(w->native), G_LIST_MODEL(strings));
-        g_object_unref(strings);
+        gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(w->native));
+        for (i = 0; i < w->item_count; ++i)
+            gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(w->native), w->items[i]);
     } else {
         GtkWidget *child;
         while ((child = gtk_widget_get_first_child(GTK_WIDGET(w->aux)))) gtk_list_box_remove(GTK_LIST_BOX(w->aux), child);
         for (i = 0; i < w->item_count; ++i) {
             GtkWidget *label = gtk_label_new(w->items[i]);
             gtk_label_set_xalign(GTK_LABEL(label), 0);
+            gtk_label_set_wrap(GTK_LABEL(label), TRUE);
+            gtk_label_set_wrap_mode(GTK_LABEL(label), PANGO_WRAP_WORD_CHAR);
+            gtk_label_set_max_width_chars(GTK_LABEL(label), 42);
+            gtk_widget_set_hexpand(label, TRUE);
             gtk_list_box_append(GTK_LIST_BOX(w->aux), label);
         }
     }
@@ -267,7 +276,7 @@ void cui__backend_items(cui_widget *w)
 void cui__backend_set_selected(cui_widget *w, int index)
 {
     guint selected = index < 0 ? GTK_INVALID_LIST_POSITION : (guint)index;
-    if (w->kind == CUI_SELECT) gtk_drop_down_set_selected(GTK_DROP_DOWN(w->native), (guint)(index + 1));
+    if (w->kind == CUI_SELECT) gtk_combo_box_set_active(GTK_COMBO_BOX(w->native), index);
     else if (w->kind == CUI_TABLE) gtk_single_selection_set_selected(GTK_SINGLE_SELECTION(gtk_column_view_get_model(GTK_COLUMN_VIEW(w->aux))), selected);
     else gtk_list_box_select_row(GTK_LIST_BOX(w->aux), index < 0 ? NULL : gtk_list_box_get_row_at_index(GTK_LIST_BOX(w->aux), index));
 }
@@ -278,7 +287,7 @@ int cui__backend_get_selected(const cui_widget *w)
         GtkListBoxRow *row = gtk_list_box_get_selected_row(GTK_LIST_BOX(w->aux));
         return row ? gtk_list_box_row_get_index(row) : -1;
     }
-    if (w->kind == CUI_SELECT) return (int)gtk_drop_down_get_selected(GTK_DROP_DOWN(w->native)) - 1;
+    if (w->kind == CUI_SELECT) return gtk_combo_box_get_active(GTK_COMBO_BOX(w->native));
     else selected = gtk_single_selection_get_selected(GTK_SINGLE_SELECTION(gtk_column_view_get_model(GTK_COLUMN_VIEW(w->aux))));
     return selected == GTK_INVALID_LIST_POSITION ? -1 : (int)selected;
 }
@@ -309,6 +318,8 @@ void cui__backend_scrollable(cui_window *window)
     if (window->scrollable) {
         GtkWidget *scroll = gtk_scrolled_window_new();
         gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), root);
+        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+        gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(scroll), FALSE);
         gtk_window_set_child(GTK_WINDOW(window->native), scroll);
         window->content = scroll;
     } else {
@@ -344,8 +355,28 @@ void cui_clipboard_set_text(cui_window *window, const char *text)
     if (window) gdk_clipboard_set_text(gtk_widget_get_clipboard(GTK_WIDGET(window->native)), text ? text : "");
 }
 
+int cui__backend_insert_text(cui_widget *w, const char *text)
+{
+    if (w->kind == CUI_TEXTAREA || w->kind == CUI_CODE) {
+        GtkTextBuffer *b = gtk_text_view_get_buffer(GTK_TEXT_VIEW(w->aux));
+        gtk_text_buffer_begin_user_action(b);
+        gtk_text_buffer_delete_selection(b, FALSE, TRUE);
+        gtk_text_buffer_insert_at_cursor(b, text, -1);
+        gtk_text_buffer_end_user_action(b);
+        gtk_text_view_scroll_mark_onscreen(GTK_TEXT_VIEW(w->aux), gtk_text_buffer_get_insert(b));
+    } else {
+        GtkEditable *e = GTK_EDITABLE(w->native);
+        gtk_editable_delete_selection(e);
+        int position = gtk_editable_get_position(e);
+        gtk_editable_insert_text(e, text, -1, &position);
+        gtk_editable_set_position(e, position);
+    }
+    return 1;
+}
+
 size_t cui_get_selected_text(const cui_widget *w, char *buffer, size_t capacity)
 {
+    if (w && (w->kind == CUI_CANVAS || w->kind == CUI_BOX)) return cui__chat_selected_text(w, buffer, capacity);
     char *text = NULL;
     if (w && (w->kind == CUI_TEXTAREA || w->kind == CUI_CODE)) {
         GtkTextBuffer *b = gtk_text_view_get_buffer(GTK_TEXT_VIEW(w->aux)); GtkTextIter a, z;

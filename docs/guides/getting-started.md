@@ -1,6 +1,6 @@
 # Your first native window
 
-CUI is a small C99 library that uses the operating system's UI libraries. Your application describes controls, content and semantic roles; the backend creates GTK controls on Linux, AppKit views on macOS and Win32 controls on Windows. There is no browser runtime, bundled font or downloaded UI dependency.
+CUI is a small C99 library that uses the operating system's UI libraries. Your application describes controls, content and semantic roles; the backend creates GTK controls on Linux, AppKit views on macOS and WinUI 3 controls on Windows. There is no browser UI or bundled font. Windows builds restore pinned SDK packages and need the Windows App Runtime 1.8.
 
 ## Build the library
 
@@ -13,7 +13,7 @@ cmake --build build --parallel
 ./build/cui_showcase button
 ```
 
-The build produces a static archive, a shared library and native example applications. Python loads the shared library; Go's default development configuration links the static archive. Zig's build compiles the C sources directly.
+Linux/macOS builds produce a static archive, a shared library and native examples. Windows produces a WinUI DLL and import library. All language bindings consume the Windows DLL; Zig compiles CUI sources directly only on Linux/macOS.
 
 To embed CUI in the executable you ship, see [static linking and packaging](packaging.md) for CMake, Rust and Go recipes on Windows, macOS and Linux, including the Linux GTK requirements.
 

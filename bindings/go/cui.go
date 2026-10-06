@@ -8,8 +8,7 @@ package cui
 #cgo linux,!cui_external LDFLAGS: ${SRCDIR}/../../build/libcui.a
 #cgo darwin,!cui_external LDFLAGS: ${SRCDIR}/../../build/libcui.a
 #cgo darwin LDFLAGS: -framework AppKit -framework QuartzCore
-#cgo windows,!cui_external LDFLAGS: ${SRCDIR}/../../build/libcui.a
-#cgo windows LDFLAGS: -lcomctl32 -lgdiplus -luser32 -lgdi32 -ldwmapi -ladvapi32 -lole32 -loleacc -lshell32 -luuid -lcomdlg32
+#cgo windows,!cui_external LDFLAGS: -L${SRCDIR}/../../build/Release -lcui
 #include "bridge.h"
 */
 import "C"
@@ -155,8 +154,9 @@ func (a *App) Close() {
 }
 
 // ResolvedTheme returns the effective system or explicit light/dark appearance.
-func (a *App) ResolvedTheme() int { a.check(); return int(C.cui_app_resolved_theme(a.ptr)) }
-func (a *App) Theme(theme int)    { a.check(); C.cui_app_set_theme(a.ptr, C.cui_theme(theme)) }
+func (a *App) Background(enabled bool) { a.check(); C.cui_app_set_background(a.ptr, flag(enabled)) }
+func (a *App) ResolvedTheme() int      { a.check(); return int(C.cui_app_resolved_theme(a.ptr)) }
+func (a *App) Theme(theme int)         { a.check(); C.cui_app_set_theme(a.ptr, C.cui_theme(theme)) }
 func cstring(s string) (*C.char, func()) {
 	if strings.IndexByte(s, 0) >= 0 {
 		panic("CUI string contains NUL")
@@ -258,6 +258,11 @@ func (w Widget) text(selected bool) string {
 }
 func (w Widget) Text() string         { return w.text(false) }
 func (w Widget) SelectedText() string { return w.text(true) }
+func (w Widget) InsertText(text string) bool {
+	s := C.CString(text)
+	defer C.free(unsafe.Pointer(s))
+	return C.cui_insert_text(w.ptr, s) != 0
+}
 func (a *App) keep(fn func()) cgo.Handle {
 	h := cgo.NewHandle(callback{a, fn})
 	a.handles = append(a.handles, h)
@@ -641,8 +646,14 @@ func (m Menu) PopupRegion(canvas Widget, region uint32) bool {
 	m.app.check()
 	return C.cui_menu_popup_region(m.ptr, canvas.ptr, C.uint(region)) != 0
 }
-func (w Window) Menu(menu Menu)      { w.app.check(); C.cui_window_set_menu(w.ptr, menu.ptr) }
-func (w Widget) Focus() bool         { w.app.check(); return C.cui_focus(w.ptr) != 0 }
+func (w Window) Menu(menu Menu) { w.app.check(); C.cui_window_set_menu(w.ptr, menu.ptr) }
+func (w Widget) Focus() bool    { w.app.check(); return C.cui_focus(w.ptr) != 0 }
+
+// FocusedDescendant returns a borrowed widget, with a nil pointer when unfocused.
+func (w Widget) FocusedDescendant() Widget {
+	w.app.check()
+	return Widget{app: w.app, ptr: C.cui_focused_descendant(w.ptr)}
+}
 func (w Widget) HasFocus() bool      { w.app.check(); return C.cui_has_focus(w.ptr) != 0 }
 func (w Widget) ReadOnly(value bool) { w.app.check(); C.cui_set_read_only(w.ptr, flag(value)) }
 func (w Widget) Undo()               { w.app.check(); C.cui_undo(w.ptr) }
@@ -1174,6 +1185,7 @@ func (w Window) PopupRegion(canvas Widget, region uint32) bool {
 	canvas.app.check()
 	return C.cui_window_popup_region(w.ptr, canvas.ptr, C.uint(region)) != 0
 }
+
 // Anchor attaches an auxiliary window beside a parent content rectangle.
 func (w Window) Anchor(parent Window, rect [4]int) bool {
 	w.app.check()
@@ -1213,4 +1225,13 @@ func (w Widget) StackBackdrop(label string) Widget {
 func (w Widget) StackLayer(alignment, width, height, margin int) Widget {
 	w.app.check()
 	return widget(w.app, C.cui_stack_layer(w.ptr, C.cui_layer_alignment(alignment), C.int(width), C.int(height), C.int(margin)))
+}
+
+// FocusIndicators controls visual rings without disabling keyboard navigation.
+func (a *App) FocusIndicators(visible bool) {
+	var v C.int
+	if visible {
+		v = 1
+	}
+	C.cui_app_set_focus_indicators(a.ptr, v)
 }

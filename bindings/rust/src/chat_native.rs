@@ -70,6 +70,7 @@ pub struct ChatCommand {
 }
 #[derive(Clone, Debug)]
 pub struct Event {
+    pub position: Option<(f64, f64)>,
     pub action: i32,
     pub id: u64,
     pub detail: u64,
@@ -110,7 +111,13 @@ impl NativeChat {
                 };
                 let mut q = queue.borrow_mut();
                 if q.len() < 1024 {
+                    let (mut x, mut y) = (0., 0.);
+                    let position = (unsafe {
+                        sys::cui_chat_event_position(w.handle.ptr.as_ptr(), &mut x, &mut y)
+                    } != 0)
+                        .then_some((x, y));
                     q.push_back(Event {
+                        position,
                         action: e.action,
                         id: e.id,
                         detail: e.detail_id,
@@ -147,6 +154,8 @@ impl NativeChat {
         raw.accent = t.accent;
         raw.on_accent = t.on_accent;
         raw.soft = t.selected;
+        raw.hover = t.hover;
+        raw.rail = t.rail;
         raw.danger = t.danger;
         raw.online = t.online;
         raw.font_size = t.font_size as f64;
@@ -181,6 +190,7 @@ impl NativeChat {
     pub fn messages(&self, items: &[Message]) -> Result<()> {
         validate_messages(items)?;
         let mut arena = Arena::default();
+        let mut reader_storage = Vec::new();
         let mut participant_storage: Vec<Vec<sys::cui_chat_room>> = Vec::new();
         let mut spans = Vec::new();
         let mut files = Vec::new();
@@ -209,6 +219,10 @@ impl NativeChat {
                             id: a.id,
                             text: arena.text(&a.name)?,
                             detail: arena.text(&a.detail)?,
+                            image: a
+                                .image
+                                .as_ref()
+                                .map_or(std::ptr::null_mut(), |i| i.ptr.as_ptr()),
                             ..Default::default()
                         })
                     })
@@ -220,6 +234,7 @@ impl NativeChat {
                     .map(|r| {
                         Ok(sys::cui_chat_detail {
                             text: arena.text(&r.key)?,
+                            detail: arena.text(&r.tooltip)?,
                             count: r.count,
                             flags: if r.mine { sys::CUI_CHAT_MINE as u32 } else { 0 },
                             ..Default::default()
@@ -259,7 +274,10 @@ impl NativeChat {
                         id: i as u64 + 1,
                         title: arena.text(&a.name)?,
                         avatar_color: a.color,
-                        avatar: a.image.as_ref().map_or(std::ptr::null_mut(), |i| i.ptr.as_ptr()),
+                        avatar: a
+                            .image
+                            .as_ref()
+                            .map_or(std::ptr::null_mut(), |i| i.ptr.as_ptr()),
                         flags: (if a.online {
                             sys::CUI_CHAT_ONLINE as u32
                         } else {
@@ -273,6 +291,27 @@ impl NativeChat {
                     })
                 })
                 .collect::<Result<Vec<_>>>()?;
+            let readers = m
+                .read_by
+                .iter()
+                .map(|r| {
+                    Ok(sys::cui_chat_room {
+                        id: r.id,
+                        title: arena.text(&r.title)?,
+                        detail: arena.text(&r.detail)?,
+                        trailing: arena.text(&r.trailing)?,
+                        avatar_color: r.avatar.color,
+                        avatar: r
+                            .avatar
+                            .image
+                            .as_ref()
+                            .map_or(std::ptr::null_mut(), |i| i.ptr.as_ptr()),
+                        ..Default::default()
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?;
+            reader_storage.push(readers);
+            let readers = reader_storage.last().unwrap();
             participant_storage.push(faces);
             let faces = participant_storage.last().unwrap();
             raw.push(sys::cui_chat_message {
@@ -281,7 +320,11 @@ impl NativeChat {
                 time: arena.text(&m.time)?,
                 date: arena.text(&m.date)?,
                 avatar_color: m.author.color,
-                avatar: m.author.image.as_ref().map_or(std::ptr::null_mut(), |i| i.ptr.as_ptr()),
+                avatar: m
+                    .author
+                    .image
+                    .as_ref()
+                    .map_or(std::ptr::null_mut(), |i| i.ptr.as_ptr()),
                 flags: (if m.outgoing { 1 } else { 0 })
                     | (if m.highlighted { 2 } else { 0 })
                     | (if i > 0 && items[i - 1].author.name == m.author.name && m.date.is_empty() {
@@ -321,6 +364,10 @@ impl NativeChat {
                 thread_participants: faces.as_ptr(),
                 thread_participant_count: faces.len(),
                 author_color: m.author_color,
+                read_by: readers.as_ptr(),
+                read_by_count: readers.len(),
+                delivery: m.delivery,
+                delivery_label: arena.text(&m.delivery_label)?,
             });
         }
         ok(unsafe { sys::cui_chat_set_messages(self.ptr()?, raw.as_ptr(), raw.len()) })
@@ -337,7 +384,11 @@ impl NativeChat {
                     detail: arena.text(&r.detail)?,
                     trailing: arena.text(&r.trailing)?,
                     avatar_color: r.avatar.color,
-                    avatar: r.avatar.image.as_ref().map_or(std::ptr::null_mut(), |i| i.ptr.as_ptr()),
+                    avatar: r
+                        .avatar
+                        .image
+                        .as_ref()
+                        .map_or(std::ptr::null_mut(), |i| i.ptr.as_ptr()),
                     unread: r.unread,
                     symbol: r.symbol,
                     flags: (if r.mention { 2 } else { 0 })
@@ -356,6 +407,17 @@ impl NativeChat {
     pub fn query(&self, value: &str) -> Result<()> {
         let value = string(value)?;
         ok(unsafe { sys::cui_chat_set_query(self.ptr()?, value.as_ptr()) })
+    }
+    /// Set a copied localized label; None restores the English default.
+    pub fn set_label(&self, key: sys::cui_chat_label, value: Option<&str>) -> Result<()> {
+        let value = value.map(string).transpose()?;
+        ok(unsafe {
+            sys::cui_chat_set_label(
+                self.ptr()?,
+                key,
+                value.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
+            )
+        })
     }
     pub fn status(&self, value: &str) -> Result<()> {
         let value = string(value)?;

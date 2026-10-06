@@ -22,7 +22,11 @@ static void verify(void *data)
     cui_set_visible(overlay,1);CHECK(cui_activate(overlay_button));
     cui_set_enabled(base,1);
     changes=0;cui_split_set_position(split,0.6);CHECK(changes==0);
+    gpointer keys=g_object_get_data(G_OBJECT(split->native),"cui-split-keys");
+    gboolean handled=FALSE;
+    g_signal_emit_by_name(keys,"key-pressed",GDK_KEY_Right,0,0,&handled);
     gtk_paned_set_position(GTK_PANED(split->native),180);CHECK(changes>0&&cui_split_get_position(split)>0);
+    g_signal_emit_by_name(keys,"key-released",GDK_KEY_Right,0,0);
     CHECK(cui_grid_cell(grid,0,0,1,1)==NULL);
     CHECK(cui_grid_cell(grid,0,2,1,1)==NULL);
     CHECK(cui_split_pane(split,2)==NULL);

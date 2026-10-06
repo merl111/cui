@@ -158,11 +158,16 @@ void cui__mac_canvas_event(cui_widget *w, NSView *view, NSEvent *event,
 @public
   cui_widget *model;
   unsigned identifier;
+  BOOL textRegion;
 }
 @end
 @implementation CUICanvasRegion
+- (BOOL)isAccessibilitySelectorAllowed:(SEL)selector {
+  if (textRegion && selector == @selector(accessibilityPerformPress)) return NO;
+  return [super isAccessibilitySelectorAllowed:selector];
+}
 - (BOOL)accessibilityPerformPress {
-  return model && cui_canvas_activate_region(model, identifier);
+  return !textRegion && model && cui_canvas_activate_region(model, identifier);
 }
 @end
 void cui__mac_canvas_detach(NSView *view) {
@@ -201,8 +206,10 @@ void cui__canvas_regions(cui_widget *w) {
     item->model = w;
     item->identifier = r->id;
     [item setAccessibilityParent:view];
-    [item setAccessibilityRole:NSAccessibilityButtonRole];
-    [item setAccessibilityLabel:[NSString stringWithUTF8String:r->label]];
+    item->textRegion = r->role == CUI_CANVAS_TEXT;
+    [item setAccessibilityRole:item->textRegion ? NSAccessibilityStaticTextRole : NSAccessibilityButtonRole];
+    [item setAccessibilityValue:item->textRegion ? [NSString stringWithUTF8String:r->label] : nil];
+    [item setAccessibilityLabel:item->textRegion ? nil : [NSString stringWithUTF8String:r->label]];
     [item setAccessibilityEnabled:r->enabled];
     NSRect rect = NSMakeRect((size.width - sw * k) / 2 + r->x * k,
                              (size.height - sh * k) / 2 + r->y * k,

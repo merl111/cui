@@ -2,6 +2,7 @@
 """Generate dependency-free Rust example data from the shared concept fixture."""
 import argparse
 import json
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,10 +34,10 @@ def message(record, index, day):
     fields.append('body: RichText(vec![' + ','.join(spans) + '])')
     if 'file' in record:
         f = record['file']
-        fields.append('attachments: vec![Attachment { id: 1, name: ' + string(f['name'])
+        fields.append('attachments: vec![Attachment { image: None, id: 1, name: ' + string(f['name'])
                       + ', detail: ' + string(f['size'] + ' · encrypted') + ' }]')
     if 'reacts' in record:
-        fields.append('reactions: vec![' + ','.join('Reaction { key: ' + string(r[0])
+        fields.append('reactions: vec![' + ','.join('Reaction { tooltip: String::new(), key: ' + string(r[0])
                       + f', count: {r[1]}, mine: {str(r[2]).lower()}' + ' }'
                       for r in record['reacts']) + ']')
     if 'reply' in record:
@@ -106,7 +107,10 @@ if __name__ == '__main__':
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
     target = ROOT / 'bindings/rust/examples/daylight/fixture.rs'
-    content = generate()
+    content = subprocess.run(
+        ['rustfmt', '--edition', '2021', '--emit', 'stdout'],
+        input=generate(), text=True, capture_output=True, check=True,
+    ).stdout
     if args.check:
         if target.read_text() != content:
             raise SystemExit('Rust chat fixture is stale; regenerate it')

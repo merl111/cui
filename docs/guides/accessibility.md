@@ -22,4 +22,34 @@ Test at enlarged application text scale as well as display DPI scale. Let wrappi
 
 Tabs and disclosures are composed from native controls and do not yet claim fully audited native tab semantics. Charts and RGBA images lack a rich accessibility model. Full RTL layout on Windows/macOS, complete reduced-motion handling and end-to-end screen-reader/IME audits remain in the backlog.
 
-GTK native tests and screenshots establish current Linux behavior. Windows and macOS testing is a later development phase by project choice. Document a platform's implementation separately from its verification status; do not hide an untested behavior behind a generic supported badge.
+GTK native tests and screenshots establish current Linux behavior. The native CI matrix includes Windows and macOS, but those jobs and screen readers must run on their respective hosts before claiming verification. Document implementation separately from runtime verification.
+
+## Application focus-outline policy
+
+`cui_app_set_focus_indicators(app, 0)` suppresses CUI's visible native and chat
+focus outlines while preserving focus, keyboard traversal and activation.
+The default is enabled. This is an application-wide visual policy, not a way to
+remove widgets from keyboard navigation. Bindings expose `App.focus_indicators`
+(Rust/Python), `App.FocusIndicators` (Go), and `App.focusIndicators` (Zig).
+
+## Chat text and dialog focus
+
+Canvas regions have an explicit `cui_canvas_role`: zero/default
+`CUI_CANVAS_BUTTON` for actions, or `CUI_CANVAS_TEXT` for readable content.
+Chat message bodies expose author, timestamp and complete concatenated spans;
+links, attachments and reactions retain independent actionable regions. GTK
+uses selectable native labels, AppKit static-text accessibility elements, and
+WinUI read-only TextBox peers. The legacy Win32 adapter uses read-only edits.
+Windows retains unchanged peers across refreshes to preserve native focus.
+The new region field changes the ABI: rebuild CUI and every consumer together.
+
+Capture `cui_focused_descendant(background)` **before** disabling the background
+for an application modal. Re-enable it before calling `cui_focus(bookmark)` on
+close; choose a logical fallback if the saved control is hidden or disabled.
+The borrowed handle remains valid until app destruction. This complements
+native dialog behavior; it does not itself implement modality or a focus trap.
+
+The `chat_ux` test runs shared scene, scaling, translation, contrast and focus
+contracts on all native CI targets. It also checks GTK's native text role and
+AppKit's static-text value. Linux has been exercised locally; VoiceOver,
+Narrator/UIA and Orca end-to-end validation remain separate requirements.

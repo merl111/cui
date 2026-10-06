@@ -53,13 +53,13 @@ Dates are Gregorian civil values in years 1601–9999, with leap-year validation
 
 ## Verification boundaries
 
-Linux native tests cover actual tree selection/expansion/activation, a 10,000-row model, dialog completion/cancellation, shortcuts, command state, editing, grid spans, splitters, numeric commits and validation, and date/time changes. The language examples run their native event loops. Windows is cross-compiled and linked; native interaction and appearance need a Windows host. macOS source needs compilation and runtime verification on a macOS host. These controls do not establish complete accessibility coverage or completion of the full component plan.
+Linux native tests cover actual tree selection/expansion/activation, a 10,000-row model, dialog completion/cancellation, shortcuts, command state, editing, grid spans, splitters, numeric commits and validation, and date/time changes. The language examples run their native event loops. The WinUI backend needs native compilation, interaction and appearance checks on a Windows host. macOS source needs compilation and runtime verification on a macOS host. These controls do not establish complete accessibility coverage or completion of the full component plan.
 
 ## Editable tables
 
 `cui_table_set_multiple` enables native extended selection. Query all selected rows with `cui_table_selected_rows`; the original `cui_get_selected` returns the first selected row. `cui_set_selected` replaces the entire selection even in multiple mode.
 
-Enable editing per column with `cui_table_set_editable`. GTK uses native editable labels, Windows overlays a native Unicode edit control, and AppKit uses editable table cells. Enter commits and Escape cancels on GTK/Windows; AppKit uses its standard cell editing behavior. Windows F2/Enter starts editing the first editable column of the selected row; double-click targets a particular cell. Programmatic cell updates are available independently of user-editability.
+Enable editing per column with `cui_table_set_editable`. GTK uses native editable labels, Windows uses WinUI TextBox cells, and AppKit uses editable table cells. Enter commits and Escape cancels on GTK and Windows; Windows also commits on focus loss. AppKit uses its standard cell editing behavior. Windows editable cells are directly focusable text fields. Programmatic cell updates are available independently of user-editability.
 
 `cui_table_sort` sorts one column stably, either by UTF-8 byte order or finite numeric value. Numeric sorting puts invalid/non-numeric cells last. Sorting and data replacement clear selection. `cui_table_source_row` preserves the input row index from the most recent `cui_table_set_rows`, so applications can map edited display rows back to their own records. The records/filter/diff compositions retain user cell edits in their copied source data when filtering again.
 
@@ -84,7 +84,7 @@ cui_font_value initial = {"Sans", 12, 400, 0};
 cui_font_dialog(window, "Document font", &initial, font_chosen, editor);
 ```
 
-GTK uses the GTK 4 native choosers; Windows uses the installed common dialogs (`comdlg32`); macOS uses AppKit's color/font panels. No font files or chooser dependencies are bundled. Windows runtime appearance and all macOS native checks remain outstanding.
+GTK uses the GTK 4 native choosers; Windows uses WinUI ContentDialog with ColorPicker and installed-font controls; macOS uses AppKit's color/font panels. No font files are bundled. Windows requires the Windows App SDK runtime. Windows runtime appearance and all macOS native checks remain outstanding.
 
 ## Breadcrumbs and searchable sidebars
 

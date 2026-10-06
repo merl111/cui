@@ -1,14 +1,14 @@
-# Static linking and packaging
+# Linking and packaging
 
-You can embed CUI directly in a C, Rust or Go executable on Windows, macOS and Linux. The user does not need a separate CUI library file. Rust and Go already link CUI statically by default; the commands below make the archive location and release configuration explicit.
+Linux and macOS can embed CUI as a static library. Windows uses a WinUI 3 DLL with a stable C calling convention; it requires the Windows App SDK runtime. Rust, Go and Zig link that DLL on Windows, while Python loads it with ctypes.
 
-**Static CUI does not mean a completely static executable.** Windows and macOS still use their operating-system libraries. The current Linux backend always uses GTK. There is no GTK-free Linux backend or `CUI_NO_GTK` build option.
+Static CUI on Linux/macOS still depends on the platform UI libraries. Linux always uses GTK; there is no `CUI_NO_GTK` option.
 
 ## Choose a distribution model
 
 | Target | What goes into your executable | What remains outside it |
 | --- | --- | --- |
-| Windows | CUI and your Rust/Go/C application | Windows system DLLs; compiler runtime dependencies depend on your toolchain/settings |
+| Windows | Your Rust/Go/C application | `cui.dll`, bootstrap DLL, Windows App Runtime 1.8 and Visual C++ runtime |
 | macOS | CUI and your Rust/Go/C application | System AppKit, QuartzCore and their dependencies |
 | Linux with system GTK | CUI and your Rust/Go/C application | GTK 4.6+ with X11 support, Xext and their runtime dependencies |
 | Linux without a system GTK installation | Static CUI, plus GTK provided by an application package or managed runtime | A compatible host OS, display server and graphics stack; packaging is not implemented here |
@@ -18,15 +18,17 @@ Build tools belong on the developer machine. End users do not need Cargo, Go, a 
 
 The Linux Rust and Go recipes below were built and their dynamic dependencies inspected on October 1, 2026, on x86_64 Manjaro with GCC 16.2.1 and GTK 4.22.4. Windows/macOS recipes reflect the current source configuration; native verification on those platforms remains deferred.
 
-## C and CMake on all three platforms
+## C and CMake
 
-The `cui` target is always a static archive. `CUI_BUILD_SHARED=OFF` disables the additional shared-library target; `BUILD_SHARED_LIBS=OFF` alone does not control that target. In your application's CMake project, use:
+The `cui` target is static on Linux/macOS and a DLL import target on Windows. `CUI_BUILD_SHARED=OFF` disables the additional shared-library target; `BUILD_SHARED_LIBS=OFF` alone does not control that target. In your application's CMake project, use:
 
 ```cmake
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
 project(my_app LANGUAGES C)
 
-set(CUI_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+if(NOT WIN32)
+    set(CUI_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+endif()
 set(CUI_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(CUI_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(CUI_BUILD_BINDING_TESTS OFF CACHE BOOL "" FORCE)
@@ -38,6 +40,10 @@ if(WIN32)
     enable_language(RC)
     target_sources(my_app PRIVATE path/to/cui/examples/windows.rc)
     target_include_directories(my_app PRIVATE path/to/cui/examples)
+    add_custom_command(TARGET my_app POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:cui>" "$<TARGET_FILE_DIR:my_app>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE_DIR:cui>/Microsoft.WindowsAppRuntime.Bootstrap.dll" "$<TARGET_FILE_DIR:my_app>")
 endif()
 ```
 
@@ -123,61 +129,61 @@ For now, use the tested static-CUI/system-GTK path. If avoiding a GTK installati
 
 ## Windows
 
-CUI uses Win32 and system GDI+, not GTK. The backend currently targets Windows 10 1703+ APIs; Windows 11 enables newer chrome features. Build the C archive with the same architecture and toolchain family as your application. A MinGW `libcui.a` and an MSVC `cui.lib` are not interchangeable inputs for these recipes.
+Windows widgets use WinUI 3 and Fluent design. Win32 remains the window host and supplies shell file dialogs, clipboard and bitmap text/image services. The minimum OS is Windows 10 1809. The public ABI stays C; consumers do not need to compile C++ or use XAML.
 
-### Rust with MSVC and a static C runtime
+### Build and deploy the DLL
 
-Use an x64 Visual Studio Developer PowerShell with the Windows SDK, CMake, Ninja and the `x86_64-pc-windows-msvc` Rust toolchain available. Run from the repository root:
+Install Visual Studio 2022 with Desktop development with C++, a current Windows SDK, CMake 3.20+, and NuGet CLI. From a developer terminal:
 
 ```powershell
-cmake -S . -B build-msvc -G Ninja -DCMAKE_C_COMPILER=cl `
-  -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded `
-  -DCUI_BUILD_SHARED=OFF -DCUI_BUILD_EXAMPLES=OFF `
-  -DCUI_BUILD_TESTS=OFF -DCUI_BUILD_BINDING_TESTS=OFF
-cmake --build build-msvc --target cui
-
-$env:CUI_LIB_DIR = "$PWD/build-msvc"
-$env:CARGO_TARGET_DIR = "$PWD/build-msvc/rust"
-$env:RUSTFLAGS = "-C target-feature=+crt-static"
-cargo build --offline --release --target x86_64-pc-windows-msvc `
-  --manifest-path bindings/rust/Cargo.toml --example hello
-
-mt.exe -manifest examples/windows.manifest `
-  "-outputresource:build-msvc/rust/x86_64-pc-windows-msvc/release/examples/hello.exe;#1"
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCUI_BUILD_TESTS=ON
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+cmake --install build --config Release --prefix stage
 ```
 
-The executable is `build-msvc/rust/x86_64-pc-windows-msvc/release/examples/hello.exe`. CMake's `MultiThreaded` selects `/MT` for CUI, and Rust's `+crt-static` selects the corresponding runtime linkage. Keep these choices consistent across foreign code. See [CMake's runtime setting](https://cmake.org/cmake/help/latest/variable/CMAKE_MSVC_RUNTIME_LIBRARY.html) and [Rust's C runtime linkage](https://doc.rust-lang.org/reference/linkage.html#static-and-dynamic-c-runtimes). The flags above replace any existing `RUSTFLAGS` for this shell; combine them with your project settings if needed.
+`windows/packages.config` pins C++/WinRT and Windows App SDK 1.8 components. Restore requires network access; `CUI_WINUI_PACKAGES` selects a package cache. The default output is `build/Release/cui.dll` with `cui.lib` as its import library. `CUI_BUILD_SHARED=OFF` is rejected on Windows. MSVC builds the backend; MinGW consumers link its C ABI DLL.
 
-If you intentionally use a dynamic MSVC runtime, use `MultiThreadedDLL` and Rust's matching dynamic runtime configuration instead, then account for its redistribution requirements. Static CUI alone does not select a static CRT. With a multi-configuration generator instead of Ninja, use `--config Release` and point `CUI_LIB_DIR` at the directory containing `cui.lib`, usually `build-msvc/Release`.
+Ship `cui.dll` and `Microsoft.WindowsAppRuntime.Bootstrap.dll` next to the app. Install the matching architecture's [Windows App Runtime 1.8](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads) and Visual C++ Redistributable. This is framework-dependent deployment, not a self-contained single executable. A packaged application must declare its Windows App SDK framework dependency; the bootstrap path is for unpackaged desktop apps. Test the actual package on a clean Windows machine.
+
+### Rust
+
+```powershell
+$env:CUI_LIB_DIR = "$PWD/build/Release"
+$env:PATH = "$env:CUI_LIB_DIR;$env:PATH"
+cargo build --offline --release --target x86_64-pc-windows-msvc `
+  --manifest-path bindings/rust/Cargo.toml --example hello
+```
+
+For distribution, copy both DLLs beside the resulting executable instead of relying on PATH. Rust uses `dylib=cui` on Windows. Static CRT flags do not remove the WinUI runtime dependency.
 
 ### Go with MinGW-w64
 
-Use a native Windows MSYS2 UCRT64 shell with matching x86_64 GCC, windres, CMake, Ninja and Windows Go on PATH. Start at the repository root; use a checkout path without spaces for this shell example:
+Build the DLL with MSVC first. Then use an architecture-matched MinGW-w64 `dlltool` to create a GNU import library:
 
 ```sh
-cmake -S . -B build-mingw -G Ninja -DCMAKE_C_COMPILER=gcc \
-  -DCMAKE_BUILD_TYPE=Release -DCUI_BUILD_SHARED=OFF \
-  -DCUI_BUILD_EXAMPLES=OFF -DCUI_BUILD_TESTS=OFF \
-  -DCUI_BUILD_BINDING_TESTS=OFF
-cmake --build build-mingw --target cui
-
-windres -I examples examples/windows.rc -O coff \
-  -o bindings/go/cmd/hello/cui_windows_amd64.syso
-cui_root=$(cygpath -m "$PWD")
-(
-  cd bindings/go
-  CGO_ENABLED=1 CC=gcc GOOS=windows GOARCH=amd64 \
-    CGO_LDFLAGS="$cui_root/build-mingw/libcui.a -static-libgcc" \
-    go build -buildvcs=false -tags cui_external -trimpath \
-    -o "$cui_root/build-mingw/go-hello.exe" ./cmd/hello
-)
+dlltool -d windows/cui.def -D cui.dll -l build/Release/libcui.dll.a
+cd bindings/go
+go build -buildvcs=false -o ../../build/Release/go-hello.exe ./cmd/hello
 ```
 
-Go includes the generated architecture-specific `.syso` resource from the main package. For your own application, put that resource in your main package instead. `-static-libgcc` requests GCC's static support library; it is not a promise that every dependency is static. Inspect the executable's DLL imports before shipping. The Go binding links the Win32 system libraries itself, and cgo needs a GCC-compatible compiler rather than an MSVC-built CUI archive.
+The binding searches `build/Release` on Windows. For another directory use `-tags cui_external` and `CGO_LDFLAGS='-L/path/to/dll-directory -lcui'`. cgo needs GCC-compatible tooling, but does not compile the WinUI backend. The generated import library can also be used by Windows GNU Rust consumers. Keep the architecture and exported function names consistent.
 
-### Windows application resources
+### Zig and Python
 
-The supplied `examples/windows.manifest` enables Common Controls v6 and PerMonitorV2 DPI behavior. Embedding CUI does not automatically embed that manifest in an external Rust or Go executable. The examples above embed it explicitly; merge its settings into your own application manifest if you already have one. Modify resources before signing the executable. For GUI-only applications you may also configure the Windows GUI subsystem; that is independent of static linkage.
+Zig consumes the prebuilt import library:
+
+```powershell
+zig build -Dtarget=x86_64-windows-gnu -Dcui-lib-dir=build/Release -Dexample=hello
+```
+
+The install step copies the CUI and bootstrap DLLs to `zig-out/bin`. Cross-building requires those matching Windows artifacts in advance. Python uses `CUI_LIBRARY` pointing at the absolute `cui.dll` path; keep its bootstrap DLL alongside it.
+
+### Application resources and validation
+
+Embed or merge the supplied PerMonitorV2 manifest before signing external applications. Its Common Controls declaration does not change WinUI styling. WinUI controls use their own Fluent resources.
+
+The Windows CI job restores the SDK, installs the runtime and runs the WinUI contract test. Native compilation, interaction and appearance still require a successful Windows run; Linux regression results do not establish those properties.
 
 ## macOS
 
@@ -205,11 +211,11 @@ otool -L build-static-docs/go-hello
 
 On Windows, use `dumpbin /DEPENDENTS path\to\app.exe` in the Developer shell, or `objdump -p path/to/app.exe` with MinGW and inspect its DLL imports.
 
-A static CUI build has no dependency on `libcui.so`, `libcui.dylib` or `cui.dll`. Linux builds above still list GTK and other system libraries; that is expected. Windows imports should be checked for additional compiler-runtime DLLs. These tools list link dependencies, not every dynamically loaded module, data file or font. Finally launch the packaged application on a clean target machine that represents your supported baseline.
+A static Linux/macOS CUI build has no dependency on `libcui.so` or `libcui.dylib`. Windows always requires `cui.dll`. Linux builds above still list GTK and other system libraries; that is expected. Windows imports should be checked for additional compiler-runtime DLLs. These tools list link dependencies, not every dynamically loaded module, data file or font. Finally launch the packaged application on a clean target machine that represents your supported baseline.
 
 ## Other bindings and common failures
 
-Zig's existing build compiles CUI's C sources into its application; it still uses the same platform libraries. See the [Zig guide](zig.md). Python's current ctypes binding loads a shared CUI library and cannot load a static archive. Keep `CUI_BUILD_SHARED=ON` for that binding and use `CUI_LIBRARY` to locate the shared library when needed; see the [Python guide](python.md).
+Zig compiles CUI's C sources on Linux/macOS and links the prebuilt WinUI DLL on Windows. See the [Zig guide](zig.md). Python's current ctypes binding loads a shared CUI library and cannot load a static archive. Keep `CUI_BUILD_SHARED=ON` for that binding and use `CUI_LIBRARY` to locate the shared library when needed; see the [Python guide](python.md).
 
 | Symptom | Check |
 | --- | --- |
@@ -222,7 +228,7 @@ Zig's existing build compiles CUI's C sources into its application; it still use
 
 ## Keep size measurements honest
 
-Measure the final application and any packaged dependencies separately. Archive size is not the size added to every executable: the linker can discard unused objects, and the language runtime and application assets have their own cost. Source builds do not vendor UI dependencies.
+Measure the final application and any packaged dependencies separately. Archive size is not the size added to every executable: the linker can discard unused objects, and the language runtime and application assets have their own cost. Windows builds restore SDK dependencies; account separately for the installed Windows App Runtime.
 
 The October 1, 2026 Linux Release snapshot measured `libcui.so` at 278,160 bytes (about 272 KiB) after stripping, with GCC 16.2.1 on x86_64 Manjaro. This historical shared-library measurement excludes GTK/X11, application code and assets; it is not a size guarantee for statically linked applications.
 

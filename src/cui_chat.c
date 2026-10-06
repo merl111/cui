@@ -1,5 +1,6 @@
 #include "cui_chat_internal.h"
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -140,6 +141,7 @@ void cui__chat_details_free(cui_chat_detail *p, size_t n) {
     for (size_t i = 0; i < n; ++i) {
       free((char *)p[i].text);
       free((char *)p[i].detail);
+      cui_icon_release(p[i].image);
     }
     free(p);
   }
@@ -153,6 +155,7 @@ static cui_chat_detail *details(const cui_chat_detail *p, size_t n,
     return NULL;
   for (size_t i = 0; i < n; ++i) {
     q[i] = p[i];
+    q[i].image = cui_icon_retain(p[i].image);
     q[i].text = copy(p[i].text, 4096);
     q[i].detail = copy(p[i].detail, 4096);
     if (!q[i].text || !q[i].detail) {
@@ -166,6 +169,7 @@ void cui__chat_messages_free(cui_chat_message *p, size_t n) {
   if (!p)
     return;
   for (size_t i = 0; i < n; ++i) {
+    cui__chat_rooms_free((cui_chat_room *)p[i].read_by, p[i].read_by_count);
     cui_icon_release(p[i].avatar);
     free((char *)p[i].author);
     free((char *)p[i].time);
@@ -174,6 +178,7 @@ void cui__chat_messages_free(cui_chat_message *p, size_t n) {
     free((char *)p[i].reply_text);
     free((char *)p[i].poll_question);
     free((char *)p[i].thread_preview);
+    free((char *)p[i].delivery_label);
     cui__chat_rooms_free((cui_chat_room *)p[i].thread_participants,
                          p[i].thread_participant_count);
     cui_chat_span *sp = (cui_chat_span *)p[i].spans;
@@ -217,7 +222,7 @@ static int room_copy(cui_chat_room *next, const cui_chat_room *item) {
          next->trailing;
 }
 static int message_copy(cui_chat_message *q, const cui_chat_message *p) {
-  if (!p->id || p->thread_participant_count > 8 ||
+  if (p->delivery < CUI_CHAT_DELIVERY_NONE || p->delivery > CUI_CHAT_SEND_FAILED || !p->id || p->read_by_count > 128 || (p->read_by_count && !p->read_by) || p->thread_participant_count > 8 ||
       (p->thread_participant_count && !p->thread_participants) ||
       p->span_count > 128 || (p->span_count && !p->spans) ||
       p->selected_option < -1 ||
@@ -241,6 +246,17 @@ static int message_copy(cui_chat_message *q, const cui_chat_message *p) {
   for (size_t i = 0; i < p->thread_participant_count; ++i)
     if (!room_copy(participants + i, p->thread_participants + i))
       return 0;
+  q->delivery = p->delivery;
+  q->delivery_label = copy(p->delivery_label, 4096);
+  if (!q->delivery_label) return 0;
+  q->read_by_count = p->read_by_count;
+  if (p->read_by_count) {
+    cui_chat_room *readers = calloc(p->read_by_count, sizeof(*readers));
+    q->read_by = readers;
+    if (!readers) return 0;
+    for (size_t i = 0; i < p->read_by_count; ++i)
+      if (!room_copy(readers + i, p->read_by + i)) return 0;
+  }
   q->span_count = p->span_count;
   q->attachment_count = p->attachment_count;
   q->reaction_count = p->reaction_count;
@@ -306,6 +322,8 @@ static void dispose(void *p) {
   free(s->query);
   free(s->status);
   free(s->event_text);
+  free(s->context_author); free(s->context_preview);
+  for (int i = 0; i < CUI_CHAT_LABEL_COUNT; ++i) free(s->labels[i]);
   for (int i = 0; i < CUI_SYMBOL_COUNT; ++i)
     cui_icon_release(s->icons[i]);
   free(s);
@@ -313,26 +331,41 @@ static void dispose(void *p) {
 chat_state *cui__chat(const cui_widget *w) {
   return w && w->destroy_payload == dispose ? w->payload : NULL;
 }
-void cui__chat_emit(chat_state *s, cui_chat_event e) {
+static void emit_at(chat_state *s, cui_chat_event e, const cui_canvas_event *pointer) {
   char *text = copy(e.text, 65536);
   if (!text)
     return;
   free(s->event_text);
   s->event_text = text;
   e.text = text;
+  s->event_pointer = pointer != NULL;
+  s->event_x = pointer ? pointer->x : 0;
+  s->event_y = pointer ? pointer->y : 0;
   s->event = e;
   cui__emit(s->root);
+}
+void cui__chat_emit(chat_state *s, cui_chat_event e) { emit_at(s, e, NULL); }
+int cui_chat_event_position(const cui_widget *w, double *x, double *y) {
+  chat_state *s = cui__chat(w);
+  if (!s || !x || !y || !s->event_pointer) return 0;
+  *x = s->event_x; *y = s->event_y;
+  return 1;
 }
 static void canvas_event(cui_widget *w, const cui_canvas_event *e, void *p) {
   (void)w;
   chat_state *s = p;
+  if (cui__chat_selection_event(s, e)) return;
   if (e->kind == CUI_CANVAS_SCROLL) {
 #ifdef __APPLE__
     double delta = -e->dy;
 #else
-    double delta = e->dy * 36.;
+    double delta = e->dy * 64.;
 #endif
     cui_chat_scroll(s->root, fmax(0., s->offset + delta));
+    /* Consumers gate concurrent requests and end-of-history. Only user upward
+     * scrolling triggers pagination; programmatic restoration never does. */
+    if (s->kind == CUI_CHAT_TIMELINE && delta < 0 && s->offset <= 80)
+      cui__chat_emit(s, (cui_chat_event){.action = CUI_CHAT_LOAD_OLDER});
     return;
   }
   if (e->kind == CUI_CANVAS_MOVE) {
@@ -361,6 +394,36 @@ static void canvas_event(cui_widget *w, const cui_canvas_event *e, void *p) {
      * only when leaving for its native popup; body focus must never pin it. */
     if (e->x >= 0 || focus % 256 < 200)
       s->toolbar_focus = 0;
+    if (e->id != s->hover_region) {
+      const char *tooltip = "";
+      char readers_tooltip[4096] = "";
+      if (s->kind == CUI_CHAT_ROOMS && e->id > 0 && e->id <= s->count)
+        tooltip = s->rooms[e->id - 1].title;
+      for (size_t i = 0; i < s->scene.region_count; ++i) {
+        const cui_chat_event *a = s->scene.actions + i;
+        if (s->scene.regions[i].id == e->id && e->id % 256 >= 128 && e->id % 256 <= 131) {
+          for (size_t j = 0; j < s->count; ++j) {
+            const cui_chat_message *m = s->messages + j;
+            if (m->id != a->id || a->index >= m->read_by_count) continue;
+            if (a->index < 3) tooltip = *m->read_by[a->index].detail ? m->read_by[a->index].detail : m->read_by[a->index].title;
+            else {
+              size_t used = 0;
+              for (size_t r = 3; r < m->read_by_count && used < sizeof(readers_tooltip)-1; ++r) {
+                int n = snprintf(readers_tooltip + used, sizeof(readers_tooltip)-used, "%s%s", r == 3 ? "" : "\n", m->read_by[r].title);
+                if (n < 0 || (size_t)n >= sizeof(readers_tooltip)-used) break;
+                used += (size_t)n;
+              }
+              tooltip = readers_tooltip;
+            }
+          }
+        }
+        if (s->scene.regions[i].id != e->id || e->id % 256 < 48 || e->id % 256 >= 80 || a->action != CUI_CHAT_REACT) continue;
+        for (size_t j = 0; j < s->count; ++j)
+          if (s->messages[j].id == a->id && a->index < s->messages[j].reaction_count)
+            tooltip = s->messages[j].reactions[a->index].detail;
+      }
+      cui_set_tooltip(w, tooltip);
+    }
     if (hover != s->hovered || e->id != s->hover_region ||
         focus != s->toolbar_focus) {
       s->hovered = hover;
@@ -370,12 +433,14 @@ static void canvas_event(cui_widget *w, const cui_canvas_event *e, void *p) {
     return;
   }
   if (e->kind == CUI_CANVAS_FOCUS) {
+    s->pointer_focus = 0;
     s->focus_region = e->id;
     s->toolbar_focus = e->id;
     s->dirty = 1;
     return;
   }
   if (e->kind == CUI_CANVAS_PRESS) {
+    s->pointer_focus = 1;
     /* Keep a pressed action alive until release, including after dismissing
      * its popup. Body focus must not pin the toolbar. */
     s->toolbar_focus = e->id >= 256 && e->id % 256 >= 200 ? e->id : 0;
@@ -386,9 +451,9 @@ static void canvas_event(cui_widget *w, const cui_canvas_event *e, void *p) {
   if (e->kind == CUI_CANVAS_CONTEXT && cui__chat_message_kind(s->kind)) {
     for (size_t i = 0; i < s->scene.region_count; ++i)
       if (s->scene.regions[i].id == e->id) {
-        cui__chat_emit(s, (cui_chat_event){.action = CUI_CHAT_MORE,
+        emit_at(s, (cui_chat_event){.action = CUI_CHAT_MORE,
                                            .id = s->scene.actions[i].id,
-                                           .modifiers = e->modifiers});
+                                           .modifiers = e->modifiers}, e);
         return;
       }
   }
@@ -521,7 +586,7 @@ int cui_chat_set_presentation(cui_widget *w, const cui_chat_presentation *p) {
       p->inspector > CUI_CHAT_MEDIA_GRID ||
       (p->show_sender != 0 && p->show_sender != 1) ||
       (p->show_room_previews != 0 && p->show_room_previews != 1) ||
-      (p->composer_tools & ~((1u << 5) | (1u << 6) | (1u << 7))))
+      (p->composer_tools & ~((1u << 5) | (1u << 6) | (1u << 7) | (1u << 8))))
     return 0;
   const double values[] = {p->room_height,      p->bubble_radius,
                            p->surface_radius,   p->avatar_border_width,
@@ -651,6 +716,7 @@ int cui_chat_set_messages(cui_widget *w, const cui_chat_message *items,
       anchor = s->messages[i].id;
       delta = s->offset - s->tops[i];
     }
+  cui__chat_selection_update(s, next, n);
   cui__chat_messages_free(s->messages, s->count);
   free(s->tops);
   free(s->heights);
@@ -748,6 +814,76 @@ int cui_chat_set_status(cui_widget *w, const char *q) {
   chat_state *s = cui__chat(w);
   return s ? set_string(s, &s->status, q) : 0;
 }
+const char *cui__chat_label(const chat_state *s, cui_chat_label key) {
+  static const char *defaults[CUI_CHAT_LABEL_COUNT] = {
+    "Message",
+    "Send",
+    "Reply or edit context",
+    "Attachments",
+    "Cancel reply or edit",
+    "Attach file",
+    "Emoji",
+    "Create poll",
+    "More message options",
+    "Enter sends; Shift+Enter inserts a newline; Escape cancels",
+    "Editing message · Esc to cancel",
+    "Replying to {author} · {preview}",
+    "{count} reply in thread →",
+    "{count} replies in thread →",
+    "{count} reply",
+    "{count} replies",
+    "{count} vote",
+    "{count} votes",
+    "Poll closed",
+    "Select an option",
+    "Tap an option to vote",
+    "Vote to see results",
+    "Failed to send",
+    "Delivered",
+    "Sending",
+    "Conversation pane {count}",
+  };
+  return s->labels[key] ? s->labels[key] : defaults[key];
+}
+void cui__chat_format(const chat_state *s, cui_chat_label key, unsigned long long count,
+                      const char *author, const char *preview, char *out, size_t capacity) {
+  if (!capacity) return;
+  char number[32]; snprintf(number, sizeof(number), "%llu", count);
+  const char *p = cui__chat_label(s, key);
+  size_t at = 0;
+  while (*p && at < capacity - 1) {
+    const char *value = p; size_t bytes = 1, advance = 1;
+    if (!strncmp(p, "{count}", 7)) { value = number; bytes = strlen(value); advance = 7; }
+    else if (!strncmp(p, "{author}", 8)) { value = author ? author : ""; bytes = strlen(value); advance = 8; }
+    else if (!strncmp(p, "{preview}", 9)) { value = preview ? preview : ""; bytes = strlen(value); advance = 9; }
+    if (bytes > capacity - 1 - at) bytes = capacity - 1 - at;
+    memcpy(out + at, value, bytes); at += bytes; p += advance;
+  }
+  /* Never leave a partial UTF-8 code point when truncating an expanded label. */
+  if (at) {
+    size_t start = at - 1;
+    while (start && ((unsigned char)out[start] & 0xc0) == 0x80) --start;
+    unsigned char c = (unsigned char)out[start];
+    size_t n = c < 0x80 ? 1 : c < 0xe0 ? 2 : c < 0xf0 ? 3 : 4;
+    if (at - start < n) at = start;
+  }
+  out[at] = 0;
+}
+int cui_chat_set_label(cui_widget *w, cui_chat_label key, const char *text) {
+  chat_state *s = cui__chat(w);
+  if (!s || key < 0 || key >= CUI_CHAT_LABEL_COUNT || (text && (!*text || strlen(text) > 4096))) return 0;
+  char *next = text ? copy(text, 4096) : NULL;
+  if (text && !next) return 0;
+  free(s->labels[key]); s->labels[key] = next; s->dirty = 1;
+  if (s->kind == CUI_CHAT_COMPOSER) cui__chat_compose_labels(s);
+  if (s->kind == CUI_CHAT_WORKSPACE) {
+    for (unsigned i = 0; i < 4; ++i) {
+      char label[16384]; cui__chat_format(s, CUI_CHAT_LABEL_CONVERSATION_PANE, i + 1, NULL, NULL, label, sizeof(label));
+      cui_accessibility(s->parts[i], label, "");
+    }
+  }
+  return cui__chat_layout(s);
+}
 static int refresh_font(chat_state *s) {
   const char *family;
   double points;
@@ -777,6 +913,12 @@ int cui_chat_refresh(cui_widget *w, double scale) {
   if (!cui_widget_get_size(s->parts[0], &width, &height) || width < 1 ||
       height < 1)
     return 1;
+  /* Reflow in text-scaled logical coordinates. Canvas fitting maps input and
+   * accessibility bounds back to native coordinates on every backend. */
+  double zoom = s->root->window->app->text_scale;
+  width = (int)fmax(1., floor(width / zoom));
+  height = (int)fmax(1., floor(height / zoom));
+  scale *= zoom;
   int font_changed = refresh_font(s);
   if (width != s->width || height != s->height || scale != s->scale || font_changed) {
     int bottom = s->offset + s->height >= s->total - 2;

@@ -67,6 +67,10 @@ const (
 	SymbolArrowRight
 	SymbolLock
 	SymbolPanel
+	SymbolSettings
+	SymbolPerson
+	SymbolSun
+	SymbolBell
 )
 
 func iconResult(p *C.cui_icon_asset) (*IconAsset, error) {

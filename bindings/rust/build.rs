@@ -2,19 +2,29 @@ use std::{env, path::PathBuf, process::Command};
 fn main() {
     println!("cargo:rerun-if-env-changed=CUI_LIB_DIR");
     println!("cargo:rerun-if-env-changed=PKG_CONFIG");
+    let target = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let dir = env::var_os("CUI_LIB_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
-            PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("../../build")
+            PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join(if target == "windows" {
+                "../../build/Release"
+            } else {
+                "../../build"
+            })
         });
     println!("cargo:rustc-link-search=native={}", dir.display());
-    println!("cargo:rustc-link-lib=static=cui");
-    let target = env::var("CARGO_CFG_TARGET_OS").unwrap();
+    if target == "windows" {
+        println!("cargo:rustc-link-lib=dylib=cui");
+    } else {
+        println!("cargo:rustc-link-lib=static=cui");
+    }
     println!(
         "cargo:rerun-if-changed={}",
         dir.join(
             if target == "windows" && env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
                 "cui.lib"
+            } else if target == "windows" {
+                "libcui.dll.a"
             } else {
                 "libcui.a"
             }
@@ -48,14 +58,7 @@ fn main() {
             println!("cargo:rustc-link-lib=framework=AppKit");
             println!("cargo:rustc-link-lib=framework=QuartzCore");
         }
-        "windows" => {
-            for lib in [
-                "comctl32", "gdiplus", "user32", "gdi32", "dwmapi", "advapi32", "ole32", "oleacc",
-                "shell32", "uuid", "comdlg32",
-            ] {
-                println!("cargo:rustc-link-lib={lib}");
-            }
-        }
+        "windows" => {} // WinUI and its C++ dependencies are private to cui.dll.
         _ => panic!("CUI supports Linux, Windows and macOS"),
     }
 }

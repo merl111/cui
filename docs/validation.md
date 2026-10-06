@@ -255,3 +255,37 @@ regressions across the accumulated uncommitted diff against the older HEAD,
 including native dispatch, generated data and layout complexity. It remains an
 open quality result; the existing baseline file was preserved. Remaining visual
 differences are listed in the chat guide, and 99% HTML parity is not certified.
+
+
+## WinUI 3 migration (October 2, 2026)
+
+The Windows build selects the C++/WinRT backend in `src/cui_winui*.cpp`, with Fluent controls hosted in desktop XAML islands. CUI exports a C ABI DLL; language consumers no longer compile the old Win32 widget backend. Windows App SDK 1.8 packages are pinned in `windows/packages.config`. Shell file dialogs and bitmap text/image services still use Windows system APIs.
+
+Validation performed from Linux:
+
+- All 38 Windows translation units compiled and cross-linked into an x86-64 DLL with Zig/Clang, using projections generated from Microsoft's WinUI 1.8 and Windows SDK metadata. The DLL exports exactly the 279 current public C functions. This is an additional compile/link check, not a supported replacement for the MSVC build.
+- The public WinUI C contract test cross-linked. The Zig hello example linked against the DLL import library and installed with both required DLLs.
+- The Linux Release build and 21 selected regression tests passed: layout, controls, containers, tables, typed inputs, navigation, drawing, icons, files, pickers and desktop APIs, including scale variants.
+- Binding coverage checks passed for Python, Go, Zig and Rust; Rust examples passed `cargo check`.
+- The Windows CMake branch configured with placeholder tools for structural checking. The actual MSBuild/NuGet build and runtime tests require Windows. CI now installs the Windows App Runtime and runs `winui_contracts`; it has not been dispatched from this workspace.
+
+Windows appearance, native input, IME, accessibility, high contrast and mixed-monitor behavior remain unverified. No Windows release-size claim follows from the debug cross-build. The documentation generator succeeds; the screenshot checker currently requests recapture for concurrent chat changes. The repository quality report also includes existing/concurrent changes and is not a clean gate.
+
+## UX audit fixes (October 2026)
+
+The Linux native `chat_ux` regression covers complete message accessibility text,
+GTK text roles, 100%/200% painted text sizing, selected-room timestamp contrast,
+translated singular thread labels, literal template substitution, live composer
+translations, invalid-label rejection, reset-to-default and focus restoration.
+It is registered for Linux, AppKit and WinUI; AppKit adds native static-text
+checks. A Windows-only `chat_ux_uia` test reads the actual TextBox ValuePattern
+from a separate UI Automation process. Windows/macOS execution is pending on
+native runners, not claimed here.
+The public ABI now has 283 functions and 626 checked enum/layout values. All four
+bindings and Windows exports are synchronized; consumers must rebuild for the
+new canvas-region role field.
+
+The full Linux suite passed 81/83 tests. `rust_simulator_windows_4k` (simulated
+window close coordinates) and `rust_daylight` (a scrolled-out action region) are
+previously reproduced example-test failures. The new regression and affected
+chat, drawing, keyboard, font, native desktop and binding tests passed.

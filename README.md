@@ -1,8 +1,8 @@
 # CUI
 
-A small C99 GUI framework with native controls, automatic layout, and a deliberate visual design. No vendored libraries, browser runtime, bundled fonts, or asset pipeline. Applications use a C API; macOS has a private Objective-C implementation.
+A small C99 GUI framework with native controls, automatic layout, and a deliberate visual design. Applications use a C API; macOS has a private Objective-C implementation and Windows uses C++/WinRT internally. Windows builds restore pinned WinUI 3 dependencies; Linux uses GTK and macOS uses AppKit. No bundled fonts or browser UI.
 
-**Early prototype, not production-ready.** Framework development, documentation and the showcase proceed together. Windows/macOS native verification is deferred to a later phase. Linux is compiled, tested, and visually inspected here. The complete Zig example cross-compiles and links for Windows. Windows runtime/visual checks and macOS compilation/runtime checks remain. The CI workflow builds all three; it has not been run remotely from this workspace.
+**Early prototype, not production-ready.** Framework development, documentation and the showcase proceed together. Windows/macOS native verification is deferred to a later phase. Linux is compiled, tested, and visually inspected here. The Windows backend is being migrated to WinUI 3; its native build and visual checks and macOS compilation/runtime checks remain. The CI workflow builds all three; it has not been run remotely from this workspace.
 
 ## Appearance is part of the API
 
@@ -11,10 +11,10 @@ UI code describes semantic roles—title, heading, caption, primary action, card
 | Platform | Implementation | Appearance |
 | --- | --- | --- |
 | Linux | GTK 4 controls and boxes | Scoped application styles, rounded cards, focus states, relative typography, light/dark palettes; desktop settings portal for system appearance |
-| Windows | Win32 controls and system libraries | Windows 11 rounded window chrome, system accent, light/dark surfaces, custom-drawn button/checkbox visuals retaining native control behavior |
+| Windows | WinUI 3 controls hosted in desktop XAML islands | Fluent buttons, inputs, menus and dialogs, system theme resources and native keyboard/accessibility support |
 | macOS | AppKit controls | Aqua/Dark Aqua, system accent and semantic colors, native text fields/buttons, standard Edit menu |
 
-The Windows backend is **not WinUI 3** and does not implement Mica, Acrylic, or full Fluent motion. Matching Windows 11 closely enough for release requires an actual Windows visual review. WinUI 3 would introduce a Windows App SDK runtime dependency; this prototype takes the smaller system-API route. Linux intentionally has its own polished style; it does not promise to match both GNOME and KDE exactly. macOS uses its native control styling, not the Linux stylesheet.
+The Windows backend uses **WinUI 3**, with the Windows App SDK 1.8 runtime as a deployment requirement. Win32 still handles the top-level window and operating-system integration; widgets use Fluent XAML controls. Mica/Acrylic window backdrops are not enabled by this change. Linux keeps its own style and macOS uses AppKit styling. Native Windows visual review is still required.
 
 Actual Linux renders, captured from the settings example:
 
@@ -24,7 +24,7 @@ Actual Linux renders, captured from the settings example:
 
 ## Build
 
-CMake 3.16+, a C compiler, and the platform development SDK are build requirements. No dependency downloads occur during configuration or compilation.
+Linux/macOS need CMake 3.16+, a C compiler, and the platform development SDK. Windows needs CMake 3.20+, Visual Studio 2022 C++ build tools, a current Windows SDK, and `nuget.exe` on PATH. The Windows build restores pinned NuGet packages.
 
 **Linux:** GTK 4.6+ development files with X11 support and Xext and `pkg-config` are required (for example, `libgtk-4-dev libxext-dev` on Debian/Ubuntu or `gtk4-devel libXext-devel` on Fedora). The GTK runtime and its transitive libraries must be installed on the destination system. They are not bundled, and are not assumed to exist on every Linux installation.
 
@@ -39,13 +39,16 @@ cmake --build build --parallel
 ./build/cui_settings --light
 ```
 
-**Windows:** Visual Studio's C/C++ build tools and a current Windows SDK. Minimum API target is Windows 10 1703; Windows 11 enables the rounded/dark window chrome. Use a developer terminal:
+**Windows:** Windows 10 1809 or later. Install the matching [Windows App SDK 1.8 runtime](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads) on the machine that runs the app. Use a Visual Studio developer terminal:
 
 ```powershell
-cmake -S . -B build
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCUI_BUILD_TESTS=ON
 cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
 .\build\Release\cui_settings.exe
 ```
+
+Windows produces `cui.dll` and the `cui.lib` import library. Ship the DLL and `Microsoft.WindowsAppRuntime.Bootstrap.dll` alongside your executable, and install the Windows App Runtime and Visual C++ runtime. Static CUI archives and compiling the backend with MinGW are no longer supported on Windows. C, Python, Rust, Go and Zig still consume the same C ABI; see [packaging](docs/guides/packaging.md#windows).
 
 **macOS:** Xcode command line tools, CMake, and the AppKit SDK (macOS 10.15+ API surface). The backend uses manual Objective-C reference counting internally:
 
@@ -102,7 +105,7 @@ For Windows consumers, embed an application manifest with Common Controls v6 and
 
 - One application, any number of windows; all API calls on the main thread.
 - The application owns all widgets and windows. Closing hides a window and keeps its handles valid. Destroy the app after the event loop returns.
-- UTF-8 strings and logical units. Windows handles per-monitor DPI changes and recreates fonts; AppKit uses points; GTK manages device scaling and RTL box placement.
+- UTF-8 strings and logical units. Windows handles per-monitor DPI changes and XAML text scaling; AppKit uses points; GTK manages device scaling and RTL box placement.
 - Layout uses native content measurements, nested rows/columns, padding, and flexible space. Native minimums prevent controls from being squeezed below their contents. Scrollable windows preserve access to oversized content; grids, wrapping rows and resizable split panes are available in `cui_layouts.h`.
 - Programmatic setters suppress callbacks. User edits, toggles, and clicks invoke them. Disabled parent boxes keep descendants disabled without discarding each child's own enabled state.
 - Input fields following labels in the same box receive an accessible label on GTK/AppKit. Native controls provide baseline keyboard, selection, IME, and accessibility behavior; screen-reader and multilingual input audits remain necessary.
@@ -129,7 +132,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-Linux GUI tests run automatically when `xvfb-run` is installed and the environment permits an X server. They exercise the real example and native controls: Unicode round trips, callback suppression/delivery, theme changes, high-contrast fallback, disabled-state inheritance, window close/reopen, and bounds at 1×, 2×, 4K, and enlarged text. Component tests exercise all 21 families. Optional binding tests run all three language examples through their native event loops. Layout tests run without a display on all platforms. Windows/macOS CI currently provides compilation and layout tests, not GUI verification.
+Linux GUI tests run automatically when `xvfb-run` is installed and the environment permits an X server. They exercise the real example and native controls: Unicode round trips, callback suppression/delivery, theme changes, high-contrast fallback, disabled-state inheritance, window close/reopen, and bounds at 1×, 2×, 4K, and enlarged text. Component tests exercise all 21 families. Optional binding tests run all three language examples through their native event loops. Layout tests run without a display on all platforms. Windows CI builds WinUI and runs a public C API smoke test covering controls, models, canvas, themes, focus and shutdown. Those checks still need to run on Windows; they do not replace visual/IME/accessibility testing. macOS CI provides compilation and layout tests.
 
 A separate Clang build uses AddressSanitizer and UndefinedBehaviorSanitizer. GTK runs disable leak detection because toolkit process-global caches outlive the application; this does not establish leak freedom. Wayland, mixed-monitor/fractional scaling, native Windows/macOS behavior, and accessibility still need platform testing.
 
@@ -175,4 +178,4 @@ Run `python3 tools/check_memory.py all` for Linux sanitizer/leak checks, static 
 
 ### Custom drawing and Waypoint
 
-The [drawing guide](docs/guides/drawing.md) covers canvas regions, premultiplied compositing, group opacity, clipping, native fonts, vector icons and app-owned backdrop blur. Run the [Rust simulator workspace](bindings/rust/examples/simulator.rs), or the small interactive drawing examples in [Python](examples/python/drawing.py), [Go](bindings/go/cmd/drawing/main.go) and [Zig](examples/zig/drawing.zig). All four bindings expose the 222-function C API.
+The [drawing guide](docs/guides/drawing.md) covers canvas regions, premultiplied compositing, group opacity, clipping, native fonts, vector icons and app-owned backdrop blur. Run the [Rust simulator workspace](bindings/rust/examples/simulator.rs), or the small interactive drawing examples in [Python](examples/python/drawing.py), [Go](bindings/go/cmd/drawing/main.go) and [Zig](examples/zig/drawing.zig). All four bindings expose the public C API.

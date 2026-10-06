@@ -56,13 +56,13 @@ go run -buildvcs=false ./cmd/gallery
 go run -buildvcs=false ./cmd/gallery --smoke-test
 ```
 
-`-buildvcs=false` is useful for this checkout's nonstandard/missing Git metadata; ordinary repositories can omit it. The default binding links the static library at the repository's `build/libcui.a`. For another location, use the `cui_external` build tag and supply the archive via `CGO_LDFLAGS`; system platform libraries remain linked by the binding.
+`-buildvcs=false` is useful for this checkout's nonstandard/missing Git metadata; ordinary repositories can omit it. On Linux/macOS the default binding links `build/libcui.a`; Windows links the WinUI DLL from `build/Release`. For another location, use the `cui_external` build tag and supply the archive via `CGO_LDFLAGS`; system platform libraries remain linked by the binding.
 
 ```sh
 CGO_LDFLAGS=/absolute/path/libcui.a go build -tags cui_external ./cmd/gallery
 ```
 
-A consuming Go project can use a local `replace cui.local/cui => /absolute/path/to/cui/bindings/go`. Windows cgo needs a compatible MinGW-built `libcui.a`, not an MSVC import library. Embed `examples/windows.manifest` when packaging a Windows executable; it requests Common Controls v6 and PerMonitorV2 awareness. The C backend also requests DPI awareness during initialization, before it creates a window.
+A consuming Go project can use a local `replace cui.local/cui => /absolute/path/to/cui/bindings/go`. Windows cgo consumes the MSVC-built WinUI DLL through a GNU import library generated from `windows/cui.def`; see [Windows packaging](guides/packaging.md#windows). Embed the PerMonitorV2 application manifest when packaging a Windows executable.
 
 ## Zig
 
@@ -76,7 +76,7 @@ zig build run
 CUI_SMOKE_TEST=1 zig build run
 ```
 
-`build.zig` links installed GTK on Linux, AppKit on macOS, and system Windows libraries. There are no fetched Zig packages. A Windows cross-build is supported by `zig build -Dtarget=x86_64-windows-gnu -p build/zig-windows`; running it still requires Windows.
+`build.zig` links installed GTK on Linux and AppKit on macOS. Windows consumes a prebuilt WinUI `cui.lib` with `zig build -Dtarget=x86_64-windows-gnu -Dcui-lib-dir=build/Release`. It copies the two required DLLs to the install directory; the matching Windows App Runtime must be installed separately. There are no fetched Zig packages.
 
 ## Rust
 

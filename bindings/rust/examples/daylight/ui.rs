@@ -297,6 +297,7 @@ impl Ui {
                     rect: [0., 0., w as f32, h as f32],
                     label: "Dismiss verification".into(),
                     enabled: true,
+                    role: 0,
                 }])?;
             }
         }

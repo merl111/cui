@@ -107,6 +107,19 @@ void cui_app_set_theme(cui_app *app, cui_theme theme)
     cui__backend_theme(app);
 }
 
+void cui_app_set_background(cui_app *app, int enabled)
+{
+    if (app) app->background = !!enabled;
+}
+
+void cui_app_set_focus_indicators(cui_app *app, int visible)
+{
+    if (!app) return;
+    app->hide_focus = !visible;
+    cui__backend_theme(app);
+    for (cui_window *w = app->windows; w; w = w->next) cui__backend_refresh(w);
+}
+
 static void update_enabled(cui_widget *widget)
 {
     cui_widget *parent, *child;
@@ -199,7 +212,7 @@ void cui_window_close(cui_window *window)
     for(cui_window *child=window->app->windows;child;child=child->next)
         if(child->anchor_parent==window)cui_window_close(child);
     cui__backend_window_hide(window);
-    if (!has_visible_windows(window->app)) cui_app_quit(window->app);
+    if (!has_visible_windows(window->app) && !window->app->background) cui_app_quit(window->app);
 }
 
 int cui_window_set_frame(cui_window *w, int decorated, int resizable, double radius)
@@ -303,6 +316,16 @@ void cui_set_text(cui_widget *widget, const char *text)
     if(widget->icon_only){cui_set_tooltip(widget,text);cui_accessibility(widget,text,text);}
     --widget->updating;
     cui__backend_refresh(widget->window);
+}
+
+int cui_insert_text(cui_widget *w, const char *text)
+{
+    if (!w || w->read_only || !(w->kind == CUI_ENTRY || w->kind == CUI_SEARCH ||
+        w->kind == CUI_TEXTAREA || w->kind == CUI_CODE)) return 0;
+    ++w->updating;
+    int result = cui__backend_insert_text(w, text ? text : "");
+    --w->updating;
+    return result;
 }
 
 size_t cui_get_text(const cui_widget *widget, char *buffer, size_t capacity)

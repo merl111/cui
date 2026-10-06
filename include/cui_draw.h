@@ -73,11 +73,13 @@ typedef struct cui_canvas_event {
       dy; /* Logical coordinates; scroll deltas are platform units. */
   unsigned modifiers; /* cui_modifiers from cui_desktop.h. */
 } cui_canvas_event;
+typedef enum cui_canvas_role { CUI_CANVAS_BUTTON, CUI_CANVAS_TEXT } cui_canvas_role;
 typedef struct cui_canvas_region {
   unsigned id;
   float x, y, width, height;
-  const char *label; /* Required accessible name; copied. */
+  const char *label; /* Required accessible name/text; copied, <=131072 UTF-8 bytes. */
   int enabled;
+  cui_canvas_role role; /* Zero defaults to button; TEXT exposes readable content. */
 } cui_canvas_region;
 typedef void (*cui_canvas_callback)(cui_widget *canvas,
                                     const cui_canvas_event *event,

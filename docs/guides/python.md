@@ -4,7 +4,7 @@ Create native windows with Python's standard-library `ctypes` binding. No pip ru
 
 ## Build and run
 
-From the repository root, build the native library once. Linux needs the installed GTK 4 development package; Windows uses system Win32 libraries and macOS uses AppKit. Windows/macOS native verification is deferred.
+From the repository root, build the native library once. Linux needs the installed GTK 4 development package; Windows uses WinUI 3 and the Windows App SDK 1.8 runtime and macOS uses AppKit. Windows/macOS native verification is deferred.
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release

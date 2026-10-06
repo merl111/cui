@@ -3,13 +3,14 @@ import ctypes as C
 from . import lib, _bind, _s, P, I, N, D, S, Widget, Icon
 F, U = C.c_float, C.c_uint
 PRESS,RELEASE,MOVE,SCROLL,ACTIVATE,FOCUS,CONTEXT = range(7)
+CANVAS_BUTTON, CANVAS_TEXT = range(2)
 CLEAR,SAVE,RESTORE,TRANSLATE,SCALE,CLIP,LAYER,END_LAYER,RECT,ELLIPSE,LINE,ICON,TEXT,GRADIENT,SHADOW,MATERIAL = range(16)
 class DrawCommand(C.Structure):
     _fields_=[('op',I),('p',F*8),('color',U),('color2',U),('text',S),('font',S),('icon',P)]
 class CanvasEvent(C.Structure):
     _fields_=[('kind',I),('id',U),('x',D),('y',D),('dx',D),('dy',D),('modifiers',U)]
 class _Region(C.Structure):
-    _fields_=[('id',U),('x',F),('y',F),('width',F),('height',F),('label',S),('enabled',I)]
+    _fields_=[('id',U),('x',F),('y',F),('width',F),('height',F),('label',S),('enabled',I),('role',I)]
 CanvasCallback=C.CFUNCTYPE(None,P,C.POINTER(CanvasEvent),P)
 _bind('draw_capabilities',U)
 _bind('surface_create',P,I,I,D)
@@ -94,10 +95,11 @@ class Scene:
 def canvas(self):return Widget(self.app,lib.cui_canvas(self.ptr))
 def canvas_set_surface(self,surface):return bool(lib.cui_canvas_set_surface(self.ptr,surface.ptr))
 def canvas_set_regions(self,regions):
+    """Regions are (id, rect, label, enabled[, role]); omitted role is CANVAS_BUTTON."""
     """Iterable of (id, (x,y,width,height), accessible_label, enabled)."""
     regions=list(regions)
-    if len(regions)>256 or any(not 0 < id <= 0xffffffff for id,_,_,_ in regions): return False
-    values=[_Region(id,*rect,_s(label),enabled) for id,rect,label,enabled in regions];array=(_Region*len(values))(*values);return bool(lib.cui_canvas_set_regions(self.ptr,array,len(array)))
+    if len(regions)>256 or any(not 0 < id <= 0xffffffff for id,*_ in regions): return False
+    values=[_Region(r[0],*r[1],_s(r[2]),r[3],r[4] if len(r)>4 else 0) for r in regions];array=(_Region*len(values))(*values);return bool(lib.cui_canvas_set_regions(self.ptr,array,len(array)))
 def on_canvas_event(self,callback):
     if callback is None:lib.cui_canvas_on_event(self.ptr,CanvasCallback(),None);return
     def call(_,event,data):

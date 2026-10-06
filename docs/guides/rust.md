@@ -1,6 +1,6 @@
 # Build with Rust
 
-Use native CUI controls with checked handles, owned model results, Rust closures and automatically released icon assets. The crate covers all public C functions through `cui::sys` and convenience wrappers. It has no Cargo dependencies, downloads or runtime packages. The native library links operating-system libraries, including installed GTK on Linux.
+Use native CUI controls with checked handles, owned model results, Rust closures and automatically released icon assets. The crate covers all public C functions through `cui::sys` and convenience wrappers. It has no Cargo dependencies, downloads or runtime packages. The native library depends on GTK on Linux, AppKit on macOS, and WinUI/Windows App Runtime on Windows.
 
 ## Build and run
 
@@ -12,13 +12,13 @@ cmake --build build --parallel
 cargo run --offline --manifest-path bindings/rust/Cargo.toml --example hello
 ```
 
-The build script looks for the native archive in this checkout's `build` directory. For another location, set `CUI_LIB_DIR` to the absolute directory containing `libcui.a` (Linux, macOS or Windows GNU) or `cui.lib` (Windows MSVC):
+The build script looks in `build` on Linux/macOS and `build/Release` on Windows. For another location, set `CUI_LIB_DIR` to the absolute directory containing `libcui.a` (Linux/macOS), `libcui.dll.a` (Windows GNU import library) or `cui.lib` (Windows MSVC import library):
 
 ```sh
 CUI_LIB_DIR=/absolute/path/to/native/build cargo run --offline --manifest-path bindings/rust/Cargo.toml --example gallery
 ```
 
-The crate does not build or bundle the C library. Build the archive for the same architecture, target ABI and compatible runtime as the Rust program. Cross-compiling also requires a matching system SDK; on Linux configure `PKG_CONFIG` to a target-aware wrapper if needed. The macOS link uses AppKit; Windows uses the framework's system Win32 libraries. Windows/macOS native verification remains deferred.
+The crate does not build or bundle the C library. Build the archive for the same architecture, target ABI and compatible runtime as the Rust program. Cross-compiling also requires a matching system SDK; on Linux configure `PKG_CONFIG` to a target-aware wrapper if needed. The macOS link uses AppKit; Windows links `cui.dll`, which uses WinUI 3 and requires the Windows App SDK 1.8 runtime. Windows/macOS native verification remains deferred.
 
 On Windows PowerShell with a multi-configuration CMake build:
 
@@ -26,6 +26,7 @@ On Windows PowerShell with a multi-configuration CMake build:
 cmake -S . -B build
 cmake --build build --config Release
 $env:CUI_LIB_DIR = "$PWD/build/Release"
+$env:PATH = "$env:CUI_LIB_DIR;$env:PATH"
 cargo run --offline --manifest-path bindings/rust/Cargo.toml --example hello
 ```
 
@@ -36,7 +37,7 @@ For your own Cargo project, use a local path dependency. The crate is included i
 cui = { path = "/absolute/path/to/cui/bindings/rust" }
 ```
 
-For release builds on all three platforms, including Windows static CRT settings and Linux GTK requirements, see [static linking and packaging](packaging.md).
+For release builds on all three platforms, including Windows DLL deployment and Linux GTK requirements, see [static linking and packaging](packaging.md).
 
 ## Your first window
 

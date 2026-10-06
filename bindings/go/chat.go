@@ -82,9 +82,10 @@ type ChatDetail struct {
 	ID           uint64
 	Text, Detail string
 	Count, Flags uint32
+	Image        *IconAsset
 }
 type ChatMessage struct {
-    Avatar *IconAsset // Optional image, retained by the native model.
+	Avatar                 *IconAsset // Optional image, retained by the native model.
 	ID                     uint64
 	Author, Time, Date     string
 	AvatarColor, Flags     uint32
@@ -98,10 +99,13 @@ type ChatMessage struct {
 	ThreadPreview          string
 	ThreadCount            uint32
 	ThreadParticipants     []ChatRoom
+	ReadBy                 []ChatRoom // Name, tooltip, user key and avatar for latest readers.
 	AuthorColor            uint32
+	Delivery               int
+	DeliveryLabel          string
 }
 type ChatRoom struct {
-    Avatar *IconAsset // Optional image, retained by the native model.
+	Avatar                         *IconAsset // Optional image, retained by the native model.
 	ID                             uint64
 	Group, Title, Detail, Trailing string
 	AvatarColor, Unread, Flags     uint32
@@ -163,7 +167,7 @@ func (a *chatArena) details(items []ChatDetail) *C.cui_chat_detail {
 	ptr := (*C.cui_chat_detail)(a.alloc(uintptr(len(items)), C.sizeof_cui_chat_detail))
 	values := unsafe.Slice(ptr, len(items))
 	for i, v := range items {
-		values[i] = C.cui_chat_detail{id: C.cui_item_id(v.ID), text: a.text(v.Text), detail: a.text(v.Detail), count: C.uint(v.Count), flags: C.uint(v.Flags)}
+		values[i] = C.cui_chat_detail{id: C.cui_item_id(v.ID), text: a.text(v.Text), detail: a.text(v.Detail), count: C.uint(v.Count), flags: C.uint(v.Flags), image: v.Image.raw()}
 	}
 	return ptr
 }
@@ -193,7 +197,7 @@ func (c ChatComponent) SetMessages(items []ChatMessage) bool {
 		for j, s := range m.Spans {
 			sv[j] = C.cui_chat_span{text: a.text(s.Text), link: a.text(s.Link), style: C.cui_chat_span_style(s.Style)}
 		}
-		values[i] = C.cui_chat_message{id: C.cui_item_id(m.ID), author: a.text(m.Author), time: a.text(m.Time), date: a.text(m.Date), avatar_color: C.uint(m.AvatarColor), flags: C.uint(m.Flags), spans: spans, span_count: C.size_t(len(m.Spans)), reply_author: a.text(m.ReplyAuthor), reply_text: a.text(m.ReplyText), reply_id: C.cui_item_id(m.ReplyID), attachments: a.details(m.Attachments), attachment_count: C.size_t(len(m.Attachments)), reactions: a.details(m.Reactions), reaction_count: C.size_t(len(m.Reactions)), poll_question: a.text(m.PollQuestion), options: a.details(m.Options), option_count: C.size_t(len(m.Options)), selected_option: C.int(m.SelectedOption), thread_preview: a.text(m.ThreadPreview), thread_count: C.uint(m.ThreadCount), thread_participants: a.rooms(m.ThreadParticipants), thread_participant_count: C.size_t(len(m.ThreadParticipants)), author_color: C.uint(m.AuthorColor), avatar: m.Avatar.raw()}
+		values[i] = C.cui_chat_message{id: C.cui_item_id(m.ID), author: a.text(m.Author), time: a.text(m.Time), date: a.text(m.Date), avatar_color: C.uint(m.AvatarColor), flags: C.uint(m.Flags), spans: spans, span_count: C.size_t(len(m.Spans)), reply_author: a.text(m.ReplyAuthor), reply_text: a.text(m.ReplyText), reply_id: C.cui_item_id(m.ReplyID), attachments: a.details(m.Attachments), attachment_count: C.size_t(len(m.Attachments)), reactions: a.details(m.Reactions), reaction_count: C.size_t(len(m.Reactions)), poll_question: a.text(m.PollQuestion), options: a.details(m.Options), option_count: C.size_t(len(m.Options)), selected_option: C.int(m.SelectedOption), thread_preview: a.text(m.ThreadPreview), thread_count: C.uint(m.ThreadCount), thread_participants: a.rooms(m.ThreadParticipants), thread_participant_count: C.size_t(len(m.ThreadParticipants)), author_color: C.uint(m.AuthorColor), avatar: m.Avatar.raw(), read_by: a.rooms(m.ReadBy), read_by_count: C.size_t(len(m.ReadBy)), delivery: C.cui_chat_delivery(m.Delivery), delivery_label: a.text(m.DeliveryLabel)}
 	}
 	return C.cui_chat_set_messages(c.Root.ptr, ptr, C.size_t(len(items))) != 0
 }
@@ -220,6 +224,17 @@ func (c ChatComponent) SetQuery(query string) bool {
 	s, done := cstring(query)
 	defer done()
 	return C.cui_chat_set_query(c.Root.ptr, s) != 0
+}
+
+// SetLabel copies a translation. A nil value restores the English default.
+func (c ChatComponent) SetLabel(key int, value *string) bool {
+	c.Root.app.check()
+	var p *C.char
+	if value != nil {
+		p = C.CString(*value)
+		defer C.free(unsafe.Pointer(p))
+	}
+	return C.cui_chat_set_label(c.Root.ptr, C.cui_chat_label(key), p) != 0
 }
 func (c ChatComponent) SetStatus(status string) bool {
 	c.Root.app.check()
@@ -401,3 +416,55 @@ func (c ChatComponent) SetCommands(items []ChatCommand) bool {
 	}
 	return C.cui_chat_set_commands(c.Root.ptr, ptr, C.size_t(len(items))) != 0
 }
+
+// EventPosition returns canvas coordinates for the current pointer context request.
+// Read it in the action callback when retaining an event.
+func (c ChatComponent) EventPosition() (x, y float64, ok bool) {
+	var cx, cy C.double
+	ok = C.cui_chat_event_position(c.Root.ptr, &cx, &cy) != 0
+	return float64(cx), float64(cy), ok
+}
+
+const ChatOpenProfile = int(C.CUI_CHAT_OPEN_PROFILE)
+
+const ChatComposeMore = int(C.CUI_CHAT_COMPOSE_MORE)
+
+const ChatOpenReply = int(C.CUI_CHAT_OPEN_REPLY)
+
+const (
+	ChatDelivery     = int(C.CUI_CHAT_DELIVERY)
+	ChatDeliveryNone = int(C.CUI_CHAT_DELIVERY_NONE)
+	ChatSending      = int(C.CUI_CHAT_SENDING)
+	ChatDelivered    = int(C.CUI_CHAT_DELIVERED)
+	ChatSendFailed   = int(C.CUI_CHAT_SEND_FAILED)
+)
+
+// Copied localization keys accepted by SetLabel.
+const (
+	ChatLabelMessage          = int(C.CUI_CHAT_LABEL_MESSAGE)
+	ChatLabelSend             = int(C.CUI_CHAT_LABEL_SEND)
+	ChatLabelContext          = int(C.CUI_CHAT_LABEL_CONTEXT)
+	ChatLabelAttachments      = int(C.CUI_CHAT_LABEL_ATTACHMENTS)
+	ChatLabelCancelContext    = int(C.CUI_CHAT_LABEL_CANCEL_CONTEXT)
+	ChatLabelAttach           = int(C.CUI_CHAT_LABEL_ATTACH)
+	ChatLabelEmoji            = int(C.CUI_CHAT_LABEL_EMOJI)
+	ChatLabelCreatePoll       = int(C.CUI_CHAT_LABEL_CREATE_POLL)
+	ChatLabelMore             = int(C.CUI_CHAT_LABEL_MORE)
+	ChatLabelComposerHelp     = int(C.CUI_CHAT_LABEL_COMPOSER_HELP)
+	ChatLabelEditing          = int(C.CUI_CHAT_LABEL_EDITING)
+	ChatLabelReplying         = int(C.CUI_CHAT_LABEL_REPLYING)
+	ChatLabelThreadOne        = int(C.CUI_CHAT_LABEL_THREAD_ONE)
+	ChatLabelThreadMany       = int(C.CUI_CHAT_LABEL_THREAD_MANY)
+	ChatLabelReplyOne         = int(C.CUI_CHAT_LABEL_REPLY_ONE)
+	ChatLabelReplyMany        = int(C.CUI_CHAT_LABEL_REPLY_MANY)
+	ChatLabelVoteOne          = int(C.CUI_CHAT_LABEL_VOTE_ONE)
+	ChatLabelVoteMany         = int(C.CUI_CHAT_LABEL_VOTE_MANY)
+	ChatLabelPollClosed       = int(C.CUI_CHAT_LABEL_POLL_CLOSED)
+	ChatLabelPollSelect       = int(C.CUI_CHAT_LABEL_POLL_SELECT)
+	ChatLabelPollTap          = int(C.CUI_CHAT_LABEL_POLL_TAP)
+	ChatLabelPollResults      = int(C.CUI_CHAT_LABEL_POLL_RESULTS)
+	ChatLabelSendFailed       = int(C.CUI_CHAT_LABEL_SEND_FAILED)
+	ChatLabelDelivered        = int(C.CUI_CHAT_LABEL_DELIVERED)
+	ChatLabelSending          = int(C.CUI_CHAT_LABEL_SENDING)
+	ChatLabelConversationPane = int(C.CUI_CHAT_LABEL_CONVERSATION_PANE)
+)

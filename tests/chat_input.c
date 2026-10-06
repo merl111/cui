@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 static int sends,cancels;
 static int keys(cui_widget *w,cui_key key,unsigned mods,void *data)
 {
@@ -40,6 +41,16 @@ static void verify(void *data)
     cui_set_enabled(input,0);assert(!press(input,GDK_KEY_Return,0));cui_set_enabled(input,1);
     cui_set_visible(input,0);assert(!press(input,GDK_KEY_Return,0));cui_set_visible(input,1);
     assert(cui_on_key(input,NULL,NULL));assert(!press(input,GDK_KEY_Return,0));
+    GtkTextBuffer *buffer=gtk_text_view_get_buffer(GTK_TEXT_VIEW(input->aux));
+    cui_set_text(input,"a🌍bc");
+    GtkTextIter start,end;
+    gtk_text_buffer_get_iter_at_offset(buffer,&start,1);
+    gtk_text_buffer_get_iter_at_offset(buffer,&end,2);
+    gtk_text_buffer_select_range(buffer,&start,&end);
+    assert(cui_insert_text(input,"é"));
+    char inserted[32];cui_get_text(input,inserted,sizeof(inserted));assert(!strcmp(inserted,"aébc"));
+    assert(cui_insert_text(input,"!"));cui_get_text(input,inserted,sizeof(inserted));assert(!strcmp(inserted,"aé!bc"));
+    cui_set_read_only(input,1);assert(!cui_insert_text(input,"x"));cui_set_read_only(input,0);
     double narrow=0,tall=0,wide=0,large=0;
     assert(cui_text_measure("Hello",NULL,14,400,&narrow,&tall));
     assert(cui_text_measure("Hello",NULL,28,400,&wide,&large));

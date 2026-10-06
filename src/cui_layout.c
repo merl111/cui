@@ -40,7 +40,13 @@ void cui__arrange(cui_widget *widget, cui_rect rect)
     float extra, cursor;
     if (widget->hidden) return;
     widget->frame = rect;
-    if (cui__container(widget) && widget->native && cui__in_layer(widget)) cui__backend_place(widget);
+    if (cui__container(widget) && widget->native &&
+#ifdef CUI_WINUI
+        1 /* WinUI containers own their child coordinate systems. */
+#else
+        cui__in_layer(widget)
+#endif
+    ) cui__backend_place(widget);
     if (widget->kind == CUI_GRID || widget->kind == CUI_WRAP || widget->kind == CUI_SPLIT || widget->kind == CUI_STACK) { cui__layout_arrange(widget, rect); return; }
     if (!cui__container(widget)) { cui__backend_place(widget); return; }
     inner.x += (float)widget->padding;

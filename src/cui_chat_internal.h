@@ -4,8 +4,15 @@
 #include "cui_desktop.h"
 #include "cui_internal.h"
 #include "cui_layouts.h"
-#define CHAT_PARTS 8
+#define CHAT_PARTS 9
 #define CHAT_REGIONS 256
+typedef struct chat_word {
+  cui_item_id id;
+  size_t offset, length;
+  const char *text;
+  float x, y, width, height;
+  int weight;
+} chat_word;
 /* Commands/text live for one refresh, source strings for the model lifetime. */
 typedef struct chat_scene {
   cui_draw_command *commands;
@@ -15,6 +22,8 @@ typedef struct chat_scene {
   cui_chat_event actions[CHAT_REGIONS];
   size_t region_count;
   int failed;
+  chat_word *words;
+  size_t word_count, word_capacity;
 } chat_scene;
 typedef struct chat_metric {
   char *text;
@@ -35,10 +44,17 @@ typedef struct chat_state {
   double offset, total, scale;
   int width, height, dirty, busy, editing;
   cui_item_id selected, context, hovered;
+  cui_item_id selection_id;
+  size_t selection_anchor, selection_end;
+  int selecting, selection_dragged;
+  double selection_x, selection_y;
   unsigned toolbar_focus, focus_region, hover_region, mask, focus_pane, saved_mask;
   char *query, *status, *event_text;
+  char *labels[CUI_CHAT_LABEL_COUNT], *context_author, *context_preview;
   cui_chat_detail *files;
   size_t file_count;
+  int pointer_focus, event_pointer;
+  double event_x, event_y;
   cui_chat_event event;
   chat_scene scene;
   chat_metric *metrics;
@@ -46,6 +62,10 @@ typedef struct chat_state {
   cui_icon_asset *icons[CUI_SYMBOL_COUNT];
 } chat_state;
 chat_state *cui__chat(const cui_widget *w);
+const char *cui__chat_label(const chat_state *s, cui_chat_label key);
+void cui__chat_format(const chat_state *s, cui_chat_label key, unsigned long long count,
+                      const char *author, const char *preview, char *out, size_t capacity);
+void cui__chat_compose_labels(chat_state *s);
 void cui__chat_emit(chat_state *s, cui_chat_event event);
 void cui__chat_messages_free(cui_chat_message *items, size_t count);
 void cui__chat_rooms_free(cui_chat_room *items, size_t count);
@@ -57,4 +77,8 @@ int cui__chat_composer(chat_state *s);
 void cui__chat_compose_update(chat_state *s);
 int cui__chat_workspace(chat_state *s);
 int cui__chat_layout(chat_state *s);
+int cui__chat_text_hit(chat_state *s, double x, double y, int nearest,
+                     cui_item_id *id, size_t *offset);
+int cui__chat_selection_event(chat_state *s, const cui_canvas_event *event);
+void cui__chat_selection_update(chat_state *s, const cui_chat_message *items, size_t count);
 #endif

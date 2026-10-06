@@ -240,6 +240,13 @@ impl App {
     pub fn resolved_theme(&self) -> sys::cui_theme {
         unsafe { sys::cui_app_resolved_theme(self.runtime.ptr.as_ptr()) }
     }
+    pub fn focus_indicators(&self, visible: bool) {
+        unsafe { sys::cui_app_set_focus_indicators(self.runtime.ptr.as_ptr(), visible as i32) }
+    }
+    /// Keep running after the last window closes. Quit still ends the loop.
+    pub fn background(&self, enabled: bool) {
+        unsafe { sys::cui_app_set_background(self.runtime.ptr.as_ptr(), enabled as i32) }
+    }
     pub fn theme(&self, theme: sys::cui_theme) {
         unsafe { sys::cui_app_set_theme(self.runtime.ptr.as_ptr(), theme) }
     }
@@ -351,12 +358,29 @@ impl Window {
         } != 0)
     }
     pub fn popup_at(&self, anchor: &Widget, rect: [f64; 4]) -> Result<bool> {
-        let _rt = self.handle.live()?; self.handle.same(&anchor.handle)?;
-        Ok(unsafe { sys::cui_window_popup_at(self.handle.ptr.as_ptr(),anchor.handle.ptr.as_ptr(),rect[0],rect[1],rect[2],rect[3]) } != 0)
+        let _rt = self.handle.live()?;
+        self.handle.same(&anchor.handle)?;
+        Ok(unsafe {
+            sys::cui_window_popup_at(
+                self.handle.ptr.as_ptr(),
+                anchor.handle.ptr.as_ptr(),
+                rect[0],
+                rect[1],
+                rect[2],
+                rect[3],
+            )
+        } != 0)
     }
     pub fn popup_region(&self, canvas: &Widget, region: u32) -> Result<bool> {
-        let _rt = self.handle.live()?; self.handle.same(&canvas.handle)?;
-        Ok(unsafe { sys::cui_window_popup_region(self.handle.ptr.as_ptr(),canvas.handle.ptr.as_ptr(),region) } != 0)
+        let _rt = self.handle.live()?;
+        self.handle.same(&canvas.handle)?;
+        Ok(unsafe {
+            sys::cui_window_popup_region(
+                self.handle.ptr.as_ptr(),
+                canvas.handle.ptr.as_ptr(),
+                region,
+            )
+        } != 0)
     }
     pub fn is_visible(&self) -> Result<bool> {
         let _rt = self.handle.live()?;

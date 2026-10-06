@@ -15,7 +15,7 @@ Font family strings are copied. NULL/empty family, zero size and zero weight inh
 
 | Platform | Implementation | Verified here |
 | --- | --- | --- |
-| Windows | PerMonitorV2 request/manifest, `WM_DPICHANGED`, per-monitor font recreation and native content measurement | Complete Zig example cross-compiles and links; monitor movement and native rendering still require Windows |
+| Windows | PerMonitorV2 request/manifest, `WM_DPICHANGED`, WinUI scaling and native content measurement | WinUI migration requires Windows compilation, monitor movement and native rendering validation |
 | macOS | AppKit logical points and backing-store scaling; system fonts and Cocoa text views | Source implemented; requires a macOS SDK and native runtime validation |
 | Linux | GTK/Pango logical layout, native font fallback, desktop font settings, independent app text scale | Real GTK tests at 1×, 2× and a 3840×2160 virtual display; 150% text at 2× and screenshot inspection |
 

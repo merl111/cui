@@ -4,6 +4,15 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+cui_widget *cui_focused_descendant(const cui_widget *widget)
+{
+    if (!widget || widget->hidden || !widget->enabled) return NULL;
+    for (cui_widget *child = widget->first; child; child = child->next) {
+        cui_widget *focused = cui_focused_descendant(child);
+        if (focused) return focused;
+    }
+    return cui_has_focus(widget) ? (cui_widget *)widget : NULL;
+}
 int cui_menu_popup_at(cui_menu *menu, cui_widget *anchor,
                      double x, double y, double width, double height)
 {

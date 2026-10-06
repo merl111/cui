@@ -104,6 +104,10 @@ static LRESULT CALLBACK region_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
   cui_widget *w = (cui_widget *)data;
   if (msg == WM_NCHITTEST)
     return HTTRANSPARENT;
+  if (GetPropW(hwnd, L"cui-text-region") && msg == WM_PAINT) {
+    PAINTSTRUCT paint; BeginPaint(hwnd, &paint); EndPaint(hwnd, &paint); return 0;
+  }
+  if (GetPropW(hwnd, L"cui-text-region") && msg == WM_ERASEBKGND) return 1;
   if (msg == WM_SETFOCUS && !w->updating)
     cui__canvas_focus(w, (unsigned)GetDlgCtrlID(hwnd));
   if (msg == WM_NCDESTROY)
@@ -152,6 +156,7 @@ static LRESULT CALLBACK canvas_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
   case WM_GETDLGCODE:
     return DLGC_WANTALLKEYS;
   case WM_KEYDOWN:
+    if (wp == 'C' && (GetKeyState(VK_CONTROL) & 0x8000) && cui__canvas_copy(w)) return 0;
     if (wp == VK_TAB) {
       cui__canvas_key(w, (GetKeyState(VK_SHIFT) & 0x8000) != 0, 0);
       return 0;
@@ -200,7 +205,7 @@ void cui__canvas_regions(cui_widget *w) {
     size_t i = 0;
     while (i < s->count && s->regions[i].id != id)
       ++i;
-    if (i == s->count)
+    if (i == s->count || !!GetPropW(child, L"cui-text-region") != (s->regions[i].role == CUI_CANVAS_TEXT))
       DestroyWindow(child);
     child = next;
   }
@@ -218,11 +223,13 @@ void cui__canvas_regions(cui_widget *w) {
     HWND button = GetDlgItem(w->native, (int)r->id);
     if (!button) {
       button = CreateWindowExW(
-          WS_EX_TRANSPARENT, L"BUTTON", label,
-          WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_OWNERDRAW, 0, 0, 1, 1,
+          WS_EX_TRANSPARENT, r->role == CUI_CANVAS_TEXT ? L"EDIT" : L"BUTTON", label,
+          WS_CHILD | WS_VISIBLE | WS_TABSTOP | (r->role == CUI_CANVAS_TEXT ? ES_MULTILINE | ES_READONLY : BS_OWNERDRAW), 0, 0, 1, 1,
           w->native, (HMENU)(UINT_PTR)r->id, GetModuleHandleW(NULL), NULL);
-      if (button)
+      if (button) {
+        if (r->role == CUI_CANVAS_TEXT) SetPropW(button, L"cui-text-region", (HANDLE)1);
         SetWindowSubclass(button, region_proc, 1, (DWORD_PTR)w);
+      }
     } else
       SetWindowTextW(button, label);
     free(label);

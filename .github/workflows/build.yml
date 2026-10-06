@@ -5,16 +5,34 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-2022, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Linux system development packages
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev xvfb
+      - uses: microsoft/setup-msbuild@v2
+        if: runner.os == 'Windows'
+      - uses: NuGet/setup-nuget@v2
+        if: runner.os == 'Windows'
+      - name: Windows App SDK 1.8 runtime
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest 'https://aka.ms/windowsappsdk/1.8/1.8.260921001/windowsappruntimeinstall-x64.exe' -OutFile "$env:RUNNER_TEMP/WindowsAppRuntimeInstall.exe"
+          $process = Start-Process "$env:RUNNER_TEMP/WindowsAppRuntimeInstall.exe" -ArgumentList '--quiet' -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Windows App Runtime installation failed: $($process.ExitCode)" }
+          python tools/generate_windows_exports.py --check
       - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCUI_BUILD_TESTS=ON
       - run: cmake --build build --config Release --parallel
       - run: ctest --test-dir build -C Release --output-on-failure
+      - name: Retain Windows test diagnostics
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: winui-test-results
+          path: build/Testing/Temporary/
       - name: Build and check documentation coverage
         if: runner.os == 'Linux'
         run: |

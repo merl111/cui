@@ -39,6 +39,8 @@ _bind('stack_backdrop',P,P,S)
 _bind('stack_layer',P,P,I,I,I,I)
 LAYER_FILL,LAYER_CENTER,LAYER_TOP,LAYER_BOTTOM,LAYER_BOTTOM_RIGHT=range(5)
 _bind('app_error', S, P)
+_bind('app_set_focus_indicators',None,P,I)
+_bind('app_set_background',None,P,I)
 _bind('app_set_theme', None, P, I)
 _bind('app_resolved_theme', I, P)
 _bind('app_set_text_scale', I, P, D)
@@ -90,6 +92,7 @@ for name in ('get_text', 'get_selected_text'):
     _bind(name, N, P, P, N)
 _bind('on_action', None, P, Action, P)
 _bind('activate', I, P)
+_bind('insert_text', I, P, S)
 _bind('every', P, P, C.c_uint, Task, P)
 _bind('timer_stop', None, P)
 _bind('timer_start', I, P)
@@ -164,6 +167,7 @@ _bind('dialog_font', I, P, C.POINTER(FontValue))
 _bind('font_apply', I, P, C.POINTER(FontValue))
 _bind('focus', I, P)
 _bind('has_focus', I, P)
+_bind('focused_descendant', P, P)
 _bind('accessibility', None, P, S, S)
 _bind('set_read_only', None, P, I)
 _bind('undo', None, P)
@@ -395,6 +399,11 @@ class Icon:
     def __exit__(self, *args): self.close()
 
 class App:
+    def background(self, enabled):
+        self._check(); lib.cui_app_set_background(self._ptr, bool(enabled))
+    def focus_indicators(self, visible):
+        self._check(); lib.cui_app_set_focus_indicators(self._ptr, bool(visible))
+
     def __init__(self):
         if threading.current_thread() is not threading.main_thread():
             raise RuntimeError('Create and use CUI on the main thread')
@@ -790,6 +799,9 @@ class Widget(Handle):
     @split_position.setter
     def split_position(self, value): lib.cui_split_set_position(self.ptr, value)
     def focus(self): return bool(lib.cui_focus(self.ptr))
+    def focused_descendant(self):
+        ptr=lib.cui_focused_descendant(self.ptr)
+        return Widget(self.app,ptr) if ptr else None
     def has_focus(self): return bool(lib.cui_has_focus(self.ptr))
     def accessibility(self, label, description=''): lib.cui_accessibility(self.ptr, _s(label), _s(description))
     def read_only(self, value=True): lib.cui_set_read_only(self.ptr, value)
@@ -857,6 +869,7 @@ class Widget(Handle):
     def text(self, value): lib.cui_set_text(self.ptr, _s(value))
     @property
     def selected_text(self): return self._text(True)
+    def insert_text(self, text): return bool(lib.cui_insert_text(self.ptr, _s(text)))
     def allocated_size(self):
         width, height = I(), I()
         if not lib.cui_widget_get_size(self.ptr, C.byref(width), C.byref(height)): return None
@@ -930,3 +943,7 @@ SYMBOL_EMOJI = 35
 SYMBOL_ARROW_RIGHT = 36
 SYMBOL_LOCK = 37
 SYMBOL_PANEL = 38
+SYMBOL_SETTINGS = 39
+SYMBOL_PERSON = 40
+SYMBOL_SUN = 41
+SYMBOL_BELL = 42

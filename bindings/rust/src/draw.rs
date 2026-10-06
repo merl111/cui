@@ -243,12 +243,13 @@ impl Scene {
         self.icons.push(icon.clone());
     }
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct CanvasRegion {
     pub id: u32,
     pub rect: [f32; 4],
     pub label: String,
     pub enabled: bool,
+    pub role: sys::cui_canvas_role,
 }
 pub type CanvasEvent = sys::cui_canvas_event;
 struct CanvasCallback {
@@ -300,6 +301,7 @@ impl Widget {
                 height: r.rect[3],
                 label: n.as_ptr(),
                 enabled: r.enabled.into(),
+                role: r.role,
             })
             .collect::<Vec<_>>();
         Ok(accepted(unsafe {

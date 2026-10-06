@@ -66,8 +66,9 @@ void cui__chat_compose_update(chat_state *s) {
       !enabled && s->presentation.composer == CUI_CHAT_STANDARD ? .35 : 1);
   int width = 0, height = 0;
   cui_widget_get_size(s->parts[0], &width, &height);
+  double zoom = s->root->window->app->text_scale;
   double measured = 0, mh = 0;
-  cui_text_measure(value, NULL, s->theme.font_size, 400, &measured, &mh);
+  cui_text_measure(value, NULL, s->theme.font_size * zoom, 400, &measured, &mh);
   unsigned lines = 1;
   for (const char *p = value; *p; ++p)
     if (*p == '\n')
@@ -75,13 +76,13 @@ void cui__chat_compose_update(chat_state *s) {
   if (width > 40)
     lines += (unsigned)(measured / (width - 20));
   int base = s->presentation.composer == CUI_CHAT_COMPACT ? 30
-             : s->presentation.composer == CUI_CHAT_SOFT  ? 38
+             : s->presentation.composer == CUI_CHAT_SOFT  ? 44
                                                           : 32;
   cui_textarea_set_height(
       s->parts[0],
-      (int)fmin(s->presentation.composer == CUI_CHAT_COMPACT ? 120 : 140,
-                fmax(base, lines * s->theme.font_size * 1.5 + 12)));
-  for (unsigned i = 5; i <= 7; ++i)
+      (int)fmin((s->presentation.composer == CUI_CHAT_COMPACT ? 120 : 140) * zoom,
+                fmax(base * zoom, lines * s->theme.font_size * zoom * 1.5 + 12)));
+  for (unsigned i = 5; i < CHAT_PARTS; ++i)
     cui_set_visible(s->parts[i],
                     (s->presentation.composer_tools & (1u << i)) != 0);
   cui_set_visible(s->parts[2], s->context != 0);
@@ -136,7 +137,7 @@ static void request(cui_widget *w, void *p) {
     cui__chat_emit(
         s, (cui_chat_event){.action = w == s->parts[5]   ? CUI_CHAT_ATTACH
                                       : w == s->parts[6] ? CUI_CHAT_EMOJI
-                                                         : CUI_CHAT_POLL});
+                                                         : w == s->parts[7] ? CUI_CHAT_POLL : CUI_CHAT_COMPOSE_MORE});
 }
 static int compose_key(cui_widget *w, cui_key key, unsigned mods, void *p) {
   (void)w;
@@ -151,6 +152,17 @@ static int compose_key(cui_widget *w, cui_key key, unsigned mods, void *p) {
   }
   return 0;
 }
+void cui__chat_compose_labels(chat_state *s) {
+  for (unsigned i = 0; i < CHAT_PARTS; ++i)
+    cui_accessibility(s->parts[i], cui__chat_label(s, (cui_chat_label)i),
+                      i == 0 ? cui__chat_label(s, CUI_CHAT_LABEL_COMPOSER_HELP) : "");
+  cui_set_text(s->parts[1], cui__chat_label(s, CUI_CHAT_LABEL_SEND));
+  cui_set_text(s->parts[8], cui__chat_label(s, CUI_CHAT_LABEL_MORE));
+  char context[16384];
+  cui__chat_format(s, s->editing ? CUI_CHAT_LABEL_EDITING : CUI_CHAT_LABEL_REPLYING, 0,
+                   s->context_author, s->context_preview, context, sizeof(context));
+  cui_set_text(s->parts[2], s->context ? context : "");
+}
 int cui__chat_composer(chat_state *s) {
   s->parts[2] = cui_label(s->root, "");
   s->parts[3] = cui_label(s->root, "");
@@ -163,15 +175,16 @@ int cui__chat_composer(chat_state *s) {
   cui_expand(s->parts[0], 1);
   s->parts[7] = cui_button(row, "▥");
   s->parts[6] = cui_button(row, "☺");
+  s->parts[8] = cui_button(row, cui__chat_label(s, CUI_CHAT_LABEL_MORE));
   s->parts[4] = cui_button(row, "×");
-  s->parts[1] = cui_button(row, "Send");
-  const unsigned parts[] = {1, 4, 5, 6, 7};
+  s->parts[1] = cui_button(row, cui__chat_label(s, CUI_CHAT_LABEL_SEND));
+  const unsigned parts[] = {1, 4, 5, 6, 7, 8};
   const cui_symbol symbols[] = {CUI_SYMBOL_ARROW_RIGHT, CUI_SYMBOL_CLOSE,
                                 s->presentation.composer == CUI_CHAT_SOFT
                                     ? CUI_SYMBOL_PLUS
                                     : CUI_SYMBOL_ATTACH,
-                                CUI_SYMBOL_EMOJI, CUI_SYMBOL_POLL};
-  for (unsigned i = 0; i < 5; ++i) {
+                                CUI_SYMBOL_EMOJI, CUI_SYMBOL_POLL, CUI_SYMBOL_MORE};
+  for (unsigned i = 0; i < 6; ++i) {
     cui_icon_asset *asset = cui_icon_symbol(symbols[i]);
     cui_set_icon(s->parts[parts[i]], asset);
     cui_icon_release(asset);
@@ -179,30 +192,19 @@ int cui__chat_composer(chat_state *s) {
                       parts[i] != 1 ||
                           s->presentation.composer == CUI_CHAT_STANDARD);
   }
-  static const char *names[] = {"Message",
-                                "Send",
-                                "Reply or edit context",
-                                "Attachments",
-                                "Cancel reply or edit",
-                                "Attach file",
-                                "Emoji",
-                                "Create poll"};
   for (unsigned i = 0; i < CHAT_PARTS; ++i) {
-    if (!s->parts[i])
-      return 0;
-    cui_accessibility(
-        s->parts[i], names[i],
-        i == 0 ? "Enter sends; Shift+Enter inserts a newline; Escape cancels"
-               : "");
+    if (!s->parts[i]) return 0;
     if (i != 2 && i != 3)
       cui_on_action(s->parts[i], request, s);
   }
+  cui__chat_compose_labels(s);
   cui_set_icon_trailing(s->parts[1], 1);
   if (s->presentation.composer == CUI_CHAT_COMPACT)
     cui_set_icon(s->parts[1], NULL);
-  for (unsigned i = 0; i < 5; ++i) {
-    cui_set_icon_size(s->parts[parts[i]], 16);
-    cui_set_font(s->parts[parts[i]], NULL, s->theme.font_size * .75, 700);
+  for (unsigned i = 0; i < 6; ++i) {
+    cui_set_icon_size(s->parts[parts[i]], 22);
+    cui_set_min_size(s->parts[parts[i]], parts[i] == 1 ? 88 : 40, 44);
+    cui_set_font(s->parts[parts[i]], NULL, s->theme.font_size, 600);
   }
   cui_on_key(s->parts[0], compose_key, s);
   cui__chat_compose_update(s);
@@ -219,13 +221,13 @@ int cui_chat_compose_context(cui_widget *w, cui_item_id id, const char *author,
     preview = "";
   if (strlen(author) > 4096 || strlen(preview) > 4096)
     return 0;
-  char label[8300];
-  snprintf(label, sizeof(label),
-           editing ? "Editing message · Esc to cancel" : "Replying to %s · %s",
-           author, preview);
-  cui_set_text(s->parts[2], id ? label : "");
-  s->context = id;
-  s->editing = !!editing;
+  char *a = malloc(strlen(author) + 1), *p = malloc(strlen(preview) + 1);
+  if (!a || !p) { free(a); free(p); return 0; }
+  strcpy(a, author); strcpy(p, preview);
+  free(s->context_author); free(s->context_preview);
+  s->context_author = a; s->context_preview = p;
+  s->context = id; s->editing = !!editing;
+  cui__chat_compose_labels(s);
   cui__chat_compose_update(s);
   return 1;
 }
@@ -279,8 +281,8 @@ int cui__chat_workspace(chat_state *s) {
   cui_expand(s->splits[0], 1);
   for (unsigned i = 0; i < 4; ++i) {
     cui_box_set_padding(s->parts[i], 0);
-    char label[40];
-    snprintf(label, sizeof(label), "Conversation pane %u", i + 1);
+    char label[16384];
+    cui__chat_format(s, CUI_CHAT_LABEL_CONVERSATION_PANE, i + 1, NULL, NULL, label, sizeof(label));
     cui_accessibility(s->parts[i], label, "");
   }
   return apply(s, 7);

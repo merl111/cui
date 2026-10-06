@@ -50,7 +50,12 @@ typedef enum cui_chat_action {
   CUI_CHAT_EMOJI,
   CUI_CHAT_POLL,
   CUI_CHAT_CHANGED,
-  CUI_CHAT_LOAD_OLDER
+  CUI_CHAT_LOAD_OLDER,
+  CUI_CHAT_OPEN_PROFILE,
+  CUI_CHAT_COMPOSE_MORE,
+  /* id is the reply message; detail_id is the original message to reveal. */
+  CUI_CHAT_OPEN_REPLY,
+  CUI_CHAT_DELIVERY
 } cui_chat_action;
 typedef enum cui_chat_flags {
   CUI_CHAT_OUTGOING = 1,
@@ -96,7 +101,7 @@ typedef struct cui_chat_presentation {
   unsigned mention_background, mention_foreground, attachment_background;
   unsigned media_columns;  /* Inspector grid columns, 1–8. */
   unsigned composer_tools; /* bit N shows composer part N: 5 attach, 6 emoji, 7
-                              poll */
+                              poll, 8 more */
 } cui_chat_presentation;
 /* Stable IDs identify application commands independently of their position.
  * label is accessible/localizable text; text is an optional glyph (e.g. emoji).
@@ -125,12 +130,15 @@ typedef struct cui_chat_span {
   cui_chat_span_style style;
 } cui_chat_span;
 /* A reaction, attachment or poll option, depending on its containing array.
- * id: stable attachment ID; text: emoji/filename/option; detail: file metadata;
+ * id: stable attachment ID; text: emoji/filename/option; detail: file metadata or reaction hover tooltip;
  * count: reaction/vote count. MINE marks a reaction; DISABLED an attachment. */
 typedef struct cui_chat_detail {
   cui_item_id id;
   const char *text, *detail;
   unsigned count, flags;
+  /* Optional attachment preview. Retained on set; rendered at its natural
+   * aspect ratio. Activation uses the same CUI_CHAT_ATTACHMENT event. */
+  cui_icon_asset *image;
 } cui_chat_detail;
 typedef struct cui_chat_room {
   cui_item_id id;
@@ -140,6 +148,9 @@ typedef struct cui_chat_room {
   cui_symbol symbol;
   cui_icon_asset *avatar; /* Optional retained image, center-cropped and rounded. */
 } cui_chat_room;
+typedef enum cui_chat_delivery {
+  CUI_CHAT_DELIVERY_NONE, CUI_CHAT_SENDING, CUI_CHAT_DELIVERED, CUI_CHAT_SEND_FAILED
+} cui_chat_delivery;
 typedef struct cui_chat_message {
   cui_item_id id;
   const char *author, *time, *date;
@@ -162,6 +173,15 @@ typedef struct cui_chat_message {
   size_t thread_participant_count;
   unsigned author_color; /* zero chooses an appearance default */
   cui_icon_asset *avatar; /* Optional retained image; NULL uses initials. */
+  /* Latest public read positions. Up to 128 people; first three avatars and
+   * overflow count are painted at the trailing edge below message content.
+   * room.title = name, detail = localized tooltip, trailing = application user
+   * key. OPEN_PROFILE carries the message ID, reader ID and user key in text. */
+  const cui_chat_room *read_by;
+  size_t read_by_count;
+  /* Read avatars take precedence. DELIVERY activation identifies this message. */
+  cui_chat_delivery delivery;
+  const char *delivery_label; /* localized status/accessible tooltip */
 } cui_chat_message;
 
 typedef struct cui_chat_event {
@@ -192,8 +212,46 @@ int cui_chat_set_rooms(cui_widget *chat, const cui_chat_room *items,
 int cui_chat_select(cui_widget *chat, cui_item_id id);
 int cui_chat_set_query(cui_widget *chat, const char *query);
 int cui_chat_set_status(cui_widget *chat, const char *status);
+/* Per-component UTF-8 labels, copied (max 4096 bytes); NULL restores English.
+ * Templates accept literal {count}, {author}, {preview}. ONE is used for 1,
+ * MANY otherwise (one/other plural model). Commands and model content are
+ * application-localized; this is not a full ICU/CLDR plural engine. */
+typedef enum cui_chat_label {
+  CUI_CHAT_LABEL_MESSAGE,
+  CUI_CHAT_LABEL_SEND,
+  CUI_CHAT_LABEL_CONTEXT,
+  CUI_CHAT_LABEL_ATTACHMENTS,
+  CUI_CHAT_LABEL_CANCEL_CONTEXT,
+  CUI_CHAT_LABEL_ATTACH,
+  CUI_CHAT_LABEL_EMOJI,
+  CUI_CHAT_LABEL_CREATE_POLL,
+  CUI_CHAT_LABEL_MORE,
+  CUI_CHAT_LABEL_COMPOSER_HELP,
+  CUI_CHAT_LABEL_EDITING,
+  CUI_CHAT_LABEL_REPLYING,
+  CUI_CHAT_LABEL_THREAD_ONE,
+  CUI_CHAT_LABEL_THREAD_MANY,
+  CUI_CHAT_LABEL_REPLY_ONE,
+  CUI_CHAT_LABEL_REPLY_MANY,
+  CUI_CHAT_LABEL_VOTE_ONE,
+  CUI_CHAT_LABEL_VOTE_MANY,
+  CUI_CHAT_LABEL_POLL_CLOSED,
+  CUI_CHAT_LABEL_POLL_SELECT,
+  CUI_CHAT_LABEL_POLL_TAP,
+  CUI_CHAT_LABEL_POLL_RESULTS,
+  CUI_CHAT_LABEL_SEND_FAILED,
+  CUI_CHAT_LABEL_DELIVERED,
+  CUI_CHAT_LABEL_SENDING,
+  CUI_CHAT_LABEL_CONVERSATION_PANE,
+  CUI_CHAT_LABEL_COUNT
+} cui_chat_label;
+int cui_chat_set_label(cui_widget *chat, cui_chat_label key, const char *text);
 int cui_chat_refresh(cui_widget *chat, double scale);
 int cui_chat_event_get(const cui_widget *chat, cui_chat_event *event);
+/* Position of the last pointer context request, in logical canvas coordinates.
+ * Returns zero for keyboard/programmatic actions. Read during the action callback
+ * and retain alongside queued events; coordinates are replaced by the next event. */
+int cui_chat_event_position(const cui_widget *chat, double *x, double *y);
 /* part 0: canvas (rooms/timeline), native textarea (composer), pane
  * 0(workspace). composer parts 1..6: send, context, attachments, cancel,
  * attach, emoji; part 7: poll. Workspace parts 0..3 are persistent pane

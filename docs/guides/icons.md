@@ -107,3 +107,9 @@ drop(icon);
 ```
 
 The [Rust gallery](../../bindings/rust/examples/gallery.rs) embeds compiled artwork with `include_bytes!` and switches its play/pause asset from a native callback. See [the Rust guide](rust.md) for setup and complete lifetime rules.
+
+Settings/navigation symbols also include `CUI_SYMBOL_SETTINGS`,
+`CUI_SYMBOL_PERSON`, `CUI_SYMBOL_SUN` and `CUI_SYMBOL_BELL`. These are scalable,
+stroke-based vector assets with current-color tinting, available through the
+same C, Rust, Go, Python and Zig icon APIs. Use explicit icon sizes and a larger
+button hit area rather than enlarging the glyph to fill the button.

@@ -16,10 +16,16 @@ typedef struct gtk_app_state {
 
 static void load_css(GtkCssProvider *provider, const char *css)
 {
+    const char *text = css ? css : "";
+    const char *previous = g_object_get_data(G_OBJECT(provider), "cui-css-text");
+    /* Reloading an unchanged provider invalidates every widget on the display
+     * and restarts GtkSwitch transitions, so identical text is left alone. */
+    if (previous && strcmp(previous, text) == 0) return;
+    g_object_set_data_full(G_OBJECT(provider), "cui-css-text", g_strdup(text), g_free);
 #if GTK_CHECK_VERSION(4, 12, 0)
-    gtk_css_provider_load_from_string(provider, css);
+    gtk_css_provider_load_from_string(provider, text);
 #else
-    gtk_css_provider_load_from_data(provider, css, -1);
+    gtk_css_provider_load_from_data(provider, text, -1);
 #endif
 }
 
@@ -27,10 +33,22 @@ static void load_css(GtkCssProvider *provider, const char *css)
  * controls still implement selection, IME, focus, keyboard and accessibility.
  * User styles (priority 800) can override these application styles (600). */
 static const char style[] =
+    "window.cui-window.cui-dark > headerbar, window.cui-window.cui-dark .titlebar { background: #22252c; color: #edf0f5; border-color: #343942; }"
+    "window.cui-window.cui-dark .titlebar button { color: #edf0f5; }"
+    "window.cui-window.cui-dark .titlebar button:hover { background: #343942; }"
     "window.cui-custom-frame, window.cui-custom-frame:backdrop { background: transparent; background-image: none; border: none; padding: 0; margin: 0; box-shadow: none; outline: none; }"
     "window.cui-custom-frame decoration { background: transparent; border: none; box-shadow: none; outline: none; }"
     "popover.cui-attached-panel, popover.cui-attached-panel.cui-window, popover.cui-attached-panel.cui-window.cui-dark, .cui-attached-panel > contents { background: transparent; background-image: none; border: none; padding: 0; margin: 0; box-shadow: none; }"
+    ".cui-no-focus.cui-no-focus.cui-no-focus *:focus, .cui-no-focus.cui-no-focus.cui-no-focus *:focus-visible { outline: none; box-shadow: none; }"
+    ".cui-no-focus.cui-no-focus.cui-no-focus entry:focus-within { border-color: transparent; box-shadow: none; }"
     ".cui-canvas, .cui-canvas:focus, .cui-canvas:focus-visible { outline: none; border: none; box-shadow: none; }"
+
+    ".cui-window popover.cui-context-menu contents { background: #fcfeff; color: #20242c; border: 1px solid #d9dde5; border-radius: 10px; padding: 4px; }"
+    ".cui-window.cui-dark popover.cui-context-menu contents, .cui-window.cui-dark combobox popover contents { background: #222c35; color: #edf0f5; border-color: #425563; }"
+    ".cui-window.cui-dark popover.cui-context-menu modelbutton { color: #edf0f5; }"
+    ".cui-window.cui-dark popover.cui-context-menu modelbutton:hover, .cui-window.cui-dark popover.cui-context-menu modelbutton:selected { background: #354854; color: #edf0f5; }"
+    ".cui-window popover.cui-uncomposited { padding: 0; margin: 0; }"
+    ".cui-window popover.cui-uncomposited contents { border-radius: 0; box-shadow: none; margin: 0; }"
 
     ".cui-window .cui-icon-view:disabled { opacity: 0.45; }"
     ".cui-window .cui-ambient { background-color: #f3f3fa; background-image: radial-gradient(ellipse at 0% 15%, alpha(#afa3f5,0.65), alpha(#afa3f5,0) 65%), radial-gradient(ellipse at 95% 85%, alpha(#65cfc5,0.55), alpha(#65cfc5,0) 65%), linear-gradient(135deg,#f6e9f3,#edf5fa); }"
@@ -119,12 +137,21 @@ void cui__backend_theme(cui_app *app)
     int dark = app->theme == CUI_THEME_DARK ||
                (app->theme == CUI_THEME_SYSTEM && system_is_dark(app));
     for (window = app->windows; window; window = window->next) {
+        if (app->hide_focus) gtk_widget_add_css_class(GTK_WIDGET(window->native), "cui-no-focus");
+        else gtk_widget_remove_css_class(GTK_WIDGET(window->native), "cui-no-focus");
         if (contrast) gtk_widget_remove_css_class(GTK_WIDGET(window->native), "cui-window");
         else gtk_widget_add_css_class(GTK_WIDGET(window->native), "cui-window");
         if (dark) gtk_widget_add_css_class(GTK_WIDGET(window->native), "cui-dark");
         else gtk_widget_remove_css_class(GTK_WIDGET(window->native), "cui-dark");
+#ifdef GDK_WINDOWING_X11
+        GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(window->native));
+        if (surface && GDK_IS_X11_SURFACE(surface))
+            gdk_x11_surface_set_theme_variant(surface, dark ? "dark" : "light");
+#endif
         if (window->attached_native) {
             GtkWidget *panel = window->attached_native;
+            if (app->hide_focus) gtk_widget_add_css_class(panel, "cui-no-focus");
+            else gtk_widget_remove_css_class(panel, "cui-no-focus");
             if (contrast) gtk_widget_remove_css_class(panel, "cui-window");
             else gtk_widget_add_css_class(panel, "cui-window");
             if (dark) gtk_widget_add_css_class(panel, "cui-dark");
@@ -256,6 +283,8 @@ void cui__backend_window_show(cui_window *window)
                        gdk_x11_surface_get_xid(surface),gtk_window_get_title(GTK_WINDOW(window->native)));
 #endif
     } else gtk_window_present(GTK_WINDOW(window->native));
+    /* X11's theme hint needs the realized surface, created by present(). */
+    cui__backend_theme(window->app);
 }
 void cui__backend_window_hide(cui_window *window)
 {
@@ -333,7 +362,7 @@ void cui__backend_icon(cui_widget *w)
     if(!w->icon_only)gtk_widget_remove_css_class(native,"cui-icon-button");
     if(!w->icon&&!w->icon_only)gtk_button_set_label(GTK_BUTTON(native),label);
     else if(w->icon_only){gtk_button_set_child(GTK_BUTTON(native),icon_area(w));gtk_widget_add_css_class(native,"cui-icon-button");}
-    else{GtkWidget *box=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,8);if(!w->icon_trailing)gtk_box_append(GTK_BOX(box),icon_area(w));gtk_box_append(GTK_BOX(box),gtk_label_new(label));if(w->icon_trailing)gtk_box_append(GTK_BOX(box),icon_area(w));gtk_button_set_child(GTK_BUTTON(native),box);}
+    else{GtkWidget *box=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,8);gtk_widget_set_halign(box,GTK_ALIGN_START);if(!w->icon_trailing)gtk_box_append(GTK_BOX(box),icon_area(w));gtk_box_append(GTK_BOX(box),gtk_label_new(label));if(w->icon_trailing)gtk_box_append(GTK_BOX(box),icon_area(w));gtk_button_set_child(GTK_BUTTON(native),box);}
     gtk_accessible_update_property(GTK_ACCESSIBLE(native),GTK_ACCESSIBLE_PROPERTY_LABEL,label,-1);
     if(w->icon_only)gtk_widget_set_tooltip_text(native,label);
     g_free(label);
@@ -355,6 +384,12 @@ int cui__backend_widget_create(cui_widget *widget, const char *text)
     case CUI_LABEL:
         native = gtk_label_new(text);
         gtk_label_set_xalign(GTK_LABEL(native), 0);
+        gtk_label_set_wrap(GTK_LABEL(native), TRUE);
+        gtk_label_set_wrap_mode(GTK_LABEL(native), PANGO_WRAP_WORD_CHAR);
+        /* Cap the width request. The allocated width still wraps the paragraph,
+         * so a long caption cannot force the window wider than the screen. */
+        gtk_label_set_max_width_chars(GTK_LABEL(native), 42);
+        gtk_widget_set_halign(native, GTK_ALIGN_FILL);
         break;
     case CUI_BUTTON:
         native = gtk_button_new_with_label(text);
@@ -782,7 +817,8 @@ static void css_color(char *out,size_t size,unsigned rgba)
 {
     char alpha[G_ASCII_DTOSTR_BUF_SIZE];
     g_ascii_dtostr(alpha,sizeof(alpha),(rgba&255)/255.);
-    g_snprintf(out,size,"rgba(%u,%u,%u,%s)",rgba>>24,(rgba>>16)&255,(rgba>>8)&255,alpha);
+    /* GTK 4 CSS rejects the legacy comma form of rgba(). */
+    g_snprintf(out,size,"rgb(%u %u %u / %s)",rgba>>24,(rgba>>16)&255,(rgba>>8)&255,alpha);
 }
 
 void cui__backend_style(cui_widget *w)
@@ -793,8 +829,8 @@ void cui__backend_style(cui_widget *w)
     char name[80],css[4096];g_snprintf(name,sizeof(name),"cui-style-%p",(void*)w);gtk_widget_add_css_class(native,name);
     if(!w->styled){load_css(provider,"");return;}
     if(w->kind==CUI_TEXTAREA){
-        gtk_text_view_set_left_margin(GTK_TEXT_VIEW(w->aux),6);gtk_text_view_set_right_margin(GTK_TEXT_VIEW(w->aux),6);gtk_text_view_set_top_margin(GTK_TEXT_VIEW(w->aux),6);gtk_text_view_set_bottom_margin(GTK_TEXT_VIEW(w->aux),6);
-        GtkWidget *hint=g_object_get_data(G_OBJECT(native),"cui-placeholder");if(hint){gtk_widget_set_margin_start(hint,6);gtk_widget_set_margin_top(hint,6);}
+        gtk_text_view_set_left_margin(GTK_TEXT_VIEW(w->aux),6);gtk_text_view_set_right_margin(GTK_TEXT_VIEW(w->aux),6);gtk_text_view_set_top_margin(GTK_TEXT_VIEW(w->aux),10);gtk_text_view_set_bottom_margin(GTK_TEXT_VIEW(w->aux),10);
+        GtkWidget *hint=g_object_get_data(G_OBJECT(native),"cui-placeholder");if(hint){gtk_widget_set_margin_start(hint,6);gtk_widget_set_margin_top(hint,10);}
         GtkWidget *scroll=gtk_overlay_get_child(GTK_OVERLAY(native));gtk_widget_remove_css_class(scroll,"cui-input-surface");
         gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),GTK_POLICY_NEVER,GTK_POLICY_EXTERNAL);
     }
@@ -806,12 +842,12 @@ void cui__backend_style(cui_widget *w)
     char radius[G_ASCII_DTOSTR_BUF_SIZE],width[G_ASCII_DTOSTR_BUF_SIZE];
     g_ascii_dtostr(radius,sizeof(radius),w->style.radius);
     g_ascii_dtostr(width,sizeof(width),w->style.border_width);
-    g_snprintf(css,sizeof(css),".%s { background-image:none; background-color:%s; color:%s; border:%spx solid %s; border-radius:%spx; padding:%dpx; min-width:0; min-height:0; box-shadow:none; } .%s textview, .%s textview text {background-color:%s; color:%s;} .%s > viewport {background-color:transparent;} .%s > box {min-height:0;} .%s:disabled {opacity:1;}",name,background,foreground,width,border,radius,w->style.padding,name,name,background,foreground,name,name,name);
+    g_snprintf(css,sizeof(css),".%s { background-image:none; background-color:%s; color:%s; border:%spx solid %s; border-radius:%spx; padding:%dpx; min-width:0px; min-height:0px; box-shadow:none; } .%s textview, .%s textview text {background-color:%s; color:%s;} .%s > viewport {background-color:transparent;} .%s > box {min-height:0px;} .%s:disabled {opacity:1;}",name,background,foreground,width,border,radius,w->style.padding,name,name,background,foreground,name,name,name);
     if(w->kind==CUI_SELECT){
-        /* GtkDropDown's visible surface belongs to its child button. Styling
+        /* The select control's visible surface belongs to its child button. Styling
          * both levels gives it a second border and twice the requested inset. */
         size_t used=strlen(css);
-        g_snprintf(css+used,sizeof(css)-used," .%s {padding:0;border:none;background-color:transparent;} .%s > button {background-image:none;background-color:%s;color:%s;border:%spx solid %s;border-radius:%spx;padding:%dpx;box-shadow:none;}",name,name,background,foreground,width,border,radius,w->style.padding);
+        g_snprintf(css+used,sizeof(css)-used," .%s {padding:0;border:none;background-color:transparent;} .%s > box > button {background-image:none;background-color:%s;color:%s;border:%spx solid %s;border-radius:%spx;padding:%dpx;box-shadow:none;}",name,name,background,foreground,width,border,radius,w->style.padding);
     }
     if(w->kind==CUI_BUTTON||w->kind==CUI_SELECT){
         size_t used=strlen(css);

@@ -226,6 +226,7 @@ int cui_canvas_set_surface(cui_widget *w, cui_surface *surface) {
   }
   cui_surface_release(s->surface);
   s->surface = surface;
+  cui__canvas_regions(w); /* First surface and resized/scaled surfaces update native bounds. */
   return 1;
 }
 int cui_canvas_set_regions(cui_widget *w, const cui_canvas_region *regions,
@@ -238,7 +239,7 @@ int cui_canvas_set_regions(cui_widget *w, const cui_canvas_region *regions,
     const cui_canvas_region *a = regions + i, *b = s->regions + i;
     same = a->id == b->id && a->x == b->x && a->y == b->y &&
            a->width == b->width && a->height == b->height &&
-           a->enabled == b->enabled && a->label && !strcmp(a->label, b->label);
+           a->enabled == b->enabled && a->role == b->role && a->label && !strcmp(a->label, b->label);
   }
   if (same)
     return 1;
@@ -248,7 +249,8 @@ int cui_canvas_set_regions(cui_widget *w, const cui_canvas_region *regions,
     return 0;
   for (size_t i = 0; i < count; ++i) {
     const cui_canvas_region *r = regions + i;
-    if (!r->id || !r->label || !r->label[0] || strlen(r->label) > 4096 ||
+    if (!r->id || !r->label || !r->label[0] || strlen(r->label) > 131072u ||
+        r->role < CUI_CANVAS_BUTTON || r->role > CUI_CANVAS_TEXT ||
         !isfinite(r->x) || !isfinite(r->y) || !isfinite(r->width) ||
         !isfinite(r->height) || r->width <= 0 || r->height <= 0)
       goto fail;

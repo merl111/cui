@@ -15,8 +15,8 @@ fn avatar(name: &str, color: u32) -> Avatar {
 fn history() -> Vec<Message> {
     let ada = avatar("Ada Chen", 0x669dc9ff);
     vec![
-        Message{id:1,author:ada.clone(),time:"10:42".into(),date:"Today · October 1".into(),body:"The three directions are ready. Each keeps the same conversations, threads and room tools.".into(),reactions:vec![Reaction{key:"✨".into(),count:4,mine:true}],..Message::default()},
-        Message{id:2,author:ada.clone(),time:"10:43".into(),body:RichText(vec![Span{ text:"@Mathias ".into(),style:TextStyle::Mention,link:None},Span::plain("here is the latest handoff. 日本語 and café wrap using native font measurements.")]),attachments:vec![Attachment{id:1,name:"Archaic-designs.pdf".into(),detail:"PDF · 2.4 MB · Download".into()}],thread:Some(ThreadSummary{count:8,preview:"Review the room header".into(),participants:vec![ada.clone(),avatar("Sam",0xc29cd8ff)]}),..Message::default()},
+        Message{id:1,author:ada.clone(),time:"10:42".into(),date:"Today · October 1".into(),body:"The three directions are ready. Each keeps the same conversations, threads and room tools.".into(),reactions:vec![Reaction{tooltip:String::new(),key:"✨".into(),count:4,mine:true}],..Message::default()},
+        Message{id:2,author:ada.clone(),time:"10:43".into(),body:RichText(vec![Span{ text:"@Mathias ".into(),style:TextStyle::Mention,link:None},Span::plain("here is the latest handoff. 日本語 and café wrap using native font measurements.")]),attachments:vec![Attachment{image:None,id:1,name:"Archaic-designs.pdf".into(),detail:"PDF · 2.4 MB · Download".into()}],thread:Some(ThreadSummary{count:8,preview:"Review the room header".into(),participants:vec![ada.clone(),avatar("Sam",0xc29cd8ff)]}),..Message::default()},
         Message{id:3,author:avatar("You",0xb59bdbff),time:"10:46".into(),outgoing:true,body:"I like the quieter surfaces. Let's keep drafts and reading position when switching layouts.".into(),reply:Some(Reply{message:1,author:"Ada".into(),text:"The three directions are ready".into()}),..Message::default()},
         Message{id:4,author:avatar("Sam Rivera",0xd8b777ff),time:"10:48".into(),body:"Which layout should we use for the review?".into(),poll:Some(Poll{question:"Choose a workspace".into(),options:vec![PollOption{label:"One conversation".into(),votes:3},PollOption{label:"Main + two".into(),votes:5},PollOption{label:"Four tiles".into(),votes:2}],selected:None,closed:false}),..Message::default()},
     ]
@@ -89,6 +89,7 @@ impl Demo {
                         };
                     } else {
                         m.reactions.push(Reaction {
+                            tooltip: String::new(),
                             key,
                             count: 1,
                             mine: true,
@@ -182,6 +183,7 @@ impl Demo {
                                 .into_iter()
                                 .enumerate()
                                 .map(|(i, name)| Attachment {
+                                    image: None,
                                     id: i as u64 + 1,
                                     name,
                                     detail: "Local demonstration attachment".into(),
@@ -546,12 +548,12 @@ fn main() -> Result<()> {
     app.run()
 }
 fn contracts(d: &Demo, palette: &Palette) -> Result<()> {
-    let stack=d.window.root()?.stack()?;
-    let _base=stack.stack_layer(sys::CUI_LAYER_FILL,0,0,0)?;
-    let _backdrop=stack.stack_backdrop("Dismiss")?;
-    assert!(!d.window.popup_at(&stack,[0.,0.,0.,20.])?);
-    assert!(!d.window.popup_region(&stack,0)?);
-    let overlay=stack.stack_layer(sys::CUI_LAYER_CENTER,220,100,12)?;
+    let stack = d.window.root()?.stack()?;
+    let _base = stack.stack_layer(sys::CUI_LAYER_FILL, 0, 0, 0)?;
+    let _backdrop = stack.stack_backdrop("Dismiss")?;
+    assert!(!d.window.popup_at(&stack, [0., 0., 0., 20.])?);
+    assert!(!d.window.popup_region(&stack, 0)?);
+    let overlay = stack.stack_layer(sys::CUI_LAYER_CENTER, 220, 100, 12)?;
     assert!(overlay.button("Continue")?.set_icon_trailing(true)?);
     stack.set_visible(false)?;
     use cui::{chat_presentation, ChatCommand, ChatComponent, ChatKind};

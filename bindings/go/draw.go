@@ -160,11 +160,17 @@ func PaintMaterial(x, y, width, height, radius, blur float32, tint uint32) DrawC
 	return DrawCommand{Op: DrawMaterial, P: [8]float32{x, y, width, height, radius, blur}, Color: tint}
 }
 
+const (
+	CanvasRoleButton = int(C.CUI_CANVAS_BUTTON)
+	CanvasRoleText   = int(C.CUI_CANVAS_TEXT)
+)
+
 type CanvasRegion struct {
 	ID                  uint
 	X, Y, Width, Height float32
 	Label               string
 	Enabled             bool
+	Role                int // 0: button, 1: readable text
 }
 type CanvasEvent struct {
 	Kind         int
@@ -198,7 +204,7 @@ func (w Widget) CanvasSetRegions(regions []CanvasRegion) bool {
 	for i, r := range regions {
 		t, f := cstring(r.Label)
 		releases = append(releases, f)
-		raw[i] = C.cui_canvas_region{id: C.uint(r.ID), x: C.float(r.X), y: C.float(r.Y), width: C.float(r.Width), height: C.float(r.Height), label: t, enabled: flag(r.Enabled)}
+		raw[i] = C.cui_canvas_region{id: C.uint(r.ID), x: C.float(r.X), y: C.float(r.Y), width: C.float(r.Width), height: C.float(r.Height), label: t, enabled: flag(r.Enabled), role: C.cui_canvas_role(r.Role)}
 	}
 	var ptr *C.cui_canvas_region
 	if len(raw) > 0 {

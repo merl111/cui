@@ -168,16 +168,34 @@ impl Menu {
         Ok(())
     }
     /// Open a native menu at a widget-local rectangle in logical units.
-    pub fn popup_at(&self, anchor: &Widget, x: f64, y: f64, width: f64, height: f64) -> Result<bool> {
+    pub fn popup_at(
+        &self,
+        anchor: &Widget,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+    ) -> Result<bool> {
         let _rt = self.handle.live()?;
         self.handle.same(&anchor.handle)?;
-        Ok(accepted(unsafe { sys::cui_menu_popup_at(self.handle.ptr.as_ptr(), anchor.handle.ptr.as_ptr(), x, y, width, height) }))
+        Ok(accepted(unsafe {
+            sys::cui_menu_popup_at(
+                self.handle.ptr.as_ptr(),
+                anchor.handle.ptr.as_ptr(),
+                x,
+                y,
+                width,
+                height,
+            )
+        }))
     }
     /// Anchor to a current enabled canvas hit region; stale regions return false.
     pub fn popup_region(&self, canvas: &Widget, region: u32) -> Result<bool> {
         let _rt = self.handle.live()?;
         self.handle.same(&canvas.handle)?;
-        Ok(accepted(unsafe { sys::cui_menu_popup_region(self.handle.ptr.as_ptr(), canvas.handle.ptr.as_ptr(), region) }))
+        Ok(accepted(unsafe {
+            sys::cui_menu_popup_region(self.handle.ptr.as_ptr(), canvas.handle.ptr.as_ptr(), region)
+        }))
     }
 }
 impl Window {

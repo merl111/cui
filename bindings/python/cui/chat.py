@@ -11,7 +11,8 @@ NEBULA, DAYLIGHT, TILES = range(3)
 ROOMS, TIMELINE, COMPOSER, WORKSPACE, HEADER, SPACES, INSPECTOR, MESSAGE, ATTACHMENT_CARD, REACTION_STRIP, POLL_CARD, REPLY_PREVIEW, THREAD_SUMMARY, AVATAR = range(14)
 OUTGOING,HIGHLIGHT,CONTINUED,ONLINE,SQUARE,DISABLED,MINE,CLOSED = (1<<i for i in range(8))
 BODY,STRONG,MUTED,MENTION,CODE = range(5)
-NONE,OPEN_ROOM,REPLY,THREAD,MORE,COPY,REACT,VOTE,ATTACHMENT,LINK,FOCUS,SEND,CANCEL,ATTACH,EMOJI,POLL,CHANGED,LOAD_OLDER = range(18)
+NONE,OPEN_ROOM,REPLY,THREAD,MORE,COPY,REACT,VOTE,ATTACHMENT,LINK,FOCUS,SEND,CANCEL,ATTACH,EMOJI,POLL,CHANGED,LOAD_OLDER,OPEN_PROFILE,COMPOSE_MORE,OPEN_REPLY,DELIVERY = range(22)
+DELIVERY_NONE,SENDING,DELIVERED,SEND_FAILED = range(4)
 class Theme(C.Structure):
     _fields_=[('appearance',I)]+[(n,U) for n in ('background','surface','foreground','muted','border','accent','on_accent','soft','hover','rail','danger','online')]+[('font_size',D)]
 STANDARD,SOFT,COMPACT = range(3)
@@ -26,11 +27,11 @@ class Command:
 class _Span(C.Structure):
     _fields_=[('text',S),('link',S),('style',I)]
 class _Detail(C.Structure):
-    _fields_=[('id',ID),('text',S),('detail',S),('count',U),('flags',U)]
+    _fields_=[('id',ID),('text',S),('detail',S),('count',U),('flags',U),('image',P)]
 class _Room(C.Structure):
     _fields_=[('id',ID),('group',S),('title',S),('detail',S),('trailing',S),('avatar_color',U),('unread',U),('flags',U),('symbol',I),('avatar',P)]
 class _Message(C.Structure):
-    _fields_=[('id',ID),('author',S),('time',S),('date',S),('avatar_color',U),('flags',U),('spans',C.POINTER(_Span)),('span_count',N),('reply_author',S),('reply_text',S),('reply_id',ID),('attachments',C.POINTER(_Detail)),('attachment_count',N),('reactions',C.POINTER(_Detail)),('reaction_count',N),('poll_question',S),('options',C.POINTER(_Detail)),('option_count',N),('selected_option',I),('thread_preview',S),('thread_count',U),('thread_participants',C.POINTER(_Room)),('thread_participant_count',N),('author_color',U),('avatar',P)]
+    _fields_=[('id',ID),('author',S),('time',S),('date',S),('avatar_color',U),('flags',U),('spans',C.POINTER(_Span)),('span_count',N),('reply_author',S),('reply_text',S),('reply_id',ID),('attachments',C.POINTER(_Detail)),('attachment_count',N),('reactions',C.POINTER(_Detail)),('reaction_count',N),('poll_question',S),('options',C.POINTER(_Detail)),('option_count',N),('selected_option',I),('thread_preview',S),('thread_count',U),('thread_participants',C.POINTER(_Room)),('thread_participant_count',N),('author_color',U),('avatar',P),('read_by',C.POINTER(_Room)),('read_by_count',N),('delivery',I),('delivery_label',S)]
 class _Event(C.Structure):
     _fields_=[('action',I),('id',ID),('detail_id',ID),('index',U),('modifiers',U),('text',S)]
 @dataclass
@@ -38,7 +39,7 @@ class Span:
     text:str=''; link:str=''; style:int=BODY
 @dataclass
 class Detail:
-    id:int=0; text:str=''; detail:str=''; count:int=0; flags:int=0
+    id:int=0; text:str=''; detail:str=''; count:int=0; flags:int=0; image:object=None
 @dataclass
 class Message:
     id:int=0; author:str=''; time:str=''; date:str=''; avatar_color:int=0; flags:int=0
@@ -46,7 +47,7 @@ class Message:
     reply_author:str=''; reply_text:str=''; reply_id:int=0
     attachments:list=field(default_factory=list); reactions:list=field(default_factory=list)
     poll_question:str=''; options:list=field(default_factory=list); selected_option:int=-1
-    thread_preview:str=''; thread_count:int=0; thread_participants:list=field(default_factory=list); author_color:int=0; avatar:object=None
+    thread_preview:str=''; thread_count:int=0; thread_participants:list=field(default_factory=list); author_color:int=0; avatar:object=None; read_by:list=field(default_factory=list); delivery:int=0; delivery_label:str=''
 @dataclass
 class Room:
     id:int=0; group:str=''; title:str=''; detail:str=''; trailing:str=''; avatar_color:int=0; unread:int=0; flags:int=0; symbol:int=0; avatar:object=None
@@ -55,13 +56,14 @@ class Event:
     action:int=NONE; id:int=0; detail_id:int=0; index:int=0; modifiers:int=0; text:str=''
 
 def _array(typ,values):return (typ*len(values))(*values)
-def _details(values):return _array(_Detail,[_Detail(v.id,_s(v.text),_s(v.detail),v.count,v.flags) for v in values])
+def _details(values):return _array(_Detail,[_Detail(v.id,_s(v.text),_s(v.detail),v.count,v.flags,v.image.ptr if v.image else None) for v in values])
 def _message(v):
     spans=_array(_Span,[_Span(_s(x.text),_s(x.link),x.style) for x in v.spans])
     files,reactions,options=(_details(x) for x in (v.attachments,v.reactions,v.options))
     # ctypes retains the nested arrays through the structure's _objects graph.
     participants=_array(_Room,[_Room(x.id,_s(x.group),_s(x.title),_s(x.detail),_s(x.trailing),x.avatar_color,x.unread,x.flags,x.symbol,x.avatar.ptr if x.avatar else None) for x in v.thread_participants])
-    return _Message(v.id,_s(v.author),_s(v.time),_s(v.date),v.avatar_color,v.flags,spans,len(spans),_s(v.reply_author),_s(v.reply_text),v.reply_id,files,len(files),reactions,len(reactions),_s(v.poll_question),options,len(options),v.selected_option,_s(v.thread_preview),v.thread_count,participants,len(participants),v.author_color,v.avatar.ptr if v.avatar else None)
+    readers=_array(_Room,[_Room(x.id,_s(x.group),_s(x.title),_s(x.detail),_s(x.trailing),x.avatar_color,x.unread,x.flags,x.symbol,x.avatar.ptr if x.avatar else None) for x in v.read_by])
+    return _Message(v.id,_s(v.author),_s(v.time),_s(v.date),v.avatar_color,v.flags,spans,len(spans),_s(v.reply_author),_s(v.reply_text),v.reply_id,files,len(files),reactions,len(reactions),_s(v.poll_question),options,len(options),v.selected_option,_s(v.thread_preview),v.thread_count,participants,len(participants),v.author_color,v.avatar.ptr if v.avatar else None,readers,len(readers),v.delivery,_s(v.delivery_label))
 
 _bind('chat_color',U,D,D,D,D)
 _bind('chat_theme_get',I,I,C.POINTER(Theme))
@@ -76,8 +78,10 @@ _bind('chat_set_rooms',I,P,C.POINTER(_Room),N)
 _bind('chat_select',I,P,ID)
 _bind('chat_set_query',I,P,S)
 _bind('chat_set_status',I,P,S)
+_bind('chat_set_label',I,P,I,S)
 _bind('chat_refresh',I,P,D)
 _bind('chat_event_get',I,P,C.POINTER(_Event))
+_bind('chat_event_position',I,P,C.POINTER(D),C.POINTER(D))
 _bind('chat_part',P,P,U)
 _bind('chat_scroll',I,P,D)
 _bind('chat_scroll_to',I,P,ID)
@@ -124,8 +128,12 @@ class Chat:
         values=_array(_Room,[_Room(v.id,_s(v.group),_s(v.title),_s(v.detail),_s(v.trailing),v.avatar_color,v.unread,v.flags,v.symbol,v.avatar.ptr if v.avatar else None) for v in items]);return bool(lib.cui_chat_set_rooms(self.ptr,values,len(values)))
     def select(self,id=0):return bool(lib.cui_chat_select(self.ptr,id))
     def set_query(self,value):return bool(lib.cui_chat_set_query(self.ptr,_s(value)))
+    def set_label(self,key,value=None):return bool(lib.cui_chat_set_label(self.ptr,key,_s(value) if value is not None else None))
     def set_status(self,value):return bool(lib.cui_chat_set_status(self.ptr,_s(value)))
     def refresh(self,scale=1):return bool(lib.cui_chat_refresh(self.ptr,scale))
+    def event_position(self):
+        x,y=D(),D()
+        return (x.value,y.value) if lib.cui_chat_event_position(self.root.ptr,C.byref(x),C.byref(y)) else None
     def event(self):
         e=_Event()
         if not lib.cui_chat_event_get(self.ptr,C.byref(e)):raise ValueError('Invalid chat')
@@ -149,3 +157,6 @@ class Chat:
     def workspace_restore(self):return bool(lib.cui_chat_workspace_restore(self.ptr))
     def workspace_mask(self):return lib.cui_chat_workspace_mask(self.ptr)
     def workspace_focused(self):return lib.cui_chat_workspace_focused(self.ptr)
+
+# Keys for ChatComponent.set_label; None restores the English default.
+LABEL_MESSAGE, LABEL_SEND, LABEL_CONTEXT, LABEL_ATTACHMENTS, LABEL_CANCEL_CONTEXT, LABEL_ATTACH, LABEL_EMOJI, LABEL_CREATE_POLL, LABEL_MORE, LABEL_COMPOSER_HELP, LABEL_EDITING, LABEL_REPLYING, LABEL_THREAD_ONE, LABEL_THREAD_MANY, LABEL_REPLY_ONE, LABEL_REPLY_MANY, LABEL_VOTE_ONE, LABEL_VOTE_MANY, LABEL_POLL_CLOSED, LABEL_POLL_SELECT, LABEL_POLL_TAP, LABEL_POLL_RESULTS, LABEL_SEND_FAILED, LABEL_DELIVERED, LABEL_SENDING, LABEL_CONVERSATION_PANE = range(26)

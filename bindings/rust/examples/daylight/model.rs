@@ -36,6 +36,7 @@ pub fn react(message: &mut Message, key: String, quick: bool) {
         };
     } else {
         message.reactions.push(Reaction {
+            tooltip: String::new(),
             key,
             count: 1,
             mine: true,

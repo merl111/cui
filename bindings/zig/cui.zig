@@ -87,7 +87,9 @@ pub const App = struct {
     }
     pub fn menu(self: App) Error!Menu { return .{ .raw = c.cui_menu_create(self.raw) orelse return error.AllocationFailed }; }
     pub fn quit(self: App) void { c.cui_app_quit(self.raw); }
+    pub fn background(self: App, enabled: bool) void { c.cui_app_set_background(self.raw, @intFromBool(enabled)); }
     pub fn resolvedTheme(self: App) c.cui_theme { return c.cui_app_resolved_theme(self.raw); }
+    pub fn focusIndicators(self: App, visible: bool) void { c.cui_app_set_focus_indicators(self.raw, @intFromBool(visible)); }
     pub fn theme(self: App, value: c.cui_theme) void { c.cui_app_set_theme(self.raw, value); }
     pub fn window(self: App, title: [:0]const u8, width: c_int, height: c_int) Error!Window {
         return .{ .raw = c.cui_window_create(self.raw, title, width, height) orelse return error.AllocationFailed };
@@ -171,11 +173,13 @@ pub const Widget = struct {
     pub fn wrap(raw: ?*c.cui_widget) Error!Widget { return .{ .raw = raw orelse return error.AllocationFailed }; }
     pub fn accessibility(self: Widget, label_text: [:0]const u8, description: [:0]const u8) void { c.cui_accessibility(self.raw, label_text, description); }
     pub fn focus(self: Widget) bool { return c.cui_focus(self.raw) != 0; }
+    pub fn focusedDescendant(self: Widget) ?Widget { const ptr=c.cui_focused_descendant(self.raw) orelse return null; return .{.raw=ptr}; }
     pub fn hasFocus(self: Widget) bool { return c.cui_has_focus(self.raw) != 0; }
     pub fn readOnly(self: Widget, enabled: bool) void { c.cui_set_read_only(self.raw, @intFromBool(enabled)); }
     pub fn undo(self: Widget) void { c.cui_undo(self.raw); }
     pub fn redo(self: Widget) void { c.cui_redo(self.raw); }
     pub fn selectedText(self: Widget, buffer: []u8) usize { return c.cui_get_selected_text(self.raw, buffer.ptr, buffer.len); }
+    pub fn insertText(self: Widget, content: [:0]const u8) bool { return c.cui_insert_text(self.raw, content) != 0; }
     pub fn setChecked(self: Widget, checked: bool) void { c.cui_set_checked(self.raw, @intFromBool(checked)); }
     pub fn isChecked(self: Widget) bool { return c.cui_get_checked(self.raw) != 0; }
     pub fn setEnabled(self: Widget, enabled: bool) void { c.cui_set_enabled(self.raw, @intFromBool(enabled)); }
@@ -397,8 +401,10 @@ pub const Chat = struct {
     pub fn setRooms(self:Chat,items:[]const c.cui_chat_room) bool {return c.cui_chat_set_rooms(self.root.raw,items.ptr,items.len)!=0;}
     pub fn select(self:Chat,id:u64) bool {return c.cui_chat_select(self.root.raw,id)!=0;}
     pub fn setQuery(self:Chat,value:[:0]const u8) bool {return c.cui_chat_set_query(self.root.raw,value)!=0;}
+    pub fn setLabel(self:Chat,key:c.cui_chat_label,value:?[:0]const u8) bool {return c.cui_chat_set_label(self.root.raw,key,if(value) |v| v.ptr else null)!=0;}
     pub fn setStatus(self:Chat,value:[:0]const u8) bool {return c.cui_chat_set_status(self.root.raw,value)!=0;}
     pub fn refresh(self:Chat,scale:f64) bool {return c.cui_chat_refresh(self.root.raw,scale)!=0;}
+    pub fn eventPosition(self: Chat) ?[2]f64 { var x: f64 = 0; var y: f64 = 0; return if (c.cui_chat_event_position(self.root.raw, &x, &y) != 0) .{x,y} else null; }
     pub fn event(self:Chat) ?c.cui_chat_event {var e:c.cui_chat_event=undefined;return if(c.cui_chat_event_get(self.root.raw,&e)!=0)e else null;}
     pub fn part(self:Chat,index:c_uint) ?Widget {return if(c.cui_chat_part(self.root.raw,index))|w|.{.raw=w} else null;}
     pub fn scroll(self:Chat,offset:f64) bool {return c.cui_chat_scroll(self.root.raw,offset)!=0;}

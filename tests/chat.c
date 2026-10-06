@@ -8,7 +8,7 @@ static cui_app *app;
 static cui_widget *timeline, *composer, *workspace, *rooms;
 static cui_widget *elements[6], *custom_header;
 static const cui_chat_action element_actions[] = {
-    CUI_CHAT_MORE, CUI_CHAT_ATTACHMENT, CUI_CHAT_REACT,
+    CUI_CHAT_NONE, CUI_CHAT_ATTACHMENT, CUI_CHAT_REACT,
     CUI_CHAT_VOTE, CUI_CHAT_NONE,       CUI_CHAT_THREAD};
 static cui_chat_event last;
 static char event_text[128];

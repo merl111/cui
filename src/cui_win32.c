@@ -246,7 +246,7 @@ static LRESULT paint_button(cui_widget *widget, NMCUSTOMDRAW *draw)
         SelectObject(draw->hdc, old_font);
     }
     free(text);
-    if ((draw->uItemState & CDIS_FOCUS) && !(SendMessageW((HWND)widget->native, WM_QUERYUISTATE, 0, 0) & UISF_HIDEFOCUS)) {
+    if (!widget->window->app->hide_focus && (draw->uItemState & CDIS_FOCUS) && !(SendMessageW((HWND)widget->native, WM_QUERYUISTATE, 0, 0) & UISF_HIDEFOCUS)) {
         InflateRect(&rect, -3, -3); DrawFocusRect(draw->hdc, &rect);
     }
     return CDRF_SKIPDEFAULT;
@@ -1058,8 +1058,17 @@ void cui_clipboard_set_text(cui_window *window, const char *text)
     if (data) GlobalFree(data);
 }
 
+int cui__backend_insert_text(cui_widget *w, const char *text)
+{
+    wchar_t *value = cui__win32_wide(text);
+    if (!value) return 0;
+    SendMessageW((HWND)w->native, EM_REPLACESEL, TRUE, (LPARAM)value);
+    free(value); return 1;
+}
+
 size_t cui_get_selected_text(const cui_widget *w, char *buffer, size_t capacity)
 {
+    if (w && (w->kind == CUI_CANVAS || w->kind == CUI_BOX)) return cui__chat_selected_text(w, buffer, capacity);
     if (!w || !(w->kind == CUI_ENTRY || w->kind == CUI_SEARCH || w->kind == CUI_TEXTAREA || w->kind == CUI_CODE)) return cui__copy_text("", buffer, capacity);
     DWORD a = 0, z = 0;
     SendMessageW((HWND)w->native, EM_GETSEL, (WPARAM)&a, (LPARAM)&z);

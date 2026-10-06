@@ -121,12 +121,19 @@ void cui__desktop_menu(cui_window *w)
     w->menu_native=gtk_popover_menu_bar_new_from_model(G_MENU_MODEL(model));g_object_unref(model);
     gtk_box_prepend(GTK_BOX(w->root->native),GTK_WIDGET(w->menu_native));
 }
+static void menu_style(GtkWidget *popup)
+{
+    gtk_widget_add_css_class(popup,"cui-context-menu");
+    /* A non-composited display cannot show translucent corner/shadow pixels. */
+    if(!gdk_display_is_composited(gtk_widget_get_display(popup)))
+        gtk_widget_add_css_class(popup,"cui-uncomposited");
+}
 void cui_menu_popup(cui_menu *m,cui_widget *anchor)
 {
     if(!m||!anchor||m->app!=anchor->window->app)return;
     if(m->native){gtk_widget_unparent(GTK_WIDGET(m->native));g_object_unref(m->native);}
     GMenu *model=menu_model(m);GtkWidget *popup=gtk_popover_menu_new_from_model(G_MENU_MODEL(model));g_object_unref(model);
-    g_object_ref_sink(popup);m->native=popup;gtk_widget_set_parent(popup,GTK_WIDGET(anchor->native));gtk_popover_popup(GTK_POPOVER(popup));
+    menu_style(popup);g_object_ref_sink(popup);m->native=popup;gtk_widget_set_parent(popup,GTK_WIDGET(anchor->native));gtk_popover_popup(GTK_POPOVER(popup));
 }
 int cui__desktop_popup_at(cui_menu *m,cui_widget *anchor,double x,double y,double width,double height)
 {
@@ -134,12 +141,17 @@ int cui__desktop_popup_at(cui_menu *m,cui_widget *anchor,double x,double y,doubl
     if(m->native){if(gtk_widget_get_parent(GTK_WIDGET(m->native)))gtk_widget_unparent(GTK_WIDGET(m->native));g_object_unref(m->native);}
     GMenu *model=menu_model(m);
     GtkWidget *popup=gtk_popover_menu_new_from_model(G_MENU_MODEL(model));g_object_unref(model);
-    g_object_ref_sink(popup);m->native=popup;
+    menu_style(popup);g_object_ref_sink(popup);m->native=popup;
     gtk_widget_set_parent(popup,GTK_WIDGET(anchor->native));
     GdkRectangle rect={(int)x,(int)y,(int)(width<1?1:width),(int)(height<1?1:height)};
     gtk_popover_set_pointing_to(GTK_POPOVER(popup),&rect);
     gtk_popover_set_has_arrow(GTK_POPOVER(popup),FALSE);
-    gtk_popover_set_position(GTK_POPOVER(popup),GTK_POS_BOTTOM);
+    GtkRoot *root = gtk_widget_get_root(GTK_WIDGET(anchor->native));
+    double ax = 0, ay = 0;
+    int above = root && gtk_widget_translate_coordinates(GTK_WIDGET(anchor->native),
+        GTK_WIDGET(root), x, y + height, &ax, &ay) &&
+        ay > gtk_widget_get_height(GTK_WIDGET(root)) * .65;
+    gtk_popover_set_position(GTK_POPOVER(popup), above ? GTK_POS_TOP : GTK_POS_BOTTOM);
     gtk_popover_popup(GTK_POPOVER(popup));
     return 1;
 }

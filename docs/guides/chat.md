@@ -75,6 +75,29 @@ clamps the previous offset. The application supplies group labels and ordering.
 
 ## Presentation and application choices
 
+### Images, selection and insertion
+
+An attachment's optional `cui_chat_detail.image` retains a decoded `cui_icon_asset`.
+The card preserves its aspect ratio and includes the filename below the image;
+activation emits the existing `CUI_CHAT_ATTACHMENT` event. Rust exposes
+`chat::Attachment.image`, Python `Detail.image`, Go `ChatDetail.Image`, and Zig
+the imported C field. Applications download/decode media and decide how to open
+the larger image, for example in a modal stack layer. Rebuild CUI and consumers
+together after this model extension.
+
+Drag over a message body to select UTF-8 text across its styled spans and lines.
+Ctrl+C (Cmd+C on macOS) copies the selection; `cui_get_selected_text` also accepts
+the chat root or its canvas. Selection is confined to one message and clears if
+that message's text changes or disappears. Dragging a link selects its text
+without activating it. Keyboard range selection and bidirectional text remain
+outside this implementation.
+
+Use `cui_insert_text(cui_chat_part(composer, 0), text)` for emoji and similar
+insertions. It inserts at the native caret or replaces the selection, preserves
+the editor's undo behavior, and suppresses application change callbacks like
+other programmatic setters. Read-only inputs reject insertion. Applications
+should explicitly refresh their draft model when needed.
+
 See [Reuse & framework comparison](component-design.md) for the AppKit, SwiftUI, WinUI, Qt and GTK comparison, current toolkit gaps, and examples of independent layout and command configuration.
 
 `cui_chat_presentation_preset/get` and `cui_chat_set_presentation` expose independent message, room-list, header and composer styles, space orientation, inspector layout, geometry and visible composer tools. Theme changes preserve these choices. `cui_chat_set_commands` replaces header buttons, message hover actions or inspector tabs with copied application commands and stable IDs. All bindings expose these functions. The C example’s Daylight profile button demonstrates user-selectable message and room density preferences. Components inherit the ancestor font family and invalidate measured text when it changes. Mention foreground and background colors are independently configurable.
@@ -232,3 +255,95 @@ python3 tools/check_chat_rust_parity.py --write
 The component and fixture reconstruction is still being refined against the supplied screenshots. Remaining differences include typography, Tiles pane shadows, modal backdrop blur, native focus styling, palette grouping, call-control artwork and some panel geometry. The shared text rasterizer preserves color glyphs on GTK and AppKit; Windows currently retains its monochrome GDI fallback. The C example's call and verification buttons are not connected to a Matrix backend. A screenshot match has not been measured at 99%.
 
 Linux/GTK receives native interaction tests and captures. Windows and macOS backend changes require execution on those systems before equivalent visual and input behavior can be claimed. Text wrapping uses native word metrics with UTF-8 boundaries; full grapheme-aware line breaking and bidirectional layout need further work. The application owns room drafts, pagination, permission checks and server state.
+
+## Pointer actions and member profiles
+
+Clicking a message body selects/focuses its canvas region without emitting
+`CUI_CHAT_MORE`. Use the quick-action toolbar or a context click for actions.
+A context click emits `CUI_CHAT_MORE`; inside the action callback call
+`cui_chat_event_position(chat, &x, &y)` to distinguish pointer context events
+from toolbar/keyboard actions. Coordinates are logical pixels relative to the
+chat canvas (`cui_chat_part(chat, 0)`), suitable for
+`cui_window_popup_at`. The function returns zero when no pointer position is
+associated with the most recent event. Copy the coordinates during the callback
+if dispatching asynchronously. Rust's `ChatEvent.position` already captures them.
+Go exposes `Chat.EventPosition`, Python `Chat.event_position()`, and Zig
+`Chat.eventPosition()`.
+
+Clicking a timeline avatar emits `CUI_CHAT_OPEN_PROFILE` with the message ID.
+The application resolves its sender, retrieves the profile and populates an
+Inspector. Inspector hero avatars honor `CUI_CHAT_SQUARE`; omit the flag for a
+round user photo. Profile identity/verification state remains application-owned.
+
+### Composer overflow, pagination and reaction tooltips
+
+Composer part 8 is a native icon button that emits `CUI_CHAT_COMPOSE_MORE`.
+Enable it with `presentation.composer_tools |= (1u << 8)` and anchor a CUI menu
+to `cui_chat_part(composer, 8)`. Parts 5–7 keep their existing attachment, emoji,
+and poll actions. Rust exposes `Action::ComposeMore`; Go and Python expose
+`ChatComposeMore` / `COMPOSE_MORE`; Zig imports the C constant.
+
+An upward user scroll near the top of a timeline emits `CUI_CHAT_LOAD_OLDER`.
+Applications must gate pending requests and exhausted history. Programmatic
+scroll restoration does not request another page. Prepending messages preserves
+the visible message anchor by ID. Wheel input scrolls 64 logical pixels per unit;
+macOS continues to use native pixel deltas.
+
+Set `cui_chat_detail.detail` on a reaction to its reactor names or IDs, separated
+by newlines. CUI shows it as a native hover tooltip over that reaction chip.
+Go/Python/Zig use the existing detail field; Rust's `Reaction.tooltip` marshals
+it to that field. Text is copied with the reaction model, with the existing
+4096-byte detail limit. Counts and identities remain application-owned.
+
+Room navigation adapts to an avatar rail when its canvas is 88 logical pixels wide or narrower. Selection, unread badges, scrolling, accessible room labels and hover tooltips remain available; group headings become separators. The application owns the collapse button and restores its previous pane width when expanding.
+
+### Read receipts
+
+`cui_chat_message.read_by` supplies up to 128 latest public reader positions.
+Each entry uses `cui_chat_room`: `title` is the name, `detail` is the localized
+hover label, `trailing` is the application user key, and `avatar` is an optional
+retained image. Three small avatars and an overflow count appear below content
+at the right edge in compact and bubble layouts. Hovering overflow lists the
+remaining names. Reader activation emits `CUI_CHAT_OPEN_PROFILE` with the
+message ID, reader ID in `detail_id`, and user key in `text`.
+
+Rust exposes `Message.read_by` and `Action::OpenReader`; Go exposes `ReadBy`;
+Python exposes `read_by`. Zig uses the same C struct via its imported header.
+Applications supply receipt state and move users to their latest read event;
+CUI does not infer read status or send receipts.
+
+Reply previews with a nonzero `reply_id` emit `CUI_CHAT_OPEN_REPLY`, carrying the reply in `id` and the original in `detail_id`. Applications can scroll to the original with `cui_chat_scroll_to`, or load its history first. Rust exposes `Action::OpenReply`, Go `ChatOpenReply`, Python `OPEN_REPLY`, and Zig imports the C action.
+
+Message `delivery` accepts `CUI_CHAT_DELIVERY_NONE`, `CUI_CHAT_SENDING`, `CUI_CHAT_DELIVERED`, or `CUI_CHAT_SEND_FAILED`. The status icon shares the trailing read-receipt area; reader avatars take precedence. `delivery_label` supplies the localized tooltip and accessible label. Activating the icon emits `CUI_CHAT_DELIVERY` with the message ID, allowing application-owned retry/cancel menus. Rust, Go, Python, and Zig expose these fields and actions.
+
+## Localized labels and enlarged text
+
+`cui_chat_set_label(chat, key, text)` copies a per-component translation.
+`NULL` restores the English default; empty labels and strings over 4096 UTF-8
+bytes are rejected. Keys cover composer names/help, reply/edit context, thread
+counts, vote counts, poll status, delivery state and workspace pane names.
+`{count}`, `{author}` and `{preview}` are literal substitution tokens; inserted
+values are never parsed as format strings or as another template. Expanded
+context labels are bounded and truncated only at UTF-8 boundaries.
+
+```c
+cui_chat_set_label(chat, CUI_CHAT_LABEL_THREAD_ONE, "{count} Antwort im Thread →");
+cui_chat_set_label(chat, CUI_CHAT_LABEL_THREAD_MANY, "{count} Antworten im Thread →");
+cui_chat_set_label(composer, CUI_CHAT_LABEL_SEND, "Senden");
+cui_chat_set_label(composer, CUI_CHAT_LABEL_REPLYING, "Antwort an {author} · {preview}");
+```
+
+ONE is used for exactly one; MANY for other counts. This supports English and
+German cardinal plurals. Languages requiring further plural categories need an
+application-specific presentation; CUI does not provide a full ICU/CLDR engine.
+Commands supplied with `cui_chat_set_commands` and model strings remain the
+application's responsibility. Apply labels to each timeline, composer and other
+component. Rust exposes `ChatComponent::set_label`, Python `set_label` with
+`chat.LABEL_*`, Go `SetLabel` with `ChatLabel*`, and Zig `setLabel` with C enums.
+
+`cui_chat_refresh(chat, display_scale)` now incorporates the app text scale.
+Keep passing the actual display scale, without multiplying it yourself. Chat
+reflows in enlarged logical coordinates, including wrapping, hit targets,
+selection geometry, timestamps and accessible bounds. Native composer controls
+use the same app scale. Reserve sufficient height for fixed-height headers,
+space bars and account avatars, and provide adaptive navigation at larger sizes.

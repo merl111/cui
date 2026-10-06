@@ -30,7 +30,9 @@ impl Widget {
     }
     pub fn set_icon_trailing(&self, trailing: bool) -> Result<bool> {
         let _rt = self.handle.live()?;
-        Ok(accepted(unsafe { sys::cui_set_icon_trailing(self.handle.ptr.as_ptr(), trailing.into()) }))
+        Ok(accepted(unsafe {
+            sys::cui_set_icon_trailing(self.handle.ptr.as_ptr(), trailing.into())
+        }))
     }
     pub fn set_icon_only(&self, icon_only: bool) -> Result<bool> {
         let _rt = self.handle.live()?;
@@ -261,6 +263,14 @@ impl Widget {
         unsafe { sys::cui_set_text(self.handle.ptr.as_ptr(), text.as_ptr()) };
         Ok(())
     }
+    /// Replace the selection or insert at the native caret, without an action callback.
+    pub fn insert_text(&self, text: &str) -> Result<bool> {
+        let _rt = self.handle.live()?;
+        let text = string(text)?;
+        Ok(accepted(unsafe {
+            sys::cui_insert_text(self.handle.ptr.as_ptr(), text.as_ptr())
+        }))
+    }
     pub fn set_checked(&self, checked: bool) -> Result<()> {
         let _rt = self.handle.live()?;
         unsafe { sys::cui_set_checked(self.handle.ptr.as_ptr(), checked.into()) };
@@ -282,6 +292,15 @@ impl Widget {
         Ok(accepted(unsafe {
             sys::cui_focus(self.handle.ptr.as_ptr())
         }))
+    }
+    pub fn focused_descendant(&self) -> Result<Option<Widget>> {
+        let rt = self.handle.live()?;
+        let ptr = unsafe { sys::cui_focused_descendant(self.handle.ptr.as_ptr()) };
+        if ptr.is_null() {
+            Ok(None)
+        } else {
+            Widget::from_native(&rt, ptr).map(Some)
+        }
     }
     pub fn has_focus(&self) -> Result<bool> {
         let _rt = self.handle.live()?;
@@ -486,11 +505,21 @@ impl Widget {
     pub fn stack_backdrop(&self, label: &str) -> Result<Widget> {
         let rt = self.handle.live()?;
         let label = string(label)?;
-        Widget::from_native(&rt, unsafe { sys::cui_stack_backdrop(self.handle.ptr.as_ptr(), label.as_ptr()) })
+        Widget::from_native(&rt, unsafe {
+            sys::cui_stack_backdrop(self.handle.ptr.as_ptr(), label.as_ptr())
+        })
     }
-    pub fn stack_layer(&self, alignment: sys::cui_layer_alignment, width: i32, height: i32, margin: i32) -> Result<Widget> {
+    pub fn stack_layer(
+        &self,
+        alignment: sys::cui_layer_alignment,
+        width: i32,
+        height: i32,
+        margin: i32,
+    ) -> Result<Widget> {
         let rt = self.handle.live()?;
-        Widget::from_native(&rt, unsafe { sys::cui_stack_layer(self.handle.ptr.as_ptr(), alignment, width, height, margin) })
+        Widget::from_native(&rt, unsafe {
+            sys::cui_stack_layer(self.handle.ptr.as_ptr(), alignment, width, height, margin)
+        })
     }
     pub fn grid(&self, columns: u32, gap: i32) -> Result<Widget> {
         let rt = self.handle.live()?;
@@ -645,8 +674,15 @@ impl Widget {
         })
     }
     pub fn picker_set_chrome(&self, headings: bool, status: bool, actions: bool) -> Result<bool> {
-        let _rt=self.handle.live()?;
-        Ok(unsafe { sys::cui_picker_set_chrome(self.handle.ptr.as_ptr(),headings.into(),status.into(),actions.into()) } != 0)
+        let _rt = self.handle.live()?;
+        Ok(unsafe {
+            sys::cui_picker_set_chrome(
+                self.handle.ptr.as_ptr(),
+                headings.into(),
+                status.into(),
+                actions.into(),
+            )
+        } != 0)
     }
     pub fn picker_set_query(&self, query: &str) -> Result<bool> {
         let _rt = self.handle.live()?;

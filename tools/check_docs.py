@@ -50,7 +50,7 @@ def check_catalog(catalog, api):
         image=OUT/item['image']
         require(image.is_file() and image.read_bytes().startswith(b'\x89PNG\r\n\x1a\n'), f'Missing native PNG: {image}')
     # Accessors return existing parts; window creation is covered in the lifecycle guide.
-    accessors={'cui_chat_part','cui_pattern_item_part','cui_window_root','cui_tab_add','cui_disclosure_content','cui_grid_cell','cui_split_pane','cui_pattern_part','cui_field_entry','cui_picker_get_part','cui_tokens_get_part','cui_tokens_remove_button','cui_feedback_get_part','cui_window_create'}
+    accessors={'cui_focused_descendant','cui_chat_part','cui_pattern_item_part','cui_window_root','cui_tab_add','cui_disclosure_content','cui_grid_cell','cui_split_pane','cui_pattern_part','cui_field_entry','cui_picker_get_part','cui_tokens_get_part','cui_tokens_remove_button','cui_feedback_get_part','cui_window_create'}
     constructors={f['name'] for f in api['functions'] if re.match(r'cui_(widget|window|dialog|command|menu)\s*\*',f['signature'])}
     require(constructors<=mapped|accessors, f'New constructor needs a showcase entry: {constructors-mapped-accessors}')
     patterns=next(e['values'] for e in api['enums'] if e['name']=='cui_pattern')

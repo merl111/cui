@@ -38,7 +38,7 @@ typedef enum cui_role {
 
 /* Original built-in vector symbols. No icon fonts or external assets. */
 typedef enum cui_symbol {
-    CUI_SYMBOL_NONE, CUI_SYMBOL_PLAY, CUI_SYMBOL_PAUSE, CUI_SYMBOL_PREVIOUS, CUI_SYMBOL_NEXT, CUI_SYMBOL_VOLUME, CUI_SYMBOL_MUTED, CUI_SYMBOL_SHUFFLE, CUI_SYMBOL_REPEAT, CUI_SYMBOL_SEARCH, CUI_SYMBOL_MENU, CUI_SYMBOL_MORE, CUI_SYMBOL_ATTACH, CUI_SYMBOL_SEND, CUI_SYMBOL_HEART, CUI_SYMBOL_HEART_FILLED, CUI_SYMBOL_REPLY, CUI_SYMBOL_INFO, CUI_SYMBOL_CLOSE, CUI_SYMBOL_PLUS, CUI_SYMBOL_CHECK, CUI_SYMBOL_UP, CUI_SYMBOL_DOWN, CUI_SYMBOL_PIN, CUI_SYMBOL_ARCHIVE, CUI_SYMBOL_MAIL, CUI_SYMBOL_EDIT, CUI_SYMBOL_HOME, CUI_SYMBOL_PHONE, CUI_SYMBOL_VIDEO, CUI_SYMBOL_PEOPLE, CUI_SYMBOL_THREAD, CUI_SYMBOL_FILE, CUI_SYMBOL_DOWNLOAD, CUI_SYMBOL_POLL, CUI_SYMBOL_EMOJI, CUI_SYMBOL_ARROW_RIGHT, CUI_SYMBOL_LOCK, CUI_SYMBOL_PANEL, CUI_SYMBOL_COUNT
+    CUI_SYMBOL_NONE, CUI_SYMBOL_PLAY, CUI_SYMBOL_PAUSE, CUI_SYMBOL_PREVIOUS, CUI_SYMBOL_NEXT, CUI_SYMBOL_VOLUME, CUI_SYMBOL_MUTED, CUI_SYMBOL_SHUFFLE, CUI_SYMBOL_REPEAT, CUI_SYMBOL_SEARCH, CUI_SYMBOL_MENU, CUI_SYMBOL_MORE, CUI_SYMBOL_ATTACH, CUI_SYMBOL_SEND, CUI_SYMBOL_HEART, CUI_SYMBOL_HEART_FILLED, CUI_SYMBOL_REPLY, CUI_SYMBOL_INFO, CUI_SYMBOL_CLOSE, CUI_SYMBOL_PLUS, CUI_SYMBOL_CHECK, CUI_SYMBOL_UP, CUI_SYMBOL_DOWN, CUI_SYMBOL_PIN, CUI_SYMBOL_ARCHIVE, CUI_SYMBOL_MAIL, CUI_SYMBOL_EDIT, CUI_SYMBOL_HOME, CUI_SYMBOL_PHONE, CUI_SYMBOL_VIDEO, CUI_SYMBOL_PEOPLE, CUI_SYMBOL_THREAD, CUI_SYMBOL_FILE, CUI_SYMBOL_DOWNLOAD, CUI_SYMBOL_POLL, CUI_SYMBOL_EMOJI, CUI_SYMBOL_ARROW_RIGHT, CUI_SYMBOL_LOCK, CUI_SYMBOL_PANEL, CUI_SYMBOL_SETTINGS, CUI_SYMBOL_PERSON, CUI_SYMBOL_SUN, CUI_SYMBOL_BELL, CUI_SYMBOL_COUNT
 } cui_symbol;
 /* Immutable, reference-counted icon assets. Creation copies the input. Assets
  * are independent of apps; widgets retain them. Release your reference after
@@ -98,6 +98,12 @@ void cui_app_quit(cui_app *app);
 void cui_app_destroy(cui_app *app); /* Only after run returns; never in callbacks. */
 const char *cui_app_error(const cui_app *app); /* Last error, or empty string. */
 void cui_app_set_theme(cui_app *app, cui_theme theme);
+/* Visual focus indicators default to enabled. This does not disable keyboard
+ * focus, tab navigation, caret drawing or accessibility semantics. */
+void cui_app_set_focus_indicators(cui_app *app, int visible);
+/* When enabled, closing the last window hides it and leaves the process running.
+ * cui_app_quit still ends the loop. A tray icon uses this so Quit is explicit. */
+void cui_app_set_background(cui_app *app, int enabled);
 /* Effective light/dark appearance for custom drawing; main thread only.
    Resolves SYSTEM on each call. NULL returns LIGHT. */
 cui_theme cui_app_resolved_theme(cui_app *app);
@@ -237,6 +243,9 @@ void cui_set_text(cui_widget *widget, const char *text);
 size_t cui_get_text(const cui_widget *widget, char *buffer, size_t capacity);
 /* Selected UTF-8 text; empty when no selection. Same buffer rules as get_text. */
 size_t cui_get_selected_text(const cui_widget *widget, char *buffer, size_t capacity);
+/* Replace the native selection, or insert at the caret. UTF-8, silent like
+ * set_text; returns zero for read-only/non-text widgets. Preserves native undo. */
+int cui_insert_text(cui_widget *widget, const char *text);
 void cui_set_checked(cui_widget *checkbox, int checked);
 int cui_get_checked(const cui_widget *checkbox);
 void cui_set_enabled(cui_widget *widget, int enabled);

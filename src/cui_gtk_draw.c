@@ -300,6 +300,8 @@ static gboolean key(GtkEventControllerKey *controller, guint keyval, guint code,
   (void)code;
   (void)
       mods; /* Native region buttons provide Tab traversal and focus escape. */
+  if ((keyval == GDK_KEY_c || keyval == GDK_KEY_C) && (mods & GDK_CONTROL_MASK))
+    return cui__canvas_copy(data);
   if (keyval == GDK_KEY_Return || keyval == GDK_KEY_space)
     return cui__canvas_key(data, 0, 1);
   return FALSE;
@@ -405,7 +407,7 @@ void cui__canvas_regions(cui_widget *w) {
     size_t i = 0;
     while (i < s->count && s->regions[i].id != id)
       ++i;
-    if (i == s->count)
+    if (i == s->count || GTK_IS_LABEL(child) != (s->regions[i].role == CUI_CANVAS_TEXT))
       gtk_fixed_remove(fixed, child);
     child = next;
   }
@@ -417,16 +419,24 @@ void cui__canvas_regions(cui_widget *w) {
            GPOINTER_TO_UINT(g_object_get_data(G_OBJECT(button), "id")) != r->id)
       button = gtk_widget_get_next_sibling(button);
     if (!button) {
-      button = gtk_button_new_with_label(r->label);
+      button = r->role == CUI_CANVAS_TEXT ? gtk_label_new(r->label) : gtk_button_new_with_label(r->label);
+      if (GTK_IS_LABEL(button)) {
+        gtk_label_set_wrap(GTK_LABEL(button), TRUE);
+        gtk_label_set_selectable(GTK_LABEL(button), TRUE);
+        gtk_label_set_max_width_chars(GTK_LABEL(button), 1);
+      }
+      gtk_widget_set_focusable(button, TRUE);
       gtk_widget_set_opacity(button, 0);
       /* Pointer gestures belong to the canvas; these proxies provide keyboard
        * focus and accessibility without intercepting drag/press events. */
       gtk_widget_set_can_target(button, FALSE);
       g_object_set_data(G_OBJECT(button), "id", GUINT_TO_POINTER(r->id));
-      g_signal_connect(button, "clicked", G_CALLBACK(region_click), w);
+      if (GTK_IS_BUTTON(button)) g_signal_connect(button, "clicked", G_CALLBACK(region_click), w);
       g_signal_connect(button, "notify::has-focus", G_CALLBACK(region_focus),
                        w);
       gtk_fixed_put(fixed, button, 0, 0);
+    } else if (GTK_IS_LABEL(button)) {
+      if (strcmp(gtk_label_get_text(GTK_LABEL(button)), r->label)) gtk_label_set_text(GTK_LABEL(button), r->label);
     } else if (strcmp(gtk_button_get_label(GTK_BUTTON(button)), r->label))
       gtk_button_set_label(GTK_BUTTON(button), r->label);
     gtk_widget_set_sensitive(button, r->enabled);
