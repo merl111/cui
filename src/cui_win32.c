@@ -599,6 +599,11 @@ int cui__backend_init(cui_app *app)
     InitCommonControlsEx(&controls);
     cls.cbSize = sizeof(cls); cls.lpfnWndProc = window_proc;
     cls.hInstance = GetModuleHandleW(NULL); cls.hCursor = LoadCursorW(NULL, IDC_ARROW);
+    /* Optional icon in the consumer executable; shared handles belong to Windows. */
+    cls.hIcon = (HICON)LoadImageW(cls.hInstance, MAKEINTRESOURCEW(1), IMAGE_ICON,
+        GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_SHARED);
+    cls.hIconSm = (HICON)LoadImageW(cls.hInstance, MAKEINTRESOURCEW(1), IMAGE_ICON,
+        GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_SHARED);
     cls.lpszClassName = window_class;
     if (!RegisterClassExW(&cls) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
         if (state->rich_edit) FreeLibrary(state->rich_edit);

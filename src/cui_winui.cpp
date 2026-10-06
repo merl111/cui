@@ -151,6 +151,12 @@ extern "C" int cui__backend_init(cui_app *app) {
         cls.lpfnWndProc = window_proc;
         cls.hInstance = GetModuleHandleW(nullptr);
         cls.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+        // Optional application icon embedded in the consumer executable.
+        // LR_SHARED keeps ownership with the module for the class lifetime.
+        cls.hIcon = static_cast<HICON>(LoadImageW(cls.hInstance, MAKEINTRESOURCEW(1),
+            IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_SHARED));
+        cls.hIconSm = static_cast<HICON>(LoadImageW(cls.hInstance, MAKEINTRESOURCEW(1),
+            IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_SHARED));
         cls.lpszClassName = window_class;
         if (!RegisterClassExW(&cls) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
             winrt::throw_last_error();

@@ -1,5 +1,19 @@
 # Maintain the documentation website
 
+## Manual GitHub workflow
+
+Run **Actions → Documentation site → Run workflow**. Leave **Deploy to GitHub
+Pages** unchecked to produce the `cui-docs-preview` downloadable artifact only.
+The job builds native examples, refreshes their Linux captures, and validates the
+complete generated site. Nothing is published automatically on pushes or tags.
+
+Pages is intentionally disabled for now. When ready to publish, configure
+**Settings → Pages → Source: GitHub Actions**, review site access and visibility,
+then run the workflow on `main` with deployment selected. This workflow never
+enables Pages or changes visibility itself. A private repository does not guarantee
+a private Pages site; private-site access depends on the GitHub plan. See
+[GitHub's Pages visibility documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/changing-the-visibility-of-your-github-pages-site).
+
 The website is repository documentation, built locally and suitable for any static host. It does not require npm, a web framework, remote fonts or a publishing account. Python 3.12+ is development tooling only.
 
 ## Files and generated output

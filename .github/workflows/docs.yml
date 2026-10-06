@@ -1,0 +1,81 @@
+name: Documentation site
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy to GitHub Pages (enable Pages separately first)'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: documentation-pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.0'
+          cache: false
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: '0.16.0'
+      - name: Native capture prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libxext-dev xvfb x11-utils x11-xserver-utils imagemagick
+          rustup toolchain install 1.96.0 --profile minimal
+          rustup override set 1.96.0
+      - name: Build native documentation examples
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCUI_BUILD_SHARED=ON -DCUI_BUILD_TESTS=ON -DCUI_BUILD_BINDING_TESTS=ON
+          cmake --build build --parallel 2
+      - name: Refresh screenshots from this exact source revision
+        env:
+          GSK_RENDERER: cairo
+          GTK_A11Y: none
+          GSETTINGS_BACKEND: memory
+          GDK_SCALE: '1'
+        run: |
+          xvfb-run -a -s '-screen 0 1920x1200x24' python tools/capture_showcase.py
+          xvfb-run -a -s '-screen 0 1920x1200x24' python tools/capture_apps.py
+          xvfb-run -a -s '-screen 0 3400x2400x24' python tools/capture_chat.py --executable build/cui_chat_concepts --rust-executable build/rust/debug/examples/daylight
+      - name: Build and validate the static site
+        run: |
+          python tools/build_docs.py
+          python tools/check_docs.py
+          touch build/docs/.nojekyll
+      - name: Downloadable preview (does not publish a website)
+        uses: actions/upload-artifact@v4
+        with:
+          name: cui-docs-preview
+          path: build/docs/
+          if-no-files-found: error
+      - name: Prepare Pages artifact only when explicitly requested
+        if: inputs.deploy
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/docs
+  deploy:
+    if: inputs.deploy && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # Do not enable Pages or change site visibility from this workflow.
+      - id: deployment
+        uses: actions/deploy-pages@v4

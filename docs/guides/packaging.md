@@ -1,5 +1,11 @@
 # Linking and packaging
 
+Windows applications can embed their app icon as numeric `ICON` resource **1**
+in the executable. Both Windows backends load that optional resource into their
+window class (large and small icons), so the running window uses the same identity
+as Explorer. `LR_SHARED` keeps native icon ownership with the executable module.
+Applications without that resource keep the operating system's default behavior.
+
 Linux and macOS can embed CUI as a static library. Windows uses a WinUI 3 DLL with a stable C calling convention; it requires the Windows App SDK runtime. Rust, Go and Zig link that DLL on Windows, while Python loads it with ctypes.
 
 Static CUI on Linux/macOS still depends on the platform UI libraries. Linux always uses GTK; there is no `CUI_NO_GTK` option.
