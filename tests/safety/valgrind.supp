@@ -59,6 +59,22 @@
    ...
 }
 
+# The same Pango fontset pattern cache can last grow in Fontconfig substitution
+# rather than Cairo's options step, depending on the installed font collection.
+{
+   pango-cairo-fontset-pattern-growth
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:realloc
+   fun:FcPatternObjectInsertElt
+   ...
+   fun:FcConfigSubstituteWithPat
+   fun:pango_cairo_fc_font_map_fontset_key_substitute
+   ...
+   fun:pango_fc_font_map_load_fontset
+   ...
+}
+
 {
    fontconfig-initial-configuration
    Memcheck:Leak
