@@ -5,6 +5,7 @@
 #undef GetCurrentTime
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <memory>
 #include <string>
 #include <vector>
@@ -102,6 +103,8 @@ template <class F, class R> R protect(cui_app *app, R fallback, F &&f) noexcept 
         return f();
     } catch (winrt::hresult_error const &error) {
         OutputDebugStringW(error.message().c_str());
+        std::fprintf(stderr, "CUI WinUI failure in %s (HRESULT 0x%08lx)\n", __FUNCSIG__,
+                     static_cast<unsigned long>(error.code().value));
         if (app)
             app->error = "WinUI operation failed (see debugger output)";
         return fallback;

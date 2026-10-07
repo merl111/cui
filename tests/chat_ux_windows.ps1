@@ -9,7 +9,13 @@ $previous = $env:CUI_UX_UIA_ACK
 $process = $null
 try {
     $env:CUI_UX_UIA_ACK = $ack
-    $process = Start-Process -FilePath $Binary -PassThru -NoNewWindow
+    # Retain the native process handle ourselves. Windows PowerShell's
+    # Start-Process wrapper can return a null ExitCode after WaitForExit.
+    $process = [System.Diagnostics.Process]::new()
+    $process.StartInfo.FileName = (Resolve-Path -LiteralPath $Binary).Path
+    $process.StartInfo.UseShellExecute = $false
+    $process.StartInfo.CreateNoWindow = $true
+    if (-not $process.Start()) { throw 'Could not start the native UX contracts' }
     $condition = [System.Windows.Automation.PropertyCondition]::new(
         [System.Windows.Automation.AutomationElement]::ProcessIdProperty, [int]$process.Id)
     $edit = [System.Windows.Automation.PropertyCondition]::new(
@@ -46,6 +52,7 @@ try {
     Write-Output 'WinUI UI Automation: complete read-only message text passed'
 } finally {
     if ($null -ne $process -and -not $process.HasExited) { $process.Kill(); $process.WaitForExit() }
+    if ($null -ne $process) { $process.Dispose() }
     $env:CUI_UX_UIA_ACK = $previous
     Remove-Item -LiteralPath $ack -ErrorAction SilentlyContinue
 }
