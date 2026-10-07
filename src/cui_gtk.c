@@ -198,9 +198,11 @@ static void connect_portal(cui_app *app)
         "org.freedesktop.portal.Settings", NULL, NULL);
     if (!state->portal) return;
     g_signal_connect(state->portal, "g-signal", G_CALLBACK(portal_changed), app);
-    reply = g_dbus_proxy_call_sync(state->portal, "Read",
-        g_variant_new("(ss)", "org.freedesktop.appearance", "color-scheme"),
+    GVariant *parameters = g_variant_ref_sink(
+        g_variant_new("(ss)", "org.freedesktop.appearance", "color-scheme"));
+    reply = g_dbus_proxy_call_sync(state->portal, "Read", parameters,
         G_DBUS_CALL_FLAGS_NO_AUTO_START, 500, NULL, NULL);
+    g_variant_unref(parameters);
     if (!reply) return;
     g_variant_get(reply, "(v)", &value);
     if (g_variant_is_of_type(value, G_VARIANT_TYPE_UINT32))
@@ -815,10 +817,8 @@ int cui_widget_get_size(const cui_widget *w, int *width, int *height)
 /* CSS uses a decimal point regardless of the user's LC_NUMERIC setting. */
 static void css_color(char *out,size_t size,unsigned rgba)
 {
-    char alpha[G_ASCII_DTOSTR_BUF_SIZE];
-    g_ascii_dtostr(alpha,sizeof(alpha),(rgba&255)/255.);
-    /* GTK 4 CSS rejects the legacy comma form of rgba(). */
-    g_snprintf(out,size,"rgb(%u %u %u / %s)",rgba>>24,(rgba>>16)&255,(rgba>>8)&255,alpha);
+    /* Hex alpha is locale-independent and supported by our GTK 4.6 baseline. */
+    g_snprintf(out,size,"#%08x",rgba);
 }
 
 void cui__backend_style(cui_widget *w)

@@ -6,6 +6,7 @@ Run **Actions → Documentation site → Run workflow**. Leave **Deploy to GitHu
 Pages** unchecked to produce the `cui-docs-preview` downloadable artifact only.
 The job builds native examples, refreshes their Linux captures, and validates the
 complete generated site. Nothing is published automatically on pushes or tags.
+Pushes and pull requests run the same preview build and validation automatically.
 
 Pages is intentionally disabled for now. When ready to publish, configure
 **Settings → Pages → Source: GitHub Actions**, review site access and visibility,
@@ -62,7 +63,7 @@ Every public function must be indexed in `api.json`; the checker independently c
 
 ## Validation
 
-Run the checker after every build. It checks API names, constructors, enum variants, compiled recipe IDs, screenshot coverage/digests, duplicate HTML anchors, image alt text, search URLs and every internal link/fragment. The Linux CI workflow builds the site and runs this check after native tests.
+Run the checker after every build. It checks API names, constructors, enum variants, compiled recipe IDs, screenshot coverage/digests, duplicate HTML anchors, image alt text, search URLs and every internal link/fragment. The documentation CI workflow refreshes native captures, builds the site and runs this check.
 
 Use the native `showcase` CTest to exercise creation and teardown of all examples. For web changes, verify search, combined filters, empty results, copy actions, keyboard language tabs, theme switching and mobile navigation. Inspect representative desktop and mobile pages for overflow. These browser checks validate the documentation UI, not native control accessibility.
 

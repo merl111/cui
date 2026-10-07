@@ -73,7 +73,7 @@ void cui__file_finish(cui_dialog *d,cui_dialog_result result,const char *const *
         if(d->paths){d->path_count=count;d->selected_filter=filter;}
         else result=CUI_DIALOG_FAILED;
     }
-    cui__desktop_finish(d,result,d->path_count?d->paths[0]:"");
+    cui__desktop_finish(d,result,d->paths&&d->path_count?d->paths[0]:"");
 }
 size_t cui_dialog_path_count(const cui_dialog *d)
 {return d&&d->finished&&d->result==CUI_DIALOG_ACCEPTED?d->path_count:0;}

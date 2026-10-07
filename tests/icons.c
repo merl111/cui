@@ -5,13 +5,15 @@
 #include <string.h>
 #include <stdio.h>
 static int calls;
+static int paint_attempts;
 static cui_widget *raster_view;
 static void action(cui_widget *w,void *data){(void)w;(void)data;++calls;}
 static void finish(void *data)
 {
     GtkWidget *view=GTK_WIDGET(raster_view->native);
     GdkPaintable *paintable=gtk_widget_paintable_new(view);GtkSnapshot *snapshot=gtk_snapshot_new();
-    gdk_paintable_snapshot(paintable,snapshot,96,96);GskRenderNode *node=gtk_snapshot_free_to_node(snapshot);assert(node);
+    gdk_paintable_snapshot(paintable,snapshot,96,96);GskRenderNode *node=gtk_snapshot_free_to_node(snapshot);
+    if(!node){g_object_unref(paintable);assert(++paint_attempts<100);return;}
     GdkTexture *texture=gsk_renderer_render_texture(gtk_native_get_renderer(gtk_widget_get_native(view)),node,NULL);assert(texture);
 #if GTK_CHECK_VERSION(4,20,0)
     G_GNUC_BEGIN_IGNORE_DEPRECATIONS

@@ -12,6 +12,7 @@ static const cui_chat_action element_actions[] = {
     CUI_CHAT_VOTE, CUI_CHAT_NONE,       CUI_CHAT_THREAD};
 static cui_chat_event last;
 static char event_text[128];
+static unsigned layout_attempts;
 static void action(cui_widget *w, void *data) {
   (void)data;
   assert(cui_chat_event_get(w, &last));
@@ -22,6 +23,8 @@ static void verify(void *data) {
   assert(cui_chat_refresh(custom_header, 1));
   cui_chat_event custom = {.action = CUI_CHAT_MORE, .id = 88, .detail_id = 901};
   unsigned custom_hit = cui_chat_action_region(custom_header, &custom);
+  if (!custom_hit && ++layout_attempts < 30)
+    return; /* Wait for native allocation before testing the action regions. */
   assert(custom_hit);
   assert(
       cui_canvas_activate_region(cui_chat_part(custom_header, 0), custom_hit));

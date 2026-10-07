@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install development tools and system symbols
-        run: sudo apt-get update && sudo apt-get install -y clang clang-tools valgrind libc6-dbg libgtk-4-dev xvfb
+        run: sudo apt-get update && sudo apt-get install -y clang clang-tools valgrind libc6-dbg libgtk-4-dev libxext-dev xvfb fonts-dejavu-core fonts-dejavu-extra
       - name: Check C safety
         run: python3 tools/check_memory.py ${{ matrix.stage }} --seconds 30
       - name: Retain diagnostics and fuzz inputs

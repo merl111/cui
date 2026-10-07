@@ -48,7 +48,12 @@ static void tick(void *unused)
     }
     if(phase==4){
         PangoFontDescription *font=gtk_font_chooser_get_font_desc(GTK_FONT_CHOOSER(dialog->native));if(!font)return;
-        pango_font_description_free(font);gtk_dialog_response(GTK_DIALOG(dialog->native),GTK_RESPONSE_OK);CHECK(calls==3);
+        int ready=pango_font_description_get_style(font)==PANGO_STYLE_OBLIQUE
+            &&pango_font_description_get_weight(font)==PANGO_WEIGHT_BOLD
+            &&pango_font_description_get_size(font)==(int)(15.5*PANGO_SCALE);
+        pango_font_description_free(font);
+        if(!ready){phase=3;return;} /* GTK loads the available font faces asynchronously. */
+        gtk_dialog_response(GTK_DIALOG(dialog->native),GTK_RESPONSE_OK);CHECK(calls==3);
         dialog=cui_font_dialog(window,"Cancel font",&initial,completed,NULL);CHECK(dialog);phase=5;return;
     }
     if(phase==5){

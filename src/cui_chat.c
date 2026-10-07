@@ -625,9 +625,9 @@ int cui_chat_set_commands(cui_widget *w, const cui_chat_command *items,
       commands_free(next, n);
       return 0;
     }
-    next[i] = *v;
-    next[i].label = copy(v->label, 4096);
-    next[i].text = copy(v->text, 4096);
+    /* The owned array never temporarily contains caller-owned strings. */
+    next[i] = (cui_chat_command){v->id, copy(v->label, 4096),
+        copy(v->text, 4096), v->symbol, v->action, v->flags};
     if (!next[i].label || !next[i].text) {
       commands_free(next, n);
       return 0;

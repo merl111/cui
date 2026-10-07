@@ -1,5 +1,7 @@
 name: Documentation site
 on:
+  push:
+  pull_request:
   workflow_dispatch:
     inputs:
       deploy:
@@ -32,7 +34,7 @@ jobs:
       - name: Native capture prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-4-dev libxext-dev xvfb x11-utils x11-xserver-utils imagemagick
+          sudo apt-get install -y libgtk-4-dev libxext-dev xvfb x11-utils x11-xserver-utils imagemagick fonts-dejavu-core fonts-dejavu-extra
           rustup toolchain install 1.96.0 --profile minimal
           rustup override set 1.96.0
       - name: Build native documentation examples

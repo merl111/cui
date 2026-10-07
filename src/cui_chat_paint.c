@@ -336,7 +336,6 @@ static paragraph_size paragraph(chat_state *s, const cui_chat_message *m,
           if (next > step && pw > width)
             break;
           n = next;
-          w = pw;
         }
         if (!n)
           n = step;
