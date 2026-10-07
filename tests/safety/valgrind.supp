@@ -1,5 +1,6 @@
 # Leak-only exceptions matching the independent GTK baseline. No suppression of
-# invalid reads/writes, uninitialized values, CUI functions or table columns.
+# invalid reads/writes, CUI functions or table columns. The narrowly scoped
+# librsvg initialization exception below is reproduced by GTK alone.
 {
    fontconfig-font-list
    Memcheck:Leak
@@ -46,5 +47,104 @@
    match-leak-kinds: definite,indirect
    ...
    fun:g_markup_parse_context_new
+   ...
+}
+
+{
+   cairo-font-options-cache
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   fun:_cairo_ft_font_options_substitute
+   ...
+}
+
+{
+   fontconfig-initial-configuration
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   fun:FcInitLoadOwnConfig
+   ...
+}
+
+{
+   gtk-mnemonic-label-list
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   fun:gtk_widget_list_mnemonic_labels
+   ...
+}
+
+{
+   gio-module-discovery
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   fun:g_io_modules_scan_all_in_directory_with_scope
+   ...
+}
+
+# Ubuntu librsvg 2.58: Rust GLib property builders during class initialization.
+# Reproduced by gtk_baseline pickers with no CUI linkage; do not broaden.
+
+{
+   librsvg-property-double-initialization
+   Memcheck:Cond
+   fun:_ZN4glib10param_spec22ParamSpecDoubleBuilder5build*
+   ...
+   fun:rsvg_handle_new
+   obj:*/gdk-pixbuf-2.0/*/loaders/libpixbufloader-svg.so
+   ...
+}
+
+{
+   librsvg-property-string-initialization
+   Memcheck:Cond
+   fun:_ZN4glib10param_spec22ParamSpecStringBuilder5build*
+   ...
+   fun:rsvg_handle_new
+   obj:*/gdk-pixbuf-2.0/*/loaders/libpixbufloader-svg.so
+   ...
+}
+
+# Indirect members of font-pattern caches reproduced by the GTK-only baseline.
+{
+   pango-fontset-cache-members
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   ...
+   fun:pango_fc_font_map_load_fontset
+   ...
+}
+{
+   pango-font-description-cache-members
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   ...
+   fun:pango_fc_font_description_from_pattern
+   ...
+}
+
+{
+   fontconfig-expression-cache-members
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   ...
+   fun:FcConfigValues
+   ...
+}
+
+# GLib retains old quark tables when publishing a larger table to other threads.
+# The standalone "quarks" mode reproduces both allocations without CUI.
+{
+   glib-initial-quark-table
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:g_malloc
+   ...
+   fun:glib_init_ctor
    ...
 }

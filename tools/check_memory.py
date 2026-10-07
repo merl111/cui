@@ -34,7 +34,7 @@ class Checks:
         if not args.unsuppressed:
             self.env['LSAN_OPTIONS'] += f':suppressions={ROOT}/tests/safety/lsan.supp'
 
-    def run(self, name, command):
+    def run(self, name, command, *, env=None):
         log = self.logs / f'{name}.log'
         print(f'{name}: {log}', flush=True)
         started = time.monotonic()
@@ -42,7 +42,7 @@ class Checks:
             stream.write(json.dumps([str(part) for part in command]) + '\n')
             stream.flush()
             try:
-                result = subprocess.run(command, cwd=ROOT, env=self.env,
+                result = subprocess.run(command, cwd=ROOT, env=self.env if env is None else env,
                                         stdout=stream, stderr=subprocess.STDOUT,
                                         timeout=self.args.timeout)
                 code = result.returncode
@@ -73,21 +73,24 @@ class Checks:
     def sanitizer(self):
         folder = self.build('sanitizer', sanitizer=True)
         if folder:
-            self.run('sanitizer-tests', ['ctest', '--test-dir', folder, '--output-on-failure'])
+            self.run('sanitizer-tests', ['dbus-run-session', '--', 'ctest', '--test-dir', folder, '--output-on-failure'])
 
     def valgrind(self):
         folder = self.build('valgrind')
         if not folder:
             return
-        options = ['--tool=memcheck', '--leak-check=full', '--show-leak-kinds=all',
+        # Ubuntu's Valgrind 3.22 does not intercept glibc's AVX2 wcpncpy variant.
+        # Exercise the scalar/SSE implementation rather than suppress Addr errors.
+        env = dict(self.env, GLIBC_TUNABLES='glibc.cpu.hwcaps=-AVX2')
+        options = ['--tool=memcheck', '--leak-check=full', '--show-leak-kinds=definite,indirect',
                    '--errors-for-leak-kinds=definite,indirect', '--track-origins=yes',
                    '--error-exitcode=99', '--num-callers=30']
         if not self.args.unsuppressed:
             options.append(f'--suppressions={ROOT}/tests/safety/valgrind.supp')
         for target, arguments in [('lifecycle', ['2']), ('icons', []), ('navigation', []),
                                   ('tables', []), ('pickers', [])]:
-            self.run('valgrind-'+target, ['xvfb-run', '-a', 'valgrind', *options,
-                                          folder / f'cui_{target}_test', *arguments])
+            self.run('valgrind-'+target, ['dbus-run-session', '--', 'xvfb-run', '-a', 'valgrind', *options,
+                                          folder / f'cui_{target}_test', *arguments], env=env)
 
     def analyzer(self):
         folder = self.out / 'analyzer'

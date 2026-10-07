@@ -2,7 +2,7 @@ name: Linux memory safety
 on: [push, pull_request, workflow_dispatch]
 jobs:
   safety:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -10,7 +10,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install development tools and system symbols
-        run: sudo apt-get update && sudo apt-get install -y clang clang-tools valgrind libc6-dbg libgtk-4-dev libxext-dev xvfb fonts-dejavu-core fonts-dejavu-extra
+        run: sudo apt-get update && sudo apt-get install -y clang clang-tools valgrind libc6-dbg libgtk-4-dev libxext-dev xvfb dbus fonts-dejavu-core fonts-dejavu-extra
+      - name: Install symbols for audited toolkit allocation paths
+        if: matrix.stage == 'sanitizer' || matrix.stage == 'valgrind'
+        run: |
+          sudo apt-get install -y ubuntu-dbgsym-keyring
+          printf '%s\n' 'deb http://ddebs.ubuntu.com noble main universe' 'deb http://ddebs.ubuntu.com noble-updates main universe' | sudo tee /etc/apt/sources.list.d/debug.list
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dbgsym libcairo2-dbgsym libglib2.0-0t64-dbgsym librsvg2-2-dbgsym libpangoft2-1.0-0-dbgsym libpangocairo-1.0-0-dbgsym libpango-1.0-0-dbgsym
+          # Security-update GTK symbols can precede the ddebs apt index.
+          version=$(dpkg-query -W -f='${Version}' libgtk-4-1)
+          curl --fail --location "https://launchpad.net/ubuntu/+archive/primary/+files/libgtk-4-1-dbgsym_${version}_amd64.ddeb" -o "$RUNNER_TEMP/gtk-debug.ddeb"
+          sudo dpkg -i "$RUNNER_TEMP/gtk-debug.ddeb"
       - name: Check C safety
         run: python3 tools/check_memory.py ${{ matrix.stage }} --seconds 30
       - name: Retain diagnostics and fuzz inputs

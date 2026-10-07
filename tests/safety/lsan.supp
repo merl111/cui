@@ -12,3 +12,16 @@ leak:FcCharSetAddChar
 # GMarkup leaks; review/remove it on GTK/GLib upgrades. Never suppress g_malloc.
 leak:g_markup_parse_context_parse
 leak:g_markup_parse_context_new
+# Ubuntu 24.04 GTK-only picker baseline (see memory-safety guide).
+leak:_cairo_ft_font_options_substitute
+leak:FcInitLoadOwnConfig
+leak:gtk_widget_list_mnemonic_labels
+# GTK 4.14 path bar omits GFileInfo unrefs; initial-folder baseline reproduces it.
+# This also hides future GFileInfo query-result leaks: review on GTK upgrades.
+leak:query_info_async_thread
+leak:gtk_path_bar_get_info_callback
+# GTK 4.14 folder chooser get_files retains get_current_folder's owned reference.
+# Reproduced by gtk_baseline folders. LSan sees allocation, not the lost ref:
+# this also masks other local GFile leaks, including CUI ownership mistakes.
+# Remove after verifying the upstream fix; never broaden to GObject allocation.
+leak:g_local_vfs_get_file_for_path

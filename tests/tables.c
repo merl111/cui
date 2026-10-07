@@ -103,7 +103,19 @@ int main(void)
     const char *headers[]={"Name","Count","Detail"};
     const char *cells[]={"Beta","10","one","Alpha","2","two","Alpha","2","three","Other","n/a","four"};
     table=cui_table(cui_window_root(window),headers,3);CHECK(table&&cui_table_set_rows(table,cells,4));
+    /* Both a focused populated table and an unrealized empty table must release
+     * their columns. GTK 4.14 otherwise retains the focused column's neighbor. */
+    cui_window *empty_window=cui_window_create(app,"Empty table",300,200);CHECK(empty_window);
+    cui_widget *empty=cui_table(cui_window_root(empty_window),headers,3);CHECK(empty);
+    gpointer columns[6];
+    for(int i=0;i<6;++i){
+        GtkColumnView *view=GTK_COLUMN_VIEW((i<3?table:empty)->aux);
+        columns[i]=g_list_model_get_item(gtk_column_view_get_columns(view),i%3);
+        g_object_add_weak_pointer(G_OBJECT(columns[i]),&columns[i]);
+        g_object_unref(columns[i]);
+    }
     cui_expand(table,1);cui_on_action(table,changed,NULL);
     timer=cui_every(app,150,tick,NULL);cui_window_show(window);cui_app_run(app);cui_app_destroy(app);
+    for(int i=0;i<6;++i)CHECK(columns[i]==NULL);
     puts("tables: multiple selection, stable numeric sorting, UTF-8 editing/cancel, headers and 10000 virtualized rows passed");return 0;
 }

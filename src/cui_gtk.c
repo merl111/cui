@@ -265,8 +265,36 @@ int cui__backend_window_create(cui_window *window, const char *title)
     return 1;
 }
 
+static void prepare_widget_destroy(cui_widget *widget)
+{
+    for(cui_widget *w=widget;w;w=w->next){
+        prepare_widget_destroy(w->first);
+#if GTK_CHECK_VERSION(4,12,0)
+        if(w->kind!=CUI_TABLE || !w->aux)continue;
+        GtkColumnView *view=GTK_COLUMN_VIEW(w->aux);
+        GListModel *columns=gtk_column_view_get_columns(view);
+        guint count=g_list_model_get_n_items(columns);
+        if(!count)continue;
+        ++w->updating;
+        /* GTK leaks the next column reference when disposing the focused column.
+         * Move focus to the last column, then let disposal remove it last. */
+        GtkSelectionModel *model=gtk_column_view_get_model(view);
+        if(!model || !g_list_model_get_n_items(G_LIST_MODEL(model))){
+            const char *row[]={"",NULL};
+            model=GTK_SELECTION_MODEL(gtk_no_selection_new(G_LIST_MODEL(gtk_string_list_new(row))));
+            gtk_column_view_set_model(view,model);
+            g_object_unref(model);
+        }
+        GtkColumnViewColumn *last=g_list_model_get_item(columns,count-1);
+        gtk_column_view_scroll_to(view,0,last,GTK_LIST_SCROLL_FOCUS,NULL);
+        g_object_unref(last);
+        gtk_column_view_set_model(view,NULL);
+#endif
+    }
+}
 void cui__backend_window_destroy(cui_window *window)
 {
+    prepare_widget_destroy(window->root);
     if(window->attached_native) {
         if(gtk_widget_get_parent(window->attached_native))gtk_widget_unparent(window->attached_native);
         g_object_unref(window->attached_native);window->attached_native=NULL;

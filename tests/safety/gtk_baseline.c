@@ -23,13 +23,22 @@ static gboolean done(gpointer loop){g_main_loop_quit(loop);return G_SOURCE_REMOV
 int main(int argc,char **argv)
 {
     gtk_init();
+    if(argc>1 && !strcmp(argv[1],"quarks")){
+        for(int i=0;i<4096;++i){
+            char key[64];g_snprintf(key,sizeof(key),"gtk-baseline-interned-%d",i);
+            g_quark_from_string(key);
+        }
+    }
     GtkWidget *window=gtk_window_new(),*box=gtk_box_new(GTK_ORIENTATION_VERTICAL,8);
     gtk_window_set_child(GTK_WINDOW(window),box);
     gtk_box_append(GTK_BOX(box),gtk_label_new("Font baseline: 世界 — Grüße"));
     gtk_box_append(GTK_BOX(box),gtk_calendar_new());
     GtkFileChooserNative *files=NULL;
-    if(argc>1 && !strcmp(argv[1],"files")){
-        files=gtk_file_chooser_native_new("Baseline",GTK_WINDOW(window),GTK_FILE_CHOOSER_ACTION_OPEN,"Open","Cancel");
+    if(argc>1 && (!strcmp(argv[1],"files") || !strcmp(argv[1],"folders"))){
+        files=gtk_file_chooser_native_new("Baseline",GTK_WINDOW(window),!strcmp(argv[1],"folders")?GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER:GTK_FILE_CHOOSER_ACTION_OPEN,"Open","Cancel");
+        GFile *folder=g_file_new_for_path(g_get_tmp_dir());
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(files),folder,NULL);
+        g_object_unref(folder);
         gtk_native_dialog_show(GTK_NATIVE_DIALOG(files));
     }
     if(argc>1 && !strcmp(argv[1],"pickers")){
