@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "windows_diagnostics.h"
 #ifdef __linux__
 #include <gtk/gtk.h>
 #elif defined(__APPLE__)
@@ -129,6 +130,7 @@ static void tick(void *unused) {
     }
 }
 int main(void) {
+    cui_test_windows_diagnostics();
     app = cui_app_create(); assert(app);
     cui_window *window = cui_window_create(app, "Chat UX contracts", 1000, 820); assert(window);
     base = cui_box(cui_window_root(window), CUI_VERTICAL, 0); cui_expand(base, 1);

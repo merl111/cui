@@ -9,6 +9,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include "windows_diagnostics.h"
 static cui_app *app;
 static cui_widget *entry, *button;
 static int actions, ticks, dialogs;
@@ -51,6 +52,7 @@ static void tick(void *data) {
     assert(ticks < 40);
 }
 int main(void) {
+    cui_test_windows_diagnostics();
     app = cui_app_create();
     if (!app) {
         fputs("WinUI initialization failed: install the Windows App SDK 1.8 runtime for this "
