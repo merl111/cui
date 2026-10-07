@@ -1,56 +1,92 @@
-# CUI
+<p align="center">
+  <img src="docs/site/assets/favicon.svg" alt="CUI logo" width="96" height="96">
+</p>
+<h1 align="center">CUI</h1>
+<p align="center">Native desktop interfaces. A C API. Your language of choice.</p>
+<p align="center">
+  <a href="docs/guides/getting-started.md">C</a> ·
+  <a href="docs/guides/rust.md">Rust</a> ·
+  <a href="docs/guides/python.md">Python</a> ·
+  <a href="docs/guides/go.md">Go</a> ·
+  <a href="docs/guides/zig.md">Zig</a>
+</p>
 
-A small C99 GUI framework with native controls, automatic layout, and a deliberate visual design. Applications use a C API; macOS has a private Objective-C implementation and Windows uses C++/WinRT internally. Windows builds restore pinned WinUI 3 dependencies; Linux uses GTK and macOS uses AppKit. No bundled fonts or browser UI.
+## Overview
 
-**Early prototype, not production-ready.** Framework development, documentation and the showcase proceed together. [Native CI builds and tests pass on Linux, Windows and macOS](https://github.com/merl111/cui/actions/runs/37593359136). Linux has also been visually inspected. Windows/macOS visual review, IME testing and broader accessibility validation remain; the automated tests cover only the exercised contracts.
+CUI is a C99 GUI framework for Linux, macOS, and Windows. Build desktop apps with
+native controls, flexible layouts, and custom drawing through one shared C API.
+Use C directly or the Rust, Python, Go, and Zig bindings.
 
-## Appearance is part of the API
+- **Native foundations:** GTK 4 on Linux, AppKit on macOS, and WinUI 3 on Windows.
+- **Everyday controls:** buttons, text fields, lists, editable tables, trees, tabs, and more.
+- **Flexible layouts:** rows, columns, grids, wrapping containers, and resizable split panes.
+- **Desktop essentials:** menus, keyboard shortcuts, dialogs, and window management.
+- **Room for your own design:** semantic typography, system/light/dark themes, icons, and canvas drawing.
+- **Reusable chat UI:** conversation lists, message timelines, composers, threads, and reactions.
 
-UI code describes semantic roles—title, heading, caption, primary action, card—rather than specifying identical pixels for every platform. Theme selection is `CUI_THEME_SYSTEM`, `CUI_THEME_LIGHT`, or `CUI_THEME_DARK`.
+CUI powers [Archaic](https://github.com/merl111/archaic), a native Matrix client written in Rust.
 
-| Platform | Implementation | Appearance |
-| --- | --- | --- |
-| Linux | GTK 4 controls and boxes | Scoped application styles, rounded cards, focus states, relative typography, light/dark palettes; desktop settings portal for system appearance |
-| Windows | WinUI 3 controls hosted in desktop XAML islands | Fluent buttons, inputs, menus and dialogs, system theme resources and native keyboard/accessibility support |
-| macOS | AppKit controls | Aqua/Dark Aqua, system accent and semantic colors, native text fields/buttons, standard Edit menu |
+**CUI is an early prototype.** APIs and ABI may change, and capabilities vary by
+platform. See the [component guide](docs/components.md) for current support.
 
-The Windows backend uses **WinUI 3**, with the Windows App SDK 1.8 runtime as a deployment requirement. Win32 still handles the top-level window and operating-system integration; widgets use Fluent XAML controls. Mica/Acrylic window backdrops are not enabled by this change. Linux keeps its own style and macOS uses AppKit styling. Native Windows visual review is still required.
+## A look inside
 
-Actual Linux renders, captured from the settings example:
+### Native controls
+
+![CUI's native control gallery](docs/images/gallery-controls.png)
+
+### Light and dark
 
 | Light | Dark |
 | --- | --- |
-| ![Light settings](docs/images/settings-light.png) | ![Dark settings](docs/images/settings-dark.png) |
+| ![Settings example in light mode](docs/images/settings-light.png) | ![Settings example in dark mode](docs/images/settings-dark.png) |
 
-## Build
+### Conversation interfaces
 
-Linux/macOS need CMake 3.16+, a C compiler, and the platform development SDK. Windows needs CMake 3.20+, Visual Studio 2022 C++ build tools, a current Windows SDK, and `nuget.exe` on PATH. The Windows build restores pinned NuGet packages.
+![Daylight, a chat interface composed from CUI's reusable components](docs/images/chat/daylight.png)
 
-**Linux:** GTK 4.6+ development files with X11 support and Xext and `pkg-config` are required (for example, `libgtk-4-dev libxext-dev` on Debian/Ubuntu or `gtk4-devel libXext-devel` on Fedora). The GTK runtime and its transitive libraries must be installed on the destination system. They are not bundled, and are not assumed to exist on every Linux installation.
+[Explore the chat components](docs/guides/chat.md).
+
+### App layouts in Python
+
+![Cadence, a music-library demo built with CUI's Python bindings](docs/images/apps/cadence.png)
+
+[Browse the Cadence example](examples/python/music.py).
+
+### Custom drawing in Rust
+
+![Waypoint, a Rust demo with a custom device window and floating inspector](docs/images/apps/waypoint.png)
+
+[Explore custom drawing](docs/guides/drawing.md) or [browse Waypoint](bindings/rust/examples/simulator.rs).
+
+*These are native Linux captures. Demo apps use sample data and simulated services;
+CUI provides the interface, while your application supplies networking, storage, and media.*
+
+## Get started
+
+Clone the repository, then build the library and examples:
+
+```sh
+git clone https://github.com/merl111/cui.git
+cd cui
+```
+
+### Linux
+
+Install a C compiler, CMake 3.16+, pkg-config, GTK 4.6+ development files with X11
+support, and Xext development files. On Debian/Ubuntu, the library packages are
+`libgtk-4-dev` and `libxext-dev`.
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
-./build/cui_gallery
-./build/cui_desktop_gallery
 ./build/cui_settings
-# Optional startup overrides:
-./build/cui_settings --dark
-./build/cui_settings --light
 ```
 
-**Windows:** Windows 10 1809 or later. Install the matching [Windows App SDK 1.8 runtime](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads) on the machine that runs the app. Use a Visual Studio developer terminal:
+### macOS
 
-```powershell
-cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCUI_BUILD_TESTS=ON
-cmake --build build --config Release
-ctest --test-dir build -C Release --output-on-failure
-.\build\Release\cui_settings.exe
-```
-
-Windows produces `cui.dll` and the `cui.lib` import library. Ship the DLL and `Microsoft.WindowsAppRuntime.Bootstrap.dll` alongside your executable, and install the Windows App Runtime and Visual C++ runtime. Static CUI archives and compiling the backend with MinGW are no longer supported on Windows. C, Python, Rust, Go and Zig still consume the same C ABI; see [packaging](docs/guides/packaging.md#windows).
-
-**macOS:** Xcode command line tools, CMake, and the AppKit SDK (macOS 10.15+ API surface). The backend uses manual Objective-C reference counting internally:
+Install the Xcode command line tools and CMake 3.16+. CUI uses AppKit APIs available
+in macOS 10.15 and later.
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -58,124 +94,30 @@ cmake --build build --parallel
 open build/cui_settings.app
 ```
 
-The example's theme buttons work on every backend. “Save changes” only updates the demonstration state; it does not write preferences to disk.
+### Windows
 
-## Use from C
+Use Windows 10 1809 or later, Visual Studio 2022 with C++ build tools, a current
+Windows SDK, CMake 3.20+, and `nuget.exe` on PATH. Install the
+[Windows App SDK 1.8 runtime](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads),
+then run these commands in a Visual Studio developer terminal:
 
-```c
-#include "cui.h"
-
-static void clicked(cui_widget *sender, void *data)
-{
-    (void)sender;
-    cui_set_text((cui_widget *)data, "Ready to go.");
-}
-
-int main(void)
-{
-    cui_app *app = cui_app_create();
-    if (!app) return 1;
-    cui_window *window = cui_window_create(app, "Hello", 480, 260);
-    if (!window) { cui_app_destroy(app); return 1; }
-    cui_widget *root = cui_window_root(window);
-    cui_widget *title = cui_label(root, "A little more native.");
-    cui_set_role(title, CUI_ROLE_TITLE);
-    cui_widget *status = cui_label(root, "Built with CUI.");
-    cui_widget *button = cui_button(root, "Get started");
-    if (!title || !status || !button) { cui_app_destroy(app); return 1; }
-    cui_set_role(button, CUI_ROLE_PRIMARY);
-    cui_on_action(button, clicked, status);
-    cui_window_show(window);
-    cui_app_run(app);
-    cui_app_destroy(app);
-    return 0;
-}
+```powershell
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+cmake --build build --config Release
+.\build\Release\cui_settings.exe
 ```
 
-In another CMake project:
+For application integration and runtime dependencies, see the
+[packaging guide](docs/guides/packaging.md).
 
-```cmake
-add_subdirectory(path/to/cui)
-target_link_libraries(my_app PRIVATE cui)
-```
+## Build your app
 
-For Windows consumers, embed an application manifest with Common Controls v6 and PerMonitorV2 DPI awareness, as in `examples/windows.manifest` and `examples/windows.rc`. The example also shows a GUI-subsystem `WinMain` entry point. macOS consumers can use a normal C entry point and package their executable as an `.app`.
+Start with a complete example in your preferred language:
 
-## Contract and scope
+[C](docs/guides/getting-started.md) · [Rust](docs/guides/rust.md) ·
+[Python](docs/guides/python.md) · [Go](docs/guides/go.md) · [Zig](docs/guides/zig.md)
 
-- One application, any number of windows; all API calls on the main thread.
-- The application owns all widgets and windows. Closing hides a window and keeps its handles valid. Destroy the app after the event loop returns.
-- UTF-8 strings and logical units. Windows handles per-monitor DPI changes and XAML text scaling; AppKit uses points; GTK manages device scaling and RTL box placement.
-- Layout uses native content measurements, nested rows/columns, padding, and flexible space. Native minimums prevent controls from being squeezed below their contents. Scrollable windows preserve access to oversized content; grids, wrapping rows and resizable split panes are available in `cui_layouts.h`.
-- Programmatic setters suppress callbacks. User edits, toggles, and clicks invoke them. Disabled parent boxes keep descendants disabled without discarding each child's own enabled state.
-- Input fields following labels in the same box receive an accessible label on GTK/AppKit. Native controls provide baseline keyboard, selection, IME, and accessibility behavior; screen-reader and multilingual input audits remain necessary.
-- GTK typography is relative to the user's base font. GTK HighContrast and Windows high-contrast settings use native/system colors instead of the normal custom palette.
-
-The expanded control gallery includes tables, lists, switches, radio groups, multiline text, code, search, sliders, progress, badges, images, charts, tabs and disclosures. All **21 Beautiful UI families** have initial native compositions; [the coverage matrix](docs/components.md) states which interactions are implemented and which still require work. This is not full feature parity with the reference.
-
-Go, Python, Zig and Rust have bindings and functional native examples: [installation and examples](docs/bindings.md). Python uses standard-library ctypes, Go uses cgo, and Zig calls the C ABI directly. Rust provides checked handles, owned results and closures over the complete raw ABI with no Cargo dependencies. Build tooling and installed platform libraries are required; no third-party language runtime packages are needed.
-
-[High DPI and typography](docs/high-dpi.md) covers 4K, font inheritance, installed font families/weights, and independent text scaling. The gallery's **Type** tab demonstrates these controls.
-
-The [desktop gallery](docs/desktop.md) adds native dialogs, command menus/toolbars and shortcuts, undo/redo, focus and accessibility labels, grids, wrapping containers, split panes, tree navigation, numeric steppers, date/time inputs, and validation fields. Go, Python, Zig and Rust expose these APIs.
-
-Editable multiselect tables now provide stable sorting and source-row tracking through `cui_tables.h`. Remaining work includes lazy table data and richer cells, floating popovers/overlays, rich content, drag-and-drop, dynamic widget deletion, full RTL layout on Windows/macOS, and complete accessibility/reduced-motion coverage. [The completion plan](docs/completion-plan.md) tracks the wider requested scope. API/ABI stability is not promised yet.
-
-![Native control gallery](docs/images/gallery-controls.png)
-
-
-## Validation and size
-
-```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCUI_BUILD_TESTS=ON
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure
-```
-
-Linux GUI tests run automatically when `xvfb-run` is installed and the environment permits an X server. They exercise the real example and native controls: Unicode round trips, callback suppression/delivery, theme changes, high-contrast fallback, disabled-state inheritance, window close/reopen, and bounds at 1×, 2×, 4K, and enlarged text. Component tests exercise all 21 families. Optional binding tests run all three language examples through their native event loops. Layout tests run without a display on all platforms. Windows CI builds WinUI and runs a public C API smoke test covering controls, models, canvas, themes, focus and shutdown. Windows also runs the chat UX contracts and an external UI Automation check of complete, read-only message text. macOS CI compiles AppKit and runs layout and native chat UX contracts. These checks do not replace visual, IME or full accessibility testing.
-
-The [Linux memory checks](docs/guides/memory-safety.md) use AddressSanitizer, UndefinedBehaviorSanitizer, LeakSanitizer, Valgrind, static analysis and fuzzing. Leak detection stays enabled, with documented dependency-specific exceptions and their coverage limits. Passing these checks does not establish leak freedom. Mixed-monitor/fractional scaling, broader native Windows/macOS behavior and accessibility still need platform testing.
-
-The current Linux x86-64 Release size measurements are recorded in [validation notes](docs/validation.md). Measurements exclude installed GTK and its transitive shared libraries. No runtime memory target has been established yet.
-
-Public interfaces live in `include/`: core widgets, patterns, desktop actions, layouts, navigation, typed inputs, tables, search, tokens and feedback. Core ownership/layout lives in `src/cui.c` and `src/cui_layout.c`; primitive controls, compositions and reference patterns have separate source objects. A single platform backend is compiled. The C, Go, Python, Zig and Rust examples call the public API.
-
-
-The desktop gallery includes native filtered multi-file/folder selection, color/font chooser actions, breadcrumbs linked to its tree, searchable commands, autocomplete, removable labels, banners, toast regions and empty/error recovery actions. Go, Python and Zig galleries also demonstrate searchable greetings, Undo notifications and token fields. See [desktop APIs](docs/desktop.md) and the [remaining completion work](docs/completion-plan.md); the full requested catalog is still in development.
-
-## Documentation website and native showcase
-
-Start with the language tutorials: [Python](docs/guides/python.md), [Go](docs/guides/go.md), [Zig](docs/guides/zig.md), and [Rust](docs/guides/rust.md). Each embeds a complete runnable example from the test suite.
-
-The repository includes a dependency-free static documentation site: 69 component pages with real Linux captures, all 21 reference families, 22 guides, exact C API declarations, language examples and local search. Prototype behavior remains labeled. Build tooling requires Python 3.12+; the website itself uses only HTML, CSS and JavaScript.
-
-```sh
-cmake --build build --parallel
-python3 tools/build_docs.py
-python3 tools/check_docs.py
-python3 -m http.server 8080 --directory build/docs
-```
-
-Open `http://localhost:8080`. Launch the corresponding native component with `./build/cui_showcase tokens`; use `--list` for every stable ID. See [the site maintenance guide](docs/site/README.md) for capture refreshes and coverage checks. Generated `catalog.json`, `api.json`, Markdown, `llms.txt` and `llms-full.txt` make the reference available to coding agents. No publishing service is required; `build/docs` can be served by any static host.
-
-## Native app demos
-
-Three offline mock apps show the bindings in realistic layouts. They have working local interactions and fictional data; no accounts, network requests or bundled dependencies. State resets on exit.
-
-- **Relay / Go** — pinned/archived conversations, history search and paging, reactions, quoted replies, editing, sample attachment metadata and delayed simulated replies. After building CUI, run `cd bindings/go && go run -buildvcs=false ./cmd/messenger`. [Source](bindings/go/cmd/messenger/main.go).
-- **Cadence / Python** — 12 tracks, editable playlists, a reorderable queue, history, favorites, shuffle/repeat, seeking and simulated playback. Build with `-DCUI_BUILD_SHARED=ON`, then run `PYTHONPATH=bindings/python python3 examples/python/music.py`. [Source](examples/python/music.py).
-- **Postbox / Zig** — filtered folders, multi-selection, bulk moves with undo, saved/resumable drafts, reply/forward and validated local sending. Run `zig build -Dexample=mail run`. [Source](examples/zig/mail.zig).
-
-The documentation homepage features all three; open `apps/index.html` on the generated site for native screenshots, interaction walkthroughs, source and setup instructions. The machine-readable `apps.json` exports the same app contracts. Linux interaction tests run at ordinary scale and 4K with 2× scaling and 150% text when `CUI_BUILD_BINDING_TESTS=ON`.
-
-Icons support reusable vector and RGBA assets, imported SVG geometry, system PNG/JPEG loading, native button/toggle integration and Go/Python/Zig/Rust wrappers. See [the icon guide](docs/guides/icons.md).
-
-## Development safety checks
-
-Run `python3 tools/check_memory.py all` for Linux sanitizer/leak checks, static analysis, Valgrind and fuzzing. Read the [memory-safety guide](docs/guides/memory-safety.md) for prerequisites, retained diagnostics and known GTK findings. Instrumentation is development-only and adds no shipping dependency.
-
-[Waypoint, the Rust simulator workspace](docs/plans/rust-simulator.md), now demonstrates custom drawing, group opacity and a translucent inspector. See the drawing guide for supported operations and native opacity limits.
-
-### Custom drawing and Waypoint
-
-The [drawing guide](docs/guides/drawing.md) covers canvas regions, premultiplied compositing, group opacity, clipping, native fonts, vector icons and app-owned backdrop blur. Run the [Rust simulator workspace](bindings/rust/examples/simulator.rs), or the small interactive drawing examples in [Python](examples/python/drawing.py), [Go](bindings/go/cmd/drawing/main.go) and [Zig](examples/zig/drawing.zig). All four bindings expose the public C API.
+Then explore [controls](docs/components.md), [layout and styling](docs/guides/styling.md),
+[desktop integration](docs/desktop.md), [drawing](docs/guides/drawing.md),
+[icons](docs/guides/icons.md), and [chat](docs/guides/chat.md).
+The [ownership guide](docs/guides/ownership.md) explains the main-thread API and application lifecycle.
