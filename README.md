@@ -2,7 +2,7 @@
 
 A small C99 GUI framework with native controls, automatic layout, and a deliberate visual design. Applications use a C API; macOS has a private Objective-C implementation and Windows uses C++/WinRT internally. Windows builds restore pinned WinUI 3 dependencies; Linux uses GTK and macOS uses AppKit. No bundled fonts or browser UI.
 
-**Early prototype, not production-ready.** Framework development, documentation and the showcase proceed together. Windows/macOS native verification is deferred to a later phase. Linux is compiled, tested, and visually inspected here. The Windows backend is being migrated to WinUI 3; its native build and visual checks and macOS compilation/runtime checks remain. The CI workflow builds all three; it has not been run remotely from this workspace.
+**Early prototype, not production-ready.** Framework development, documentation and the showcase proceed together. [Native CI builds and tests pass on Linux, Windows and macOS](https://github.com/merl111/cui/actions/runs/37593359136). Linux has also been visually inspected. Windows/macOS visual review, IME testing and broader accessibility validation remain; the automated tests cover only the exercised contracts.
 
 ## Appearance is part of the API
 
@@ -132,9 +132,9 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-Linux GUI tests run automatically when `xvfb-run` is installed and the environment permits an X server. They exercise the real example and native controls: Unicode round trips, callback suppression/delivery, theme changes, high-contrast fallback, disabled-state inheritance, window close/reopen, and bounds at 1×, 2×, 4K, and enlarged text. Component tests exercise all 21 families. Optional binding tests run all three language examples through their native event loops. Layout tests run without a display on all platforms. Windows CI builds WinUI and runs a public C API smoke test covering controls, models, canvas, themes, focus and shutdown. Those checks still need to run on Windows; they do not replace visual/IME/accessibility testing. macOS CI provides compilation and layout tests.
+Linux GUI tests run automatically when `xvfb-run` is installed and the environment permits an X server. They exercise the real example and native controls: Unicode round trips, callback suppression/delivery, theme changes, high-contrast fallback, disabled-state inheritance, window close/reopen, and bounds at 1×, 2×, 4K, and enlarged text. Component tests exercise all 21 families. Optional binding tests run all three language examples through their native event loops. Layout tests run without a display on all platforms. Windows CI builds WinUI and runs a public C API smoke test covering controls, models, canvas, themes, focus and shutdown. Windows also runs the chat UX contracts and an external UI Automation check of complete, read-only message text. macOS CI compiles AppKit and runs layout and native chat UX contracts. These checks do not replace visual, IME or full accessibility testing.
 
-A separate Clang build uses AddressSanitizer and UndefinedBehaviorSanitizer. GTK runs disable leak detection because toolkit process-global caches outlive the application; this does not establish leak freedom. Wayland, mixed-monitor/fractional scaling, native Windows/macOS behavior, and accessibility still need platform testing.
+The [Linux memory checks](docs/guides/memory-safety.md) use AddressSanitizer, UndefinedBehaviorSanitizer, LeakSanitizer, Valgrind, static analysis and fuzzing. Leak detection stays enabled, with documented dependency-specific exceptions and their coverage limits. Passing these checks does not establish leak freedom. Mixed-monitor/fractional scaling, broader native Windows/macOS behavior and accessibility still need platform testing.
 
 The current Linux x86-64 Release size measurements are recorded in [validation notes](docs/validation.md). Measurements exclude installed GTK and its transitive shared libraries. No runtime memory target has been established yet.
 
