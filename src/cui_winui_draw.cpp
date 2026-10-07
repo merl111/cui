@@ -2,6 +2,7 @@
 #include <cstring>
 #include <robuffer.h>
 #include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.System.h>
 #include <winrt/Windows.UI.ViewManagement.h>
 using namespace cui::winui;
 media::Imaging::WriteableBitmap cui::winui::bitmap(const uint32_t *pixels, int width, int height) {
@@ -65,7 +66,7 @@ extern "C" int cui__canvas_attach(cui_widget *w) {
         auto e = state(w).element;
         e.as<controls::Grid>().Background(brush(0));
         e.KeyDown([w](auto const &, xaml::Input::KeyRoutedEventArgs const &event) {
-            if (event.Key() == Windows::System::VirtualKey::C &&
+            if (event.Key() == winrt::Windows::System::VirtualKey::C &&
                 (modifiers() & CUI_MOD_PRIMARY) && cui__canvas_copy(w)) event.Handled(true);
         });
         e.PointerPressed([w](auto const &, auto const &v) { pointer(w, v, CUI_CANVAS_PRESS); });

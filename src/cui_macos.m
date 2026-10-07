@@ -1084,7 +1084,7 @@ void cui__backend_table_selection(cui_widget *w)
     for(NSTableColumn *column in [table tableColumns]){
         int index=(int)[[column identifier] integerValue];
         [column setEditable:s->editable[index]];[[column dataCell] setEditable:s->editable[index]];
-        [table setIndicatorImage:index==s->sort_column?[NSImage imageNamed:s->descending?NSImageNameDescendingSortIndicator:NSImageNameAscendingSortIndicator]:nil inTableColumn:column];
+        [table setIndicatorImage:index==s->sort_column?[NSImage imageNamed:s->descending?@"NSDescendingSortIndicator":@"NSAscendingSortIndicator"]:nil inTableColumn:column];
     }
 }
 void cui__backend_table_cell(cui_widget *w,size_t row,size_t column)
