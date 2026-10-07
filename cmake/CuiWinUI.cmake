@@ -69,6 +69,8 @@ function(cui_windows_executable NAME)
     target_include_directories(${NAME} PRIVATE examples)
     target_compile_features(${NAME} PRIVATE c_std_11)
     target_compile_options(${NAME} PRIVATE /utf-8)
+    # windows.rc already embeds manifest resource 1, including DPI settings.
+    target_link_options(${NAME} PRIVATE /MANIFEST:NO)
     target_link_libraries(${NAME} PRIVATE cui)
     # Keep the CUI DLL and the SDK bootstrap DLL next to each executable.
     add_custom_command(TARGET ${NAME} POST_BUILD
