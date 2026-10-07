@@ -105,6 +105,22 @@
 # Ubuntu librsvg 2.58: Rust GLib property builders during class initialization.
 # Reproduced by gtk_baseline pickers with no CUI linkage; do not broaden.
 
+# libxml2's per-thread parser state reached only through GTK's SVG icon worker.
+# Also present in the GTK-only picker baseline; not a general XML suppression.
+{
+   gtk-svg-worker-xml-thread-state
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:calloc
+   fun:xmlGetGlobalState
+   ...
+   fun:rsvg_handle_close
+   obj:*/gdk-pixbuf-2.0/*/loaders/libpixbufloader-svg.so
+   ...
+   fun:load_icon_thread
+   ...
+}
+
 {
    librsvg-property-double-initialization
    Memcheck:Cond
