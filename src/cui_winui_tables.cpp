@@ -66,10 +66,17 @@ void selection(cui_widget *w) {
     if (!s)
         return;
     std::fill_n(s->selected, s->rows, 0);
-    for (auto item : state(w).rows.SelectedItems()) {
-        auto index = winrt::unbox_value<uint32_t>(item);
-        if (index < s->rows)
+    auto list = state(w).rows;
+    if (!s->multiple) {
+        auto index = list.SelectedIndex();
+        if (index >= 0 && size_t(index) < s->rows)
             s->selected[index] = 1;
+    } else {
+        for (auto item : list.SelectedItems()) {
+            auto index = winrt::unbox_value<uint32_t>(item);
+            if (index < s->rows)
+                s->selected[index] = 1;
+        }
     }
     cui__table_selection_changed(w);
 }
@@ -134,6 +141,16 @@ extern "C" void cui__backend_table_selection(cui_widget *w) {
     protect(w->window->app, [&] {
         auto s = static_cast<cui_table_state *>(w->payload);
         auto list = state(w).rows;
+        if (!s->multiple) {
+            int selected = -1;
+            for (size_t r = 0; r < s->rows; ++r)
+                if (s->selected[r]) {
+                    selected = int(r);
+                    break;
+                }
+            list.SelectedIndex(selected);
+            return;
+        }
         list.SelectedItems().Clear();
         for (size_t r = 0; r < s->rows; ++r)
             if (s->selected[r])

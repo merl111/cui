@@ -98,6 +98,11 @@ int main(void) {
     cui_widget *table = cui_table(root, headers, 2);
     assert(table && cui_table_set_rows(table, cells, 2));
     cui_on_action(table, action, NULL);
+    assert(cui_table_select_row(table, 1, 1));
+    assert(cui_table_selected_rows(table, NULL, 0) == 1);
+    assert(cui_table_select_row(table, 1, 0));
+    assert(cui_table_selected_rows(table, NULL, 0) == 0);
+    assert(!*cui_app_error(app));
     cui_table_set_multiple(table, 1);
     assert(cui_table_select_row(table, 0, 1) && cui_table_select_row(table, 1, 1));
     assert(cui_table_selected_rows(table, NULL, 0) == 2);
