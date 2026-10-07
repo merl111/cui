@@ -233,8 +233,7 @@ extern "C" int cui__backend_window_create(cui_window *w, const char *title) {
                 // Wrap at the island boundary. An empty island can synchronously
                 // raise this event again, so navigate_focus guards re-entry.
                 using reason = xaml::Hosting::XamlSourceFocusNavigationReason;
-                navigate_focus(w, args.Request().Reason() == reason::Last ||
-                    args.Request().Reason() == reason::Previous ? reason::Last : reason::First);
+                navigate_focus(w, args.Request().Reason() == reason::Last ? reason::Last : reason::First);
             });
         });
         s->root.KeyDown([w](auto const &, xaml::Input::KeyRoutedEventArgs const &e) {
