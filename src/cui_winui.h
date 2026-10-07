@@ -68,6 +68,7 @@ struct widget_state {
     std::vector<unsigned> region_ids;
 };
 struct window_state {
+    bool navigating_focus = false;
     xaml::Hosting::DesktopWindowXamlSource island{nullptr};
     controls::Grid root{nullptr};
     controls::Canvas document{nullptr};

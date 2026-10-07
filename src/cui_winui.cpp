@@ -60,6 +60,17 @@ struct app_state {
             winrt::uninit_apartment();
     }
 };
+void navigate_focus(cui_window *w, xaml::Hosting::XamlSourceFocusNavigationReason reason) {
+    if (!w->content || state(w).navigating_focus)
+        return;
+    auto &navigating = state(w).navigating_focus;
+    navigating = true;
+    struct reset_on_exit {
+        bool &value;
+        ~reset_on_exit() { value = false; }
+    } reset{navigating};
+    state(w).island.NavigateFocus(xaml::Hosting::XamlSourceFocusNavigationRequest(reason));
+}
 void size_island(cui_window *w) {
     if (!w->content)
         return;
@@ -101,10 +112,10 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             break;
         case WM_SETFOCUS:
             if (w->content)
-                state(w).island.NavigateFocus(xaml::Hosting::XamlSourceFocusNavigationRequest(
+                navigate_focus(w,
                     GetKeyState(VK_SHIFT) < 0
                         ? xaml::Hosting::XamlSourceFocusNavigationReason::Last
-                        : xaml::Hosting::XamlSourceFocusNavigationReason::First));
+                        : xaml::Hosting::XamlSourceFocusNavigationReason::First);
             return 0;
         case WM_ACTIVATE:
             if (w->popup && LOWORD(wp) == WA_INACTIVE)
@@ -217,10 +228,13 @@ extern "C" int cui__backend_window_create(cui_window *w, const char *title) {
         s->scroll.Content(s->document);
         s->root.Children().Append(s->scroll);
         s->island.Content(s->root);
-        s->island.TakeFocusRequested([w](auto const &source, auto const &args) {
+        s->island.TakeFocusRequested([w](auto const &, auto const &args) {
             protect(w->app, [&] {
-                source.NavigateFocus(
-                    xaml::Hosting::XamlSourceFocusNavigationRequest(args.Request().Reason()));
+                // Wrap at the island boundary. An empty island can synchronously
+                // raise this event again, so navigate_focus guards re-entry.
+                using reason = xaml::Hosting::XamlSourceFocusNavigationReason;
+                navigate_focus(w, args.Request().Reason() == reason::Last ||
+                    args.Request().Reason() == reason::Previous ? reason::Last : reason::First);
             });
         });
         s->root.KeyDown([w](auto const &, xaml::Input::KeyRoutedEventArgs const &e) {
