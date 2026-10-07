@@ -27,6 +27,18 @@ jobs:
       - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCUI_BUILD_TESTS=ON
       - run: cmake --build build --config Release --parallel
       - run: ctest --test-dir build -C Release --output-on-failure
+      - name: Diagnose native Windows failures
+        if: failure() && runner.os == 'Windows'
+        timeout-minutes: 10
+        shell: pwsh
+        run: |
+          $cdb = "${env:ProgramFiles(x86)}\Windows Kits\10\Debuggers\x64\cdb.exe"
+          if (!(Test-Path $cdb)) {
+            Invoke-WebRequest 'https://go.microsoft.com/fwlink/?linkid=2272610' -OutFile "$env:RUNNER_TEMP/winsdksetup.exe"
+            $installer = Start-Process "$env:RUNNER_TEMP/winsdksetup.exe" -ArgumentList '/features OptionId.WindowsDesktopDebuggers /quiet /norestart' -Wait -PassThru
+            if ($installer.ExitCode -ne 0) { throw "Debugger installation failed: $($installer.ExitCode)" }
+          }
+          & $cdb -g -G -y "build/Release;srv*$env:RUNNER_TEMP/symbols*https://msdl.microsoft.com/download/symbols" -lines -c 'sxe -c ".exr -1; kP; q" av; sxe -c ".exr -1; kP; q" 0xc000027b; sxe -c ".exr -1; kP; q" 0xc0000409; g' build/Release/cui_winui_test.exe
       - name: Retain Windows test diagnostics
         if: always() && runner.os == 'Windows'
         uses: actions/upload-artifact@v4
