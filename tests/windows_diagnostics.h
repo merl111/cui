@@ -6,6 +6,12 @@
 #include <stdio.h>
 #pragma comment(lib, "dbghelp.lib")
 static LONG WINAPI cui_test_exception(EXCEPTION_POINTERS *exception) {
+    if(exception->ExceptionRecord->ExceptionCode!=EXCEPTION_ACCESS_VIOLATION)
+        return EXCEPTION_CONTINUE_SEARCH;
+    static int reporting;
+    if(reporting++)return EXCEPTION_CONTINUE_SEARCH;
+    fprintf(stderr,"Windows access violation at %p\n",exception->ExceptionRecord->ExceptionAddress);
+#if defined(_M_X64)
     HANDLE process=GetCurrentProcess();
     CONTEXT context=*exception->ContextRecord;
     STACKFRAME64 frame={0};
@@ -33,9 +39,13 @@ static LONG WINAPI cui_test_exception(EXCEPTION_POINTERS *exception) {
             NULL,SymFunctionTableAccess64,SymGetModuleBase64,NULL))break;
     }
     fflush(stderr);
-    return EXCEPTION_EXECUTE_HANDLER;
+#endif
+    return EXCEPTION_CONTINUE_SEARCH;
 }
-static void cui_test_windows_diagnostics(void){SetUnhandledExceptionFilter(cui_test_exception);}
+static void cui_test_windows_diagnostics(void){
+    fputs("Starting native Windows test\n",stderr);fflush(stderr);
+    AddVectoredExceptionHandler(1,cui_test_exception);
+}
 #else
 static void cui_test_windows_diagnostics(void){}
 #endif
