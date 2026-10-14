@@ -11,7 +11,7 @@ pub fn build(b: *std.Build) void {
     module.addImport("cui", binding);
     module.addIncludePath(b.path("include"));
     if (target.result.os.tag != .windows) {
-        module.addCSourceFiles(.{ .files = &.{ "src/cui.c", "src/cui_layout.c", "src/cui_layouts.c", "src/cui_layout_algorithms.c", "src/cui_icons.c", "src/cui_draw.c", "src/cui_chat.c", "src/cui_chat_paint.c", "src/cui_chat_selection.c", "src/cui_chat_compose.c", "src/cui_raster.c", "src/cui_controls.c", "src/cui_components.c", "src/cui_patterns.c", "src/cui_pattern_collections.c", "src/cui_pattern_filters.c", "src/cui_insights.c", "src/cui_desktop.c", "src/cui_files.c", "src/cui_keys.c", "src/cui_feedback.c", "src/cui_choices.c", "src/cui_search.c", "src/cui_tokens.c", "src/cui_navigation.c", "src/cui_breadcrumbs.c", "src/cui_inputs.c", "src/cui_datetime.c", "src/cui_tables.c" }, .flags = &.{"-std=c11"} });
+        module.addCSourceFiles(.{ .files = &.{ "src/cui.c", "src/cui_text_ranges.c", "src/cui_layout.c", "src/cui_layouts.c", "src/cui_layout_algorithms.c", "src/cui_icons.c", "src/cui_draw.c", "src/cui_chat.c", "src/cui_chat_paint.c", "src/cui_chat_selection.c", "src/cui_chat_compose.c", "src/cui_raster.c", "src/cui_controls.c", "src/cui_components.c", "src/cui_patterns.c", "src/cui_pattern_collections.c", "src/cui_pattern_filters.c", "src/cui_insights.c", "src/cui_desktop.c", "src/cui_files.c", "src/cui_keys.c", "src/cui_feedback.c", "src/cui_choices.c", "src/cui_search.c", "src/cui_tokens.c", "src/cui_navigation.c", "src/cui_breadcrumbs.c", "src/cui_inputs.c", "src/cui_datetime.c", "src/cui_tables.c" }, .flags = &.{"-std=c11"} });
     }
     switch (target.result.os.tag) {
         .linux => {

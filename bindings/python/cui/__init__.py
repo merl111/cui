@@ -93,6 +93,16 @@ for name in ('get_text', 'get_selected_text'):
 _bind('on_action', None, P, Action, P)
 _bind('activate', I, P)
 _bind('insert_text', I, P, S)
+_bind('text_get_range', I, P, C.POINTER(N), C.POINTER(N))
+_bind('text_set_range', I, P, N, N)
+_bind('text_set_emphasis', I, P, N, N, C.c_uint)
+_bind('text_set_native_undo', I, P, I)
+_bind('text_set_spacing', I, P, I, I)
+_bind('text_decorate', I, P, N, N, C.c_uint, C.c_uint, C.c_uint)
+_bind('text_rect', I, P, N, C.POINTER(D))
+_bind('text_pointer', I, P, C.POINTER(N), C.POINTER(D))
+_bind('window_set_close_deferred', None, P, I)
+_bind('window_close_requested', I, P)
 _bind('every', P, P, C.c_uint, Task, P)
 _bind('timer_stop', None, P)
 _bind('timer_start', I, P)
@@ -211,6 +221,7 @@ _bind('split', P, P, I, D)
 _bind('split_pane', P, P, C.c_uint)
 _bind('split_set_position', None, P, D)
 _bind('split_get_position', D, P)
+_bind('split_set_scrollable', I, P, C.c_uint, I)
 class _Date(C.Structure):
     _fields_ = [('year', I), ('month', I), ('day', I)]
 class _Time(C.Structure):
@@ -514,6 +525,8 @@ class Window(Handle):
     def root(self): return Widget(self.app, lib.cui_window_root(self.ptr))
     def show(self): lib.cui_window_show(self.ptr)
     def close(self): lib.cui_window_close(self.ptr)
+    def set_close_deferred(self, value): lib.cui_window_set_close_deferred(self.ptr, bool(value))
+    def close_requested(self): return bool(lib.cui_window_close_requested(self.ptr))
     def frame(self, decorated=True, resizable=True, radius=0): return bool(lib.cui_window_set_frame(self.ptr, decorated, resizable, radius))
     def set_size(self, width, height): return bool(lib.cui_window_set_size(self.ptr, width, height))
     def set_position(self, x, y): return bool(lib.cui_window_set_position(self.ptr, x, y))
@@ -793,6 +806,7 @@ class Widget(Handle):
     def cell(self, row, column, row_span=1, column_span=1): return Widget(self.app, lib.cui_grid_cell(self.ptr, row, column, row_span, column_span))
     def wrap(self, gap=8): return Widget(self.app, lib.cui_wrap(self.ptr, gap))
     def split(self, axis=HORIZONTAL, fraction=0.5): return Widget(self.app, lib.cui_split(self.ptr, axis, fraction))
+    def split_scrollable(self, index, scrollable=True): return bool(lib.cui_split_set_scrollable(self.ptr, index, scrollable))
     def pane(self, index): return Widget(self.app, lib.cui_split_pane(self.ptr, index))
     @property
     def split_position(self): return lib.cui_split_get_position(self.ptr)
@@ -870,6 +884,20 @@ class Widget(Handle):
     @property
     def selected_text(self): return self._text(True)
     def insert_text(self, text): return bool(lib.cui_insert_text(self.ptr, _s(text)))
+    def text_range(self):
+        start, end = N(), N()
+        return (start.value, end.value) if lib.cui_text_get_range(self.ptr, C.byref(start), C.byref(end)) else None
+    def set_text_range(self, start, end): return bool(lib.cui_text_set_range(self.ptr, start, end))
+    def set_text_emphasis(self, start, end, flags): return bool(lib.cui_text_set_emphasis(self.ptr, start, end, flags))
+    def decorate_text(self, start, end, foreground=0, background=0, flags=0): return bool(lib.cui_text_decorate(self.ptr, start, end, foreground, background, flags))
+    def text_rect(self, offset):
+        rect=(D*4)()
+        return tuple(rect) if lib.cui_text_rect(self.ptr, offset, rect) else None
+    def text_pointer(self):
+        offset=N(); rect=(D*4)()
+        return (offset.value, tuple(rect)) if lib.cui_text_pointer(self.ptr, C.byref(offset), rect) else None
+    def set_text_spacing(self, line_spacing, paragraph_spacing): return bool(lib.cui_text_set_spacing(self.ptr, line_spacing, paragraph_spacing))
+    def set_native_undo(self, enabled): return bool(lib.cui_text_set_native_undo(self.ptr, bool(enabled)))
     def allocated_size(self):
         width, height = I(), I()
         if not lib.cui_widget_get_size(self.ptr, C.byref(width), C.byref(height)): return None

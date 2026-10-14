@@ -160,6 +160,28 @@ static void check_timeline_hover(void) {
 #endif
   assert(s->event.action == CUI_CHAT_LOAD_OLDER);
 }
+static void check_compact_room_columns(void) {
+  cui_chat_presentation original, compact;
+  assert(cui_chat_presentation_get(rooms, &original));
+  compact = original; compact.rooms = CUI_CHAT_COMPACT; compact.room_height = 34;
+  assert(cui_chat_set_presentation(rooms, &compact));
+  cui_chat_room row = {.id=1, .title="A very long chapter title", .trailing="Outline", .symbol=CUI_SYMBOL_FILE};
+  assert(cui_chat_set_rooms(rooms, &row, 1));
+  assert(cui_chat_refresh(rooms, 1));
+  chat_state *s = cui__chat(rooms);
+  const cui_draw_command *title=NULL, *count=NULL;
+  int symbol=0;
+  for(size_t i=0;i<s->scene.count;++i) {
+    const cui_draw_command *c=s->scene.commands+i;
+    if(c->op==CUI_DRAW_ICON) symbol=1;
+    if(c->op==CUI_DRAW_TEXT && !strcmp(c->text,row.title)) title=c;
+    if(c->op==CUI_DRAW_TEXT && !strcmp(c->text,row.trailing)) count=c;
+  }
+  assert(symbol && title && count);
+  assert(title->p[0]+title->p[2]+8 <= count->p[0]);
+  assert(title->p[6]==34 && count->p[6]==34);
+  assert(cui_chat_set_presentation(rooms, &original));
+}
 static void check_room_scroll_and_avatar(void) {
   cui_chat_room rows[30] = {0};
   for (unsigned i = 0; i < 30; ++i)
@@ -186,6 +208,13 @@ static void check_room_scroll_and_avatar(void) {
          0); /* Up at the top must not use the API's bottom sentinel. */
   cui__canvas_event(canvas, CUI_CANVAS_SCROLL, 20, 40, 0, 4, 0);
   assert(s->offset > 0);
+  assert(cui_chat_scroll_to(rooms, 30));
+  assert(s->offset > 0);
+  double revealed = s->offset;
+  assert(cui_chat_scroll_to(rooms, 30) && s->offset == revealed);
+  assert(!cui_chat_scroll_to(rooms, 9999) && s->offset == revealed);
+  assert(cui_chat_scroll_to(rooms, 1));
+  assert(s->offset < revealed);
   double offset = s->offset;
   assert(cui_chat_refresh(rooms, 1));
   assert(s->offset == offset);
@@ -349,12 +378,35 @@ static void check_readers(void) {
   assert(s->messages[0].read_by_count==4);
   m.read_by_count=0; m.read_by=NULL; assert(cui_chat_set_messages(chat,&m,1));
 }
+static void check_document_layout(void) {
+  cui_chat_presentation p; assert(cui_chat_presentation_get(message,&p));
+  p.messages=CUI_CHAT_DOCUMENT; p.show_sender=1;
+  assert(cui_chat_set_presentation(message,&p));
+  cui_chat_span spans[]={{"A source-backed answer. ","",CUI_CHAT_BODY},{"Chapter 7","source:7",CUI_CHAT_MENTION}};
+  cui_chat_message m={.id=90,.author="DreamScape",.spans=spans,.span_count=2,.selected_option=-1};
+  for(int outgoing=0;outgoing<2;++outgoing) {
+    m.flags=outgoing?CUI_CHAT_OUTGOING:0;
+    assert(cui_chat_set_messages(message,&m,1));assert(cui_chat_refresh(message,1));
+    chat_state *s=cui__chat(message);int found=0;
+    for(size_t i=0;i<s->scene.region_count;++i) {
+      cui_canvas_region r=s->scene.regions[i];
+      if(s->scene.actions[i].action==CUI_CHAT_LINK) {
+        assert(r.x>=0 && r.x+r.width<=s->width+1);found=1;
+        assert(cui_canvas_activate_region(cui_chat_part(message,0),r.id));
+        cui_chat_event e;assert(cui_chat_event_get(message,&e));assert(e.action==CUI_CHAT_LINK&&!strcmp(e.text,"source:7"));
+      }
+    }
+    assert(found);
+  }
+  p.rooms=CUI_CHAT_DOCUMENT;assert(!cui_chat_set_presentation(message,&p));
+}
 static void verify(void *data) {
   check_readers();
   (void)data;
   check_font(); check_hover(); check_focus_contents(); check_single_line_alignment();
   check_toolbar_focus();
   check_timeline_hover();
+  check_compact_room_columns();
   check_room_scroll_and_avatar();
   check_links_and_profile();
   check_dark_unread();
@@ -377,6 +429,7 @@ static void verify(void *data) {
   assert(caption);
   check_reply_navigation();
   check_delivery();
+  check_document_layout();
   cui_app_quit(app);
 }
 int main(void) {

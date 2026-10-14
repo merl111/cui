@@ -860,7 +860,7 @@ void cui__backend_style(cui_widget *w)
         gtk_text_view_set_left_margin(GTK_TEXT_VIEW(w->aux),6);gtk_text_view_set_right_margin(GTK_TEXT_VIEW(w->aux),6);gtk_text_view_set_top_margin(GTK_TEXT_VIEW(w->aux),10);gtk_text_view_set_bottom_margin(GTK_TEXT_VIEW(w->aux),10);
         GtkWidget *hint=g_object_get_data(G_OBJECT(native),"cui-placeholder");if(hint){gtk_widget_set_margin_start(hint,6);gtk_widget_set_margin_top(hint,10);}
         GtkWidget *scroll=gtk_overlay_get_child(GTK_OVERLAY(native));gtk_widget_remove_css_class(scroll,"cui-input-surface");
-        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),GTK_POLICY_NEVER,GTK_POLICY_EXTERNAL);
+        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),GTK_POLICY_NEVER,GTK_POLICY_AUTOMATIC);
     }
     unsigned bg=w->style.background,fg=w->style.foreground,bc=w->style.border;
     char background[80],foreground[80],border[80];
@@ -881,9 +881,13 @@ void cui__backend_style(cui_widget *w)
         size_t used=strlen(css);
         g_snprintf(css+used,sizeof(css)-used," .%s:disabled {opacity:0.5;}",name);
     }
+    if(w->kind==CUI_LIST){
+        size_t used=strlen(css);
+        g_snprintf(css+used,sizeof(css)-used," .%s list {background-color:%s;color:%s;} .%s row {padding:6px;border:1px solid transparent;background-color:transparent;color:%s;} .%s row:selected {background-color:alpha(%s,0.08);color:%s;border-color:%s;}",name,background,foreground,name,foreground,name,foreground,foreground,border);
+    }
     if(w->kind==CUI_TABLE){
         size_t used=strlen(css);
-        g_snprintf(css+used,sizeof(css)-used," .%s columnview, .%s columnview listview {background-color:%s;color:%s;} .%s columnview row {background-color:transparent;border:none;} .%s columnview row:selected {background-color:%s;color:%s;} .%s columnview cell {border:none;}",name,name,background,foreground,name,name,foreground,background,name);
+        g_snprintf(css+used,sizeof(css)-used," .%s columnview, .%s columnview listview {background-color:%s;color:%s;} .%s columnview row {background-color:transparent;border:none;} .%s columnview row:selected {background-color:alpha(%s,0.08);color:%s;} .%s columnview cell {border:none;}",name,name,background,foreground,name,name,foreground,foreground,name);
     }
     load_css(provider,css);
 }

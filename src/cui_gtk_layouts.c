@@ -63,7 +63,7 @@ GtkWidget *cui__gtk_container(cui_widget *w)
 {
     if(w->kind==CUI_STACK)return gtk_overlay_new();
     if(w->kind==CUI_GRID)return gtk_grid_new();
-    if(w->kind==CUI_WRAP){GtkWidget *flow=gtk_flow_box_new();gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(flow),GTK_SELECTION_NONE);gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(flow),65535);return flow;}
+    if(w->kind==CUI_WRAP){GtkWidget *flow=gtk_flow_box_new();gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(flow),GTK_SELECTION_NONE);gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(flow),1);return flow;}
     GtkWidget *paned=gtk_paned_new(w->axis==CUI_HORIZONTAL?GTK_ORIENTATION_HORIZONTAL:GTK_ORIENTATION_VERTICAL);
     split_state *state=g_new0(split_state,1);
     g_object_set_data_full(G_OBJECT(paned),"cui-split",state,split_free);
@@ -91,7 +91,15 @@ void cui__gtk_append(cui_widget *parent,cui_widget *child)
         else gtk_overlay_add_overlay(GTK_OVERLAY(parent->native),native);
     }else if(parent->kind==CUI_GRID){
         gtk_grid_attach(GTK_GRID(parent->native),native,(int)child->grid_column,(int)child->grid_row,1,1);
-    }else if(parent->kind==CUI_WRAP)gtk_flow_box_insert(GTK_FLOW_BOX(parent->native),native,-1);
+    }else if(parent->kind==CUI_WRAP){
+        gtk_flow_box_insert(GTK_FLOW_BOX(parent->native),native,-1);
+        /* GtkFlowBox measures candidate column counts up to this limit. Using
+         * 65535 makes even a three-button row stall the whole event loop. The
+         * real child count allows every useful layout without empty columns. */
+        GtkWidget *last=gtk_widget_get_last_child(GTK_WIDGET(parent->native));
+        guint count=(guint)gtk_flow_box_child_get_index(GTK_FLOW_BOX_CHILD(last))+1;
+        gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(parent->native),MIN(count,65535));
+    }
     else if(parent->kind==CUI_SPLIT){if(!parent->first)gtk_paned_set_start_child(GTK_PANED(parent->native),native);else gtk_paned_set_end_child(GTK_PANED(parent->native),native);}
     else gtk_box_append(GTK_BOX(parent->native),native);
 }

@@ -4,6 +4,9 @@
 #include <math.h>
 #include <string.h>
 #include <stdint.h>
+#if defined(__linux__)
+#include <gtk/gtk.h>
+#endif
 cui_widget *cui_grid(cui_widget *parent,unsigned columns,int gap)
 {
     if(!columns||columns>64||gap<0)return NULL;
@@ -34,10 +37,44 @@ cui_widget *cui_split_pane(cui_widget *w,unsigned index)
 void cui_split_set_position(cui_widget *w,double fraction)
 {
     if(!w||w->kind!=CUI_SPLIT||!isfinite(fraction))return;
-    w->value=fraction<0?0:fraction>1?1:fraction;
+    fraction=fraction<0?0:fraction>1?1:fraction;
+    if(w->value==fraction)return;
+    w->value=fraction;
     ++w->updating;cui__backend_split_position(w);--w->updating;cui__backend_refresh(w->window);
 }
 double cui_split_get_position(const cui_widget *w){return w&&w->kind==CUI_SPLIT?w->value:0;}
+
+int cui_split_set_scrollable(cui_widget *w, unsigned index, int scrollable)
+{
+    if (!w || w->kind != CUI_SPLIT || index > 1) return 0;
+#if defined(__linux__)
+    GtkPaned *paned = GTK_PANED(w->native);
+    GtkWidget *child = index ? gtk_paned_get_end_child(paned) : gtk_paned_get_start_child(paned);
+    if (!child) return 0;
+    int wrapped = GTK_IS_SCROLLED_WINDOW(child);
+    if (!!scrollable == wrapped) return 1;
+    GtkWidget *content = child;
+    if (wrapped) {
+        content = gtk_scrolled_window_get_child(GTK_SCROLLED_WINDOW(child));
+        if (GTK_IS_VIEWPORT(content)) content = gtk_viewport_get_child(GTK_VIEWPORT(content));
+    }
+    g_object_ref(content);
+    if (wrapped) gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(child), NULL);
+    if (index) gtk_paned_set_end_child(paned, NULL); else gtk_paned_set_start_child(paned, NULL);
+    GtkWidget *replacement = content;
+    if (scrollable) {
+        replacement = gtk_scrolled_window_new();
+        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(replacement), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+        gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(replacement), content);
+    }
+    if (index) gtk_paned_set_end_child(paned, replacement); else gtk_paned_set_start_child(paned, replacement);
+    g_object_unref(content);
+    return 1;
+#else
+    (void)scrollable;
+    return 0;
+#endif
+}
 
 int cui__grid_default_slot(const cui_widget *grid, cui_widget *child)
 {

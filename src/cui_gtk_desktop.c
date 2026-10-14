@@ -9,8 +9,11 @@ static GtkWidget *input(cui_widget *w)
 int cui_focus(cui_widget *w){if(!w)return 0;for(cui_widget *p=w;p;p=p->parent)if(p->hidden||!p->enabled)return 0;return gtk_widget_grab_focus(input(w));}
 int cui_has_focus(const cui_widget *w)
 {
-    if(!w)return 0;
-    GtkWidget *focused=gtk_window_get_focus(GTK_WINDOW(w->window->native));
+    if(!w||!w->native)return 0;
+    /* Anchored windows reparent their content into a popover on the owner's
+     * GtkRoot. The original GtkWindow is hidden and has no focused widget. */
+    GtkRoot *root=gtk_widget_get_root(GTK_WIDGET(w->native));
+    GtkWidget *focused=root?gtk_root_get_focus(root):NULL;
     return focused&&(focused==GTK_WIDGET(w->native)||gtk_widget_is_ancestor(focused,GTK_WIDGET(w->native)));
 }
 void cui_accessibility(cui_widget *w,const char *label,const char *description)

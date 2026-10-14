@@ -208,6 +208,7 @@ void cui_window_show(cui_window *window)
 void cui_window_close(cui_window *window)
 {
     if (!window || !window->visible) return;
+    if (window->close_deferred) { window->close_requested = 1; return; }
     window->visible = 0;
     for(cui_window *child=window->app->windows;child;child=child->next)
         if(child->anchor_parent==window)cui_window_close(child);
@@ -256,7 +257,7 @@ cui_widget *cui_box(cui_widget *parent, cui_axis axis, int gap)
 
 void cui_box_set_padding(cui_widget *box, int padding)
 {
-    if (!box || !cui__container(box) || padding < 0) return;
+    if (!box || !cui__container(box) || padding < 0 || box->padding == padding) return;
     box->padding = padding;
     cui__backend_padding(box);
     cui__backend_refresh(box->window);
@@ -271,7 +272,7 @@ cui_widget *cui_entry(cui_widget *parent, const char *text)
 
 void cui_expand(cui_widget *widget, int expand)
 {
-    if (!widget) return;
+    if (!widget || widget->expand == !!expand) return;
     widget->expand = !!expand;
     cui__backend_expand(widget);
     cui__backend_refresh(widget->window);
@@ -311,6 +312,18 @@ void cui_set_text(cui_widget *widget, const char *text)
 {
     if(widget && widget->icon_only && (!text||!*text))return;
     if (!widget || !cui__has_text(widget)) return;
+    if (!text) text = "";
+    /* Preserve selection and avoid native relayout when a render repeats text. */
+    size_t length = strlen(text);
+    if (!length && !cui_get_text(widget, NULL, 0)) return;
+    char *current = length == cui_get_text(widget, NULL, 0) ? malloc(length + 1) : NULL;
+    int same = 0;
+    if (current) {
+        cui_get_text(widget, current, length + 1);
+        same = !strcmp(current, text);
+        free(current);
+    }
+    if (same) return;
     ++widget->updating;
     cui__backend_set_text(widget, text ? text : "");
     if(widget->icon_only){cui_set_tooltip(widget,text);cui_accessibility(widget,text,text);}
@@ -364,7 +377,7 @@ int cui_get_checked(const cui_widget *widget)
 
 void cui_set_enabled(cui_widget *widget, int enabled)
 {
-    if (!widget) return;
+    if (!widget || widget->enabled == !!enabled) return;
     widget->enabled = !!enabled;
     update_enabled(widget);
 }
@@ -407,3 +420,12 @@ int cui_set_style(cui_widget *w,const cui_widget_style *style)
     w->styled=style!=NULL;if(style)w->style=*style;
     cui__backend_style(w);cui__backend_refresh(w->window);return 1;
 }
+
+void cui_window_set_close_deferred(cui_window *window, int deferred)
+{
+    if (!window) return;
+    window->close_deferred = !!deferred;
+    window->close_requested = 0;
+}
+int cui_window_close_requested(const cui_window *window)
+{ return window && window->close_requested; }

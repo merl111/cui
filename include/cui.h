@@ -246,6 +246,40 @@ size_t cui_get_selected_text(const cui_widget *widget, char *buffer, size_t capa
 /* Replace the native selection, or insert at the caret. UTF-8, silent like
  * set_text; returns zero for read-only/non-text widgets. Preserves native undo. */
 int cui_insert_text(cui_widget *widget, const char *text);
+/* Native text ranges in UTF-8 bytes, [start,end). A collapsed range is the caret.
+ * Linux textarea/code implementation; unsupported backends/widgets return 0.
+ * Set rejects invalid UTF-8 boundaries/out-of-bounds without changing selection.
+ * Get leaves outputs unchanged on failure. Selection changes are silent. */
+int cui_text_get_range(const cui_widget *widget, size_t *start, size_t *end);
+int cui_text_set_range(cui_widget *widget, size_t start, size_t end);
+/* Linux textarea/code presentation, flags: 1 emphasis, 2 strong, 0 clears both.
+ * Does not change text, emit an action, or add a native undo record. */
+int cui_text_set_emphasis(cui_widget *widget, size_t start, size_t end, unsigned flags);
+/* Linux textarea/code: disable native undo when an application supplies its own
+ * history. Clearing native history does not emit an action. Other backends
+ * return 0. */
+int cui_text_set_native_undo(cui_widget *widget, int enabled);
+/* Linux textarea/code reading layout. Extra logical pixels between wrapped
+ * lines and after paragraphs, each 0..64. Silent; text/ranges/undo unchanged.
+ * Unsupported widgets/backends and invalid values return 0. */
+int cui_text_set_spacing(cui_widget *widget, int line_spacing, int paragraph_spacing);
+/* Linux textarea/code transient decoration: RGBA colors, zero inherits; flags
+ * 1 underline, 2 strike. All zero clears only decorations in the byte range.
+ * Silent, no undo record, independent of emphasis. At most 64 distinct styles.
+ * Invalid ranges/styles and unsupported backends return 0 without mutation. */
+int cui_text_decorate(cui_widget *widget, size_t start, size_t end, unsigned foreground, unsigned background, unsigned flags);
+/* Visible glyph/caret rectangle relative to the widget, four logical doubles
+ * x,y,width,height. Pointer returns the byte offset under the current pointer.
+ * Outputs are unchanged on failure; widgets must be realized. */
+int cui_text_rect(const cui_widget *widget, size_t offset, double *rect);
+int cui_text_pointer(const cui_widget *widget, size_t *offset, double *rect);
+/* Defers close requests (including programmatic close) until disabled.
+ * close_requested stays set until set_close_deferred is called again.
+ * Use a UI timer to finish asynchronous saves, disable deferral, then close.
+ * Existing applications retain their original immediate-close behavior. */
+void cui_window_set_close_deferred(cui_window *window, int deferred);
+int cui_window_close_requested(const cui_window *window);
+
 void cui_set_checked(cui_widget *checkbox, int checked);
 int cui_get_checked(const cui_widget *checkbox);
 void cui_set_enabled(cui_widget *widget, int enabled);

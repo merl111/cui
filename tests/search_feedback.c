@@ -10,6 +10,7 @@
 #include <string.h>
 #define CHECK(x) do{if(!(x)){fprintf(stderr,"search_feedback:%d: %s\n",__LINE__,#x);exit(1);}}while(0)
 static cui_app *app;static cui_widget *picker,*palette,*toast,*outside;
+static cui_window *anchored;static cui_widget *anchored_picker;
 static cui_widget *tokens;static int token_events[6];
 static int events[5],feedback[4],ticks,phase;static double started;
 static int press(cui_widget *w,guint key)
@@ -133,7 +134,17 @@ static void tick(void *data)
         CHECK(!cui_feedback_is_visible(toast));CHECK(cui_feedback_show(toast,"Dismiss","",CUI_ROLE_WARNING,"",0));
         CHECK(cui_activate(cui_feedback_get_part(toast,CUI_FEEDBACK_DISMISS_BUTTON)));CHECK(feedback[CUI_FEEDBACK_DISMISS]==1);CHECK(!cui_feedback_is_visible(toast));
         CHECK(!cui_feedback_show(toast,"Invalid","",CUI_ROLE_CARD,"",100));
-        cui_app_quit(app);
+        anchored=cui_window_create(app,"Anchored search",320,260);CHECK(anchored);
+        CHECK(cui_window_set_frame(anchored,0,0,8));
+        anchored_picker=cui_picker(cui_window_root(anchored),CUI_COMMAND_PALETTE,"Find reference");CHECK(anchored_picker);
+        const cui_choice choice={1,"Mira","Character","",0};CHECK(cui_picker_set_items(anchored_picker,&choice,1));
+        CHECK(cui_window_popup_at(anchored,outside,0,0,100,30));
+        cui_picker_open(anchored_picker,NULL);started=cui_time();phase=4;return;
+    }
+    if(phase==4&&cui_time()-started>.35){
+        CHECK(cui_picker_is_open(anchored_picker));CHECK(cui_has_focus(cui_picker_get_part(anchored_picker,CUI_PICKER_INPUT)));
+        CHECK(cui_picker_accept(anchored_picker));CHECK(cui_picker_selected(anchored_picker)==1);
+        cui_window_close(anchored);cui_app_quit(app);
     }
 }
 int main(void)

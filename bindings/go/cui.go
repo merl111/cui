@@ -757,6 +757,14 @@ func (w Widget) SplitPosition() float64 {
 	w.app.check()
 	return float64(C.cui_split_get_position(w.ptr))
 }
+func (w Widget) SetSplitScrollable(index uint, scrollable bool) bool {
+	w.app.check()
+	value := 0
+	if scrollable {
+		value = 1
+	}
+	return C.cui_split_set_scrollable(w.ptr, C.uint(index), C.int(value)) != 0
+}
 func (w Widget) SetSplitPosition(fraction float64) {
 	w.app.check()
 	C.cui_split_set_position(w.ptr, C.double(fraction))
@@ -1234,4 +1242,73 @@ func (a *App) FocusIndicators(visible bool) {
 		v = 1
 	}
 	C.cui_app_set_focus_indicators(a.ptr, v)
+}
+
+// TextRange returns UTF-8 byte offsets, or ok=false on unsupported backends.
+func (w Widget) TextRange() (start, end uint, ok bool) {
+	w.app.check()
+	var a, z C.size_t
+	ok = C.cui_text_get_range(w.ptr, &a, &z) != 0
+	return uint(a), uint(z), ok
+}
+func (w Widget) SetTextRange(start, end uint) bool {
+	w.app.check()
+	return C.cui_text_set_range(w.ptr, C.size_t(start), C.size_t(end)) != 0
+}
+func (w Widget) SetTextEmphasis(start, end uint, flags uint) bool {
+	w.app.check()
+	return C.cui_text_set_emphasis(w.ptr, C.size_t(start), C.size_t(end), C.uint(flags)) != 0
+}
+func (w Widget) SetTextSpacing(lineSpacing, paragraphSpacing int) bool {
+	w.app.check()
+	return C.cui_text_set_spacing(w.ptr, C.int(lineSpacing), C.int(paragraphSpacing)) != 0
+}
+func (w Widget) SetNativeUndo(enabled bool) bool {
+	w.app.check()
+	var value C.int
+	if enabled {
+		value = 1
+	}
+	return C.cui_text_set_native_undo(w.ptr, value) != 0
+}
+func (w Window) SetCloseDeferred(enabled bool) {
+	w.app.check()
+	var value C.int
+	if enabled {
+		value = 1
+	}
+	C.cui_window_set_close_deferred(w.ptr, value)
+}
+func (w Window) CloseRequested() bool { w.app.check(); return C.cui_window_close_requested(w.ptr) != 0 }
+
+func (w Widget) DecorateText(start, end int, foreground, background, flags uint32) bool {
+	w.app.check()
+	if start < 0 || end < start {
+		return false
+	}
+	return C.cui_text_decorate(w.ptr, C.size_t(start), C.size_t(end), C.uint(foreground), C.uint(background), C.uint(flags)) != 0
+}
+func (w Widget) TextRect(offset int) ([4]float64, bool) {
+	w.app.check()
+	var r [4]C.double
+	var result [4]float64
+	if offset < 0 {
+		return result, false
+	}
+	ok := C.cui_text_rect(w.ptr, C.size_t(offset), &r[0]) != 0
+	for i := range r {
+		result[i] = float64(r[i])
+	}
+	return result, ok
+}
+func (w Widget) TextPointer() (int, [4]float64, bool) {
+	w.app.check()
+	var r [4]C.double
+	var result [4]float64
+	var offset C.size_t
+	ok := C.cui_text_pointer(w.ptr, &offset, &r[0]) != 0
+	for i := range r {
+		result[i] = float64(r[i])
+	}
+	return int(offset), result, ok
 }

@@ -10,6 +10,14 @@ static void verify(void *data)
 {
     cui_timer_stop((cui_timer *)data);
     CHECK(GTK_IS_PANED(split->native)&&GTK_IS_GRID(grid->native)&&GTK_IS_FLOW_BOX(wrap->native));
+    CHECK(gtk_flow_box_get_max_children_per_line(GTK_FLOW_BOX(wrap->native))==12);
+    double started=cui_time();
+    for(int width=160;width<960;width+=40){
+        int minimum,natural;
+        gtk_widget_measure(GTK_WIDGET(wrap->native),GTK_ORIENTATION_VERTICAL,width,&minimum,&natural,NULL,NULL);
+        CHECK(minimum>0&&natural>=minimum);
+    }
+    CHECK(cui_time()-started<0.5);
     CHECK(gtk_widget_get_width(GTK_WIDGET(split->first->native))>0);
     CHECK(gtk_widget_get_width(GTK_WIDGET(split->last->native))>0);
     CHECK(GTK_IS_OVERLAY(stack->native));

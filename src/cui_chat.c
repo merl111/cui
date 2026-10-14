@@ -577,7 +577,7 @@ int cui_chat_presentation_get(const cui_widget *w, cui_chat_presentation *p) {
 }
 int cui_chat_set_presentation(cui_widget *w, const cui_chat_presentation *p) {
   chat_state *s = cui__chat(w);
-  if (!s || !p || p->messages < 0 || p->messages > CUI_CHAT_COMPACT ||
+  if (!s || !p || p->messages < 0 || p->messages > CUI_CHAT_DOCUMENT ||
       p->rooms < 0 || p->rooms > CUI_CHAT_COMPACT || p->header < 0 ||
       p->header > CUI_CHAT_COMPACT || p->composer < 0 ||
       p->composer > CUI_CHAT_COMPACT ||
@@ -980,6 +980,7 @@ int cui_chat_compose_files(cui_widget *w, const cui_chat_detail *files,
 
 int cui_chat_scroll_to(cui_widget *w, cui_item_id id) {
   chat_state *s = cui__chat(w);
+  if (s && s->kind == CUI_CHAT_ROOMS) return cui__chat_reveal_room(s, id);
   if (!s || s->kind != CUI_CHAT_TIMELINE)
     return 0;
   for (size_t i = 0; i < s->count; ++i)

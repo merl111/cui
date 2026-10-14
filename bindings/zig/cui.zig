@@ -116,6 +116,9 @@ pub const Dialog = struct {
     pub fn font(self: Dialog) ?c.cui_font_value { var value: c.cui_font_value = undefined; return if(c.cui_dialog_font(self.raw, &value)!=0) value else null; }
 };
 pub const Window = struct {
+    pub fn setCloseDeferred(self: Window, enabled: bool) void { c.cui_window_set_close_deferred(self.raw, @intFromBool(enabled)); }
+    pub fn closeRequested(self: Window) bool { return c.cui_window_close_requested(self.raw) != 0; }
+
     raw: *c.cui_window,
     pub fn fileDialog(self: Window, kind: c.cui_dialog_kind, title: [:0]const u8, initial: ?[:0]const u8, callback: c.cui_dialog_callback, data: ?*anyopaque) Error!Dialog {
         return .{.raw=c.cui_file_dialog(self.raw,kind,title,if(initial) |path_text| path_text.ptr else null,callback,data) orelse return error.AllocationFailed};
@@ -179,6 +182,17 @@ pub const Widget = struct {
     pub fn undo(self: Widget) void { c.cui_undo(self.raw); }
     pub fn redo(self: Widget) void { c.cui_redo(self.raw); }
     pub fn selectedText(self: Widget, buffer: []u8) usize { return c.cui_get_selected_text(self.raw, buffer.ptr, buffer.len); }
+    pub fn textRange(self: Widget) ?[2]usize {
+        var range: [2]usize = .{0, 0};
+        return if (c.cui_text_get_range(self.raw, &range[0], &range[1]) != 0) range else null;
+    }
+    pub fn setTextRange(self: Widget, start: usize, end: usize) bool { return c.cui_text_set_range(self.raw, start, end) != 0; }
+    pub fn setTextEmphasis(self: Widget, start: usize, end: usize, flags: c_uint) bool { return c.cui_text_set_emphasis(self.raw, start, end, flags) != 0; }
+    pub fn decorateText(self: Widget, start: usize, end: usize, foreground: c_uint, background: c_uint, flags: c_uint) bool { return c.cui_text_decorate(self.raw,start,end,foreground,background,flags)!=0; }
+    pub fn textRect(self: Widget, offset: usize) ?[4]f64 { var rect: [4]f64=undefined; return if(c.cui_text_rect(self.raw,offset,&rect)!=0) rect else null; }
+    pub fn textPointer(self: Widget) ?struct {offset:usize,rect:[4]f64} { var rect: [4]f64=undefined;var offset:usize=0;return if(c.cui_text_pointer(self.raw,&offset,&rect)!=0) .{.offset=offset,.rect=rect} else null; }
+    pub fn setTextSpacing(self: Widget, line_spacing: c_int, paragraph_spacing: c_int) bool { return c.cui_text_set_spacing(self.raw, line_spacing, paragraph_spacing) != 0; }
+    pub fn setNativeUndo(self: Widget, enabled: bool) bool { return c.cui_text_set_native_undo(self.raw, @intFromBool(enabled)) != 0; }
     pub fn insertText(self: Widget, content: [:0]const u8) bool { return c.cui_insert_text(self.raw, content) != 0; }
     pub fn setChecked(self: Widget, checked: bool) void { c.cui_set_checked(self.raw, @intFromBool(checked)); }
     pub fn isChecked(self: Widget) bool { return c.cui_get_checked(self.raw) != 0; }
@@ -205,6 +219,7 @@ pub const Widget = struct {
     pub fn wrapping(self: Widget, gap: c_int) Error!Widget { return wrap(c.cui_wrap(self.raw, gap)); }
     pub fn split(self: Widget, axis: c.cui_axis, fraction: f64) Error!Widget { return wrap(c.cui_split(self.raw, axis, fraction)); }
     pub fn splitPane(self: Widget, index: c_uint) Error!Widget { return wrap(c.cui_split_pane(self.raw, index)); }
+    pub fn setSplitScrollable(self: Widget, index: c_uint, scrollable: bool) bool { return c.cui_split_set_scrollable(self.raw, index, @intFromBool(scrollable)) != 0; }
     pub fn splitPosition(self: Widget) f64 { return c.cui_split_get_position(self.raw); }
     pub fn setSplitPosition(self: Widget, fraction: f64) void { c.cui_split_set_position(self.raw, fraction); }
     pub fn toolbar(self: Widget, commands: []const Command) Error!Widget {

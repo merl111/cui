@@ -560,6 +560,12 @@ impl Widget {
         unsafe { sys::cui_split_set_position(self.handle.ptr.as_ptr(), fraction) };
         Ok(())
     }
+    pub fn split_set_scrollable(&self, index: u32, scrollable: bool) -> Result<bool> {
+        let _rt = self.handle.live()?;
+        Ok(unsafe {
+            sys::cui_split_set_scrollable(self.handle.ptr.as_ptr(), index, scrollable.into())
+        } != 0)
+    }
     pub fn split_get_position(&self) -> Result<f64> {
         let _rt = self.handle.live()?;
         Ok(unsafe { sys::cui_split_get_position(self.handle.ptr.as_ptr()) })
@@ -975,5 +981,82 @@ impl Widget {
             )
         };
         Ok(())
+    }
+}
+
+impl Widget {
+    /// UTF-8 byte range, including a collapsed caret; None when unsupported.
+    pub fn text_range(&self) -> Result<Option<(usize, usize)>> {
+        let _rt = self.handle.live()?;
+        let (mut start, mut end) = (0, 0);
+        let ok = unsafe { sys::cui_text_get_range(self.handle.ptr.as_ptr(), &mut start, &mut end) };
+        Ok((ok != 0).then_some((start, end)))
+    }
+    pub fn set_text_range(&self, start: usize, end: usize) -> Result<bool> {
+        let _rt = self.handle.live()?;
+        Ok(unsafe { sys::cui_text_set_range(self.handle.ptr.as_ptr(), start, end) } != 0)
+    }
+    pub fn set_text_emphasis(&self, start: usize, end: usize, flags: u32) -> Result<bool> {
+        let _rt = self.handle.live()?;
+        Ok(unsafe { sys::cui_text_set_emphasis(self.handle.ptr.as_ptr(), start, end, flags) } != 0)
+    }
+    pub fn decorate_text(
+        &self,
+        start: usize,
+        end: usize,
+        foreground: u32,
+        background: u32,
+        flags: u32,
+    ) -> Result<bool> {
+        let _rt = self.handle.live()?;
+        Ok(unsafe {
+            sys::cui_text_decorate(
+                self.handle.ptr.as_ptr(),
+                start,
+                end,
+                foreground,
+                background,
+                flags,
+            )
+        } != 0)
+    }
+    pub fn text_rect(&self, offset: usize) -> Result<Option<[f64; 4]>> {
+        let _rt = self.handle.live()?;
+        let mut rect = [0.; 4];
+        Ok(
+            (unsafe { sys::cui_text_rect(self.handle.ptr.as_ptr(), offset, rect.as_mut_ptr()) }
+                != 0)
+                .then_some(rect),
+        )
+    }
+    pub fn text_pointer(&self) -> Result<Option<(usize, [f64; 4])>> {
+        let _rt = self.handle.live()?;
+        let mut rect = [0.; 4];
+        let mut offset = 0;
+        Ok((unsafe {
+            sys::cui_text_pointer(self.handle.ptr.as_ptr(), &mut offset, rect.as_mut_ptr())
+        } != 0)
+            .then_some((offset, rect)))
+    }
+    pub fn set_text_spacing(&self, line_spacing: i32, paragraph_spacing: i32) -> Result<bool> {
+        let _rt = self.handle.live()?;
+        Ok(unsafe {
+            sys::cui_text_set_spacing(self.handle.ptr.as_ptr(), line_spacing, paragraph_spacing)
+        } != 0)
+    }
+    pub fn set_native_undo(&self, enabled: bool) -> Result<bool> {
+        let _rt = self.handle.live()?;
+        Ok(unsafe { sys::cui_text_set_native_undo(self.handle.ptr.as_ptr(), enabled.into()) } != 0)
+    }
+}
+impl Window {
+    pub fn set_close_deferred(&self, deferred: bool) -> Result<()> {
+        let _rt = self.handle.live()?;
+        unsafe { sys::cui_window_set_close_deferred(self.handle.ptr.as_ptr(), deferred.into()) };
+        Ok(())
+    }
+    pub fn close_requested(&self) -> Result<bool> {
+        let _rt = self.handle.live()?;
+        Ok(unsafe { sys::cui_window_close_requested(self.handle.ptr.as_ptr()) } != 0)
     }
 }

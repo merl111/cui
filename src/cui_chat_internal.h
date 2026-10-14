@@ -72,6 +72,7 @@ void cui__chat_rooms_free(cui_chat_room *items, size_t count);
 void cui__chat_details_free(cui_chat_detail *items, size_t count);
 void cui__chat_scene_free(chat_scene *scene);
 int cui__chat_message_kind(cui_chat_kind kind);
+int cui__chat_reveal_room(chat_state *s, cui_item_id id);
 int cui__chat_paint(chat_state *s);
 int cui__chat_composer(chat_state *s);
 void cui__chat_compose_update(chat_state *s);

@@ -34,6 +34,10 @@ cui_widget *cui_split(cui_widget *parent, cui_axis axis, double fraction);
 cui_widget *cui_split_pane(cui_widget *split, unsigned index);
 void cui_split_set_position(cui_widget *split, double fraction);
 double cui_split_get_position(const cui_widget *split);
+/* Enable vertical native scrolling inside one pane without changing its owned
+ * box handle or children. Linux implemented; other backends return 0.
+ * Returns 1 on success, 0 for invalid pane/backend. No action is emitted. */
+int cui_split_set_scrollable(cui_widget *split, unsigned index, int scrollable);
 #ifdef __cplusplus
 }
 #endif

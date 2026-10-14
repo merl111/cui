@@ -358,6 +358,7 @@ const (
 	ChatStandard = iota
 	ChatSoft
 	ChatCompact
+	ChatDocument
 )
 const (
 	ChatProfile = iota

@@ -30,6 +30,20 @@ fn checkCommands(app: ui.App, window: ui.Window, root: ui.Widget) !ui.Menu {
     alert.cancel();
     return menu;
 }
+fn checkTextRanges(window: ui.Window, root: ui.Widget) !void {
+    window.setCloseDeferred(true);
+    expect(!window.closeRequested());
+    window.setCloseDeferred(false);
+    if (@import("builtin").os.tag == .linux) {
+        const text = try root.textarea("Élan. Again. Again.");
+        expect(text.setTextRange(14, 19));
+        const range = text.textRange().?;
+        expect(range[0] == 14 and range[1] == 19);
+        expect(!text.setTextRange(1, 2));
+        expect(text.setTextEmphasis(0, 5, 1));
+        expect(text.setNativeUndo(false));
+    }
+}
 fn checkLayout(root: ui.Widget) !void {
     const grid = try root.grid(2, 8);
     _ = try (try grid.gridCell(0, 0, 1, 2)).label("Spanning cell");
@@ -72,7 +86,7 @@ pub fn main() !void {
     var buffer: [64]u8 = undefined; expect(entry.selectedText(&buffer) == 0);
     entry.setEnabled(false); entry.setEnabled(true); entry.setVisible(false); entry.setVisible(true);
     const button = try root.button("Open menu"); const menu = try checkCommands(app, window, root);
-    try checkLayout(root); try checkModels(root);
+    try checkLayout(root); try checkTextRanges(window, root); try checkModels(root);
     var session = Session{.app=app,.entry=entry,.menu=menu,.button=button};
     _ = try app.every(100, mapped, &session); window.show(); app.run();
     std.debug.print("Zig convenience wrappers: native state, commands, layout, models and focus passed\n", .{});

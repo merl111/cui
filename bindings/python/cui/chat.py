@@ -15,7 +15,7 @@ NONE,OPEN_ROOM,REPLY,THREAD,MORE,COPY,REACT,VOTE,ATTACHMENT,LINK,FOCUS,SEND,CANC
 DELIVERY_NONE,SENDING,DELIVERED,SEND_FAILED = range(4)
 class Theme(C.Structure):
     _fields_=[('appearance',I)]+[(n,U) for n in ('background','surface','foreground','muted','border','accent','on_accent','soft','hover','rail','danger','online')]+[('font_size',D)]
-STANDARD,SOFT,COMPACT = range(3)
+STANDARD,SOFT,COMPACT,DOCUMENT = range(4)
 PROFILE,PEOPLE_LIST,MEDIA_GRID = range(3)
 class Presentation(C.Structure):
     _fields_=[(n,I) for n in ('messages','rooms','header','composer','spaces','inspector','show_sender','show_room_previews')]+[(n,D) for n in ('room_height','bubble_radius','surface_radius','avatar_border_width','composer_padding','composer_radius')]+[(n,U) for n in ('mention_background','mention_foreground','attachment_background','media_columns','composer_tools')]

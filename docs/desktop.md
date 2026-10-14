@@ -157,3 +157,27 @@ The callback retains its original signature and receives the first path. `cui_di
 Initial paths may name a directory or a file; a save dialog also accepts a suggested new name. Native save overwrite confirmation remains in use. Options and filters may be temporary stack values because construction copies them. Invalid options return NULL before any dialog or callback is scheduled. Closing, cancelling or destroying the app follows the existing dialog lifecycle.
 
 GTK uses the system file chooser and its filter menu. Windows uses the Common Item Dialog and its multiple-selection result array. AppKit uses native open/save sheets, with a native file-type selector in the accessory area. No additional runtime libraries are introduced. Native Linux acceptance/cancellation tests cover Unicode paths, two files, two folders, changing filters, uppercase suffixes, retained results, and a save destination that remains unwritten.
+
+## Native manuscript mechanics (Linux)
+
+`cui_text_get_range` / `cui_text_set_range` address UTF-8 byte boundaries in text
+areas and code controls. `cui_text_set_emphasis` applies italic/bold runs without
+rewriting text; application-owned undo can disable native undo with
+`cui_text_set_native_undo`. `cui_text_set_spacing` controls extra line/paragraph
+spacing independently from the selected font.
+
+`cui_text_decorate` adds transient foreground/background/underline/strike tags.
+An all-zero decoration clears those tags in the supplied range without removing
+emphasis or changing text/undo history. The Linux implementation bounds its style
+cache to 64 distinct decorations per text buffer. `cui_text_rect` returns visible
+glyph/caret geometry in logical widget coordinates; `cui_text_pointer` performs
+native pointer hit-testing and returns a UTF-8 offset plus its rectangle. Failed
+queries leave outputs unchanged. These APIs enable anchored reference cards and
+read-only diff presentation; they do not provide a structured document model or
+an IME transaction protocol. Other editor backends currently report unsupported.
+
+`cui_split_set_scrollable(split, pane_index, enabled)` enables vertical scrolling
+inside a Linux split pane while preserving its owned box handle and children.
+This is useful for forms whose native minimum size exceeds a small window. The
+other backends return zero. Use the returned capability result when targeting
+multiple platforms. Text areas continue to have their own native scrolling.

@@ -60,6 +60,7 @@ struct cui_window {
     cui_widget *root;
     void *native, *content, *font;
     int width, height, visible, laying_out;
+    int close_deferred, close_requested;
     float scale;
     int decorated, resizable, popup;
     cui_window *anchor_parent;
@@ -186,6 +187,16 @@ void cui__emit(cui_widget *widget);
 size_t cui__copy_text(const char *text, char *buffer, size_t capacity);
 size_t cui__chat_selected_text(const cui_widget *w, char *buffer, size_t capacity);
 int cui__canvas_copy(cui_widget *w);
+/* GTK applies style padding through CSS. The absolute native layouts must
+ * use that inset explicitly. A custom style overrides ordinary box padding. */
+static inline int cui__layout_padding(const cui_widget *widget)
+{
+#if defined(CUI_WINUI) || defined(__APPLE__)
+    return widget->styled ? widget->style.padding : widget->padding;
+#else
+    return widget->padding;
+#endif
+}
 cui_size cui__measure(cui_widget *widget);
 void cui__arrange(cui_widget *widget, cui_rect rect);
 void cui__layout(cui_window *window, float width, float height);

@@ -84,7 +84,9 @@ typedef struct cui_chat_theme {
 typedef enum cui_chat_layout_style {
   CUI_CHAT_STANDARD,
   CUI_CHAT_SOFT,
-  CUI_CHAT_COMPACT
+  CUI_CHAT_COMPACT,
+  /* Full-width assistant responses, neutral user bubbles; messages only. */
+  CUI_CHAT_DOCUMENT
 } cui_chat_layout_style;
 typedef enum cui_chat_inspector_layout {
   CUI_CHAT_PROFILE,
@@ -260,6 +262,8 @@ cui_widget *cui_chat_part(cui_widget *chat, unsigned part);
 /* Timeline scroll offset in logical pixels, clamped. Negative goes to bottom.
  */
 int cui_chat_scroll(cui_widget *chat, double offset);
+/* Scroll a timeline message to the top, or minimally reveal a room row.
+ * Returns 0 for an unknown/filtered-out id without changing the offset. */
 int cui_chat_scroll_to(cui_widget *chat, cui_item_id id);
 /* Return the current visible action region, or zero. detail is the option or
  * reaction index; attachment matching uses detail_id. */

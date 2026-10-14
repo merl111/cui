@@ -119,6 +119,10 @@ impl Navigation {
     pub fn select(&self, id: Option<u64>) -> Result<()> {
         self.native.select(id.unwrap_or(0))
     }
+    /// Scroll just enough to reveal a row, preserving the viewport when visible.
+    pub fn scroll_to(&self, id: u64) -> Result<()> {
+        self.native.scroll_to(id)
+    }
     pub fn set_query(&self, query: &str) -> Result<()> {
         self.native.query(query)
     }
@@ -170,6 +174,12 @@ macro_rules! view_methods {
             }
             pub fn drain_events(&self) -> Vec<Action> {
                 self.native.drain().into_iter().filter_map(action).collect()
+            }
+            pub fn set_presentation(
+                &self,
+                value: &crate::chat_native::ChatPresentation,
+            ) -> Result<()> {
+                self.native.set_presentation(value)
             }
             pub fn set_theme(&self, theme: Theme) -> Result<()> {
                 self.native.set_theme(&theme)
