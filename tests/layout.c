@@ -86,8 +86,8 @@ int main(void)
     cui__arrange(&stack,(cui_rect){0,0,90,80});
     CHECK(overlay.frame.width==70&&overlay.frame.height==60);
     overlay.hidden=1;size=cui__measure(&stack);CHECK(size.width==300);
-#ifdef CUI_WINUI
-    /* CSS padding has to be represented in WinUI's absolute child layout. */
+#if defined(CUI_WINUI) || defined(__APPLE__)
+    /* CSS padding has to be represented in native's absolute child layout. */
     cui_widget padded={0}, child={0};
     padded.kind=CUI_BOX;padded.axis=CUI_HORIZONTAL;padded.padding=4;
     padded.styled=1;padded.style.padding=6;padded.first=&child;
