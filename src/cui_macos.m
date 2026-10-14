@@ -379,6 +379,12 @@ void cui__backend_style(cui_widget *w)
             [button setBordered:!w->styled && w->role!=CUI_ROLE_FLAT];
             [button setContentTintColor:w->styled?custom_color(w->style.foreground):nil];
         }
+        if(w->kind==CUI_ENTRY || w->kind==CUI_PASSWORD || w->kind==CUI_SEARCH) {
+            /* The styled layer supplies the rounded field surface; a native
+             * bezel would paint a second, differently colored box over it. */
+            [(NSTextField *)v setBezeled:!w->styled];
+            [(NSTextField *)v setDrawsBackground:!w->styled];
+        }
         if(w->kind==CUI_TEXTAREA || w->kind==CUI_CODE) {
             [(NSScrollView *)v setBorderType:w->styled?NSNoBorder:NSBezelBorder];
             [(NSTextView *)w->aux setInsertionPointColor:w->styled?custom_color(w->style.foreground):[NSColor textColor]];
