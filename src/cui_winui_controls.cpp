@@ -8,6 +8,7 @@ void changed(cui_widget *w) {
 controls::TextBox text_box(cui_widget *w, hstring const &text) {
     controls::TextBox box;
     box.Text(text);
+    box.VerticalContentAlignment(xaml::VerticalAlignment::Center);
     box.AcceptsReturn(w->kind == CUI_TEXTAREA || w->kind == CUI_CODE);
     box.TextWrapping(w->kind == CUI_TEXTAREA ? xaml::TextWrapping::Wrap
                                              : xaml::TextWrapping::NoWrap);
@@ -147,17 +148,18 @@ void cui::winui::create_control(cui_widget *w, widget_state &s) {
     switch (w->kind) {
     case CUI_LABEL:
     case CUI_BADGE: {
-        controls::TextBlock t;
-        t.Text(s.text);
-        t.VerticalAlignment(xaml::VerticalAlignment::Center);
+        s.label = controls::TextBlock();
+        s.label.Text(s.text);
+        s.label.VerticalAlignment(xaml::VerticalAlignment::Center);
+        // The outer border fills CUI's allocated row. Keep the text itself at
+        // its natural height so XAML can center it beside buttons and icons.
+        s.border = controls::Border();
+        s.border.Child(s.label);
         if (w->kind == CUI_BADGE) {
-            s.border = controls::Border();
-            s.border.Child(t);
             s.border.Padding({10, 4, 10, 4});
             s.border.CornerRadius({8, 8, 8, 8});
-            s.element = s.border;
-        } else
-            s.element = t;
+        }
+        s.element = s.border;
         break;
     }
     case CUI_BUTTON: {
@@ -364,8 +366,8 @@ extern "C" void cui__backend_set_text(cui_widget *w, const char *text) {
             b.Header(winrt::box_value(s.text));
         else if (auto b = e.try_as<controls::ContentControl>())
             b.Content(winrt::box_value(s.text));
-        else if (w->kind == CUI_BADGE)
-            s.border.Child().as<controls::TextBlock>().Text(s.text);
+        else if (s.label)
+            s.label.Text(s.text);
         if (w->icon)
             update_icon(w);
     });
@@ -523,9 +525,7 @@ extern "C" void cui__backend_font(cui_widget *w) {
             c.FontStyle(style);
         }
         {
-            auto t = e.try_as<controls::TextBlock>();
-            if (w->kind == CUI_BADGE)
-                t = state(w).border.Child().as<controls::TextBlock>();
+            auto t = state(w).label;
             if (t) {
                 t.FontFamily(font);
                 t.FontSize(size);
@@ -574,6 +574,7 @@ extern "C" void cui__backend_style(cui_widget *w) {
                 c.ClearValue(controls::Control::BorderBrushProperty());
                 c.ClearValue(controls::Control::BorderThicknessProperty());
                 c.ClearValue(controls::Control::CornerRadiusProperty());
+                c.ClearValue(controls::Control::PaddingProperty());
             } else if (s.border) {
                 s.border.ClearValue(controls::Border::BackgroundProperty());
                 s.border.ClearValue(controls::Border::BorderBrushProperty());
@@ -581,6 +582,11 @@ extern "C" void cui__backend_style(cui_widget *w) {
                 s.border.ClearValue(controls::Border::CornerRadiusProperty());
             } else if (auto t = s.element.try_as<controls::TextBlock>())
                 t.ClearValue(controls::TextBlock::ForegroundProperty());
+            if (s.label) {
+                s.label.ClearValue(controls::TextBlock::ForegroundProperty());
+                s.border.Padding(w->kind == CUI_BADGE ? xaml::Thickness{10, 4, 10, 4}
+                                                     : xaml::Thickness{0, 0, 0, 0});
+            }
             cui__backend_role(w);
             return;
         }
@@ -591,6 +597,8 @@ extern "C" void cui__backend_style(cui_widget *w) {
             c.BorderBrush(brush(st.border));
             c.BorderThickness({st.border_width, st.border_width, st.border_width, st.border_width});
             c.CornerRadius({st.radius, st.radius, st.radius, st.radius});
+            double padding = st.padding;
+            c.Padding({padding, padding, padding, padding});
         } else if (s.border) {
             s.border.Background(brush(st.background));
             s.border.BorderBrush(brush(st.border));
@@ -599,6 +607,11 @@ extern "C" void cui__backend_style(cui_widget *w) {
             s.border.CornerRadius({st.radius, st.radius, st.radius, st.radius});
         } else if (auto t = s.element.try_as<controls::TextBlock>())
             t.Foreground(brush(st.foreground));
+        if (s.label) {
+            s.label.Foreground(brush(st.foreground));
+            double padding = st.padding;
+            s.border.Padding({padding, padding, padding, padding});
+        }
     });
 }
 extern "C" void cui__backend_tree_items(cui_widget *w) {

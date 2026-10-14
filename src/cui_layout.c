@@ -23,8 +23,8 @@ cui_size cui__measure(cui_widget *widget)
                 size.width = maximum(size.width, item.width);
             }
         }
-        size.width += 2.0f * (float)widget->padding;
-        size.height += 2.0f * (float)widget->padding;
+        size.width += 2.0f * (float)cui__layout_padding(widget);
+        size.height += 2.0f * (float)cui__layout_padding(widget);
     }
     size.width = maximum(size.width, (float)widget->min_width);
     size.height = maximum(size.height, (float)widget->min_height);
@@ -49,10 +49,10 @@ void cui__arrange(cui_widget *widget, cui_rect rect)
     ) cui__backend_place(widget);
     if (widget->kind == CUI_GRID || widget->kind == CUI_WRAP || widget->kind == CUI_SPLIT || widget->kind == CUI_STACK) { cui__layout_arrange(widget, rect); return; }
     if (!cui__container(widget)) { cui__backend_place(widget); return; }
-    inner.x += (float)widget->padding;
-    inner.y += (float)widget->padding;
-    inner.width = maximum(0, inner.width - 2.0f * (float)widget->padding);
-    inner.height = maximum(0, inner.height - 2.0f * (float)widget->padding);
+    inner.x += (float)cui__layout_padding(widget);
+    inner.y += (float)cui__layout_padding(widget);
+    inner.width = maximum(0, inner.width - 2.0f * (float)cui__layout_padding(widget));
+    inner.height = maximum(0, inner.height - 2.0f * (float)cui__layout_padding(widget));
     for (child = widget->first; child; child = child->next)
         if (!child->hidden) expanding += !!child->expand;
     extra = widget->axis == CUI_HORIZONTAL ? rect.width - widget->minimum.width
