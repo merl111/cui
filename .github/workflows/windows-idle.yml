@@ -27,6 +27,8 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Native regression tests
         run: ctest --test-dir build -C Release --output-on-failure
+      - name: Set desktop size
+        run: Set-DisplayResolution -Width 1920 -Height 1080 -Force
       - name: Compare released and fixed Windows builds
         if: ${{ !cancelled() && steps.native_build.outcome == 'success' }}
         run: |

@@ -186,6 +186,16 @@ void cui__emit(cui_widget *widget);
 size_t cui__copy_text(const char *text, char *buffer, size_t capacity);
 size_t cui__chat_selected_text(const cui_widget *w, char *buffer, size_t capacity);
 int cui__canvas_copy(cui_widget *w);
+/* GTK applies style padding through CSS. WinUI's absolute child layout must
+ * use that inset explicitly. A custom style overrides ordinary box padding. */
+static inline int cui__layout_padding(const cui_widget *widget)
+{
+#ifdef CUI_WINUI
+    return widget->styled ? widget->style.padding : widget->padding;
+#else
+    return widget->padding;
+#endif
+}
 cui_size cui__measure(cui_widget *widget);
 void cui__arrange(cui_widget *widget, cui_rect rect);
 void cui__layout(cui_window *window, float width, float height);

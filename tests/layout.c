@@ -86,6 +86,19 @@ int main(void)
     cui__arrange(&stack,(cui_rect){0,0,90,80});
     CHECK(overlay.frame.width==70&&overlay.frame.height==60);
     overlay.hidden=1;size=cui__measure(&stack);CHECK(size.width==300);
+#ifdef CUI_WINUI
+    /* CSS padding has to be represented in WinUI's absolute child layout. */
+    cui_widget padded={0}, child={0};
+    padded.kind=CUI_BOX;padded.axis=CUI_HORIZONTAL;padded.padding=4;
+    padded.styled=1;padded.style.padding=6;padded.first=&child;
+    child.kind=CUI_LABEL;child.minimum=(cui_size){30,20};
+    size=cui__measure(&padded);CHECK(size.width==42&&size.height==32);
+    cui__arrange(&padded,(cui_rect){0,0,42,32});
+    CHECK(child.frame.x==6&&child.frame.y==6);
+    padded.styled=0;size=cui__measure(&padded);CHECK(size.width==38&&size.height==28);
+    cui__arrange(&padded,(cui_rect){0,0,38,28});
+    CHECK(child.frame.x==4&&child.frame.y==4);
+#endif
     puts("layout: nested boxes, expansion, padding and minimum sizes passed");
     return 0;
 }

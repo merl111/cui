@@ -21,7 +21,7 @@ static cui_size wrap_items(cui_widget *w,float width,int arrange)
     float x=0,y=0,row_height=0,max_width=0;int count=0;
     for(cui_widget *c=w->first;c;c=c->next){if(c->hidden)continue;cui_size size=arrange?c->minimum:cui__measure(c);
         if(count&&x+size.width>width){y+=row_height+w->gap;x=0;row_height=0;count=0;}
-        if(arrange)cui__arrange(c,(cui_rect){w->frame.x+w->padding+x,w->frame.y+w->padding+y,size.width,size.height});
+        if(arrange)cui__arrange(c,(cui_rect){w->frame.x+cui__layout_padding(w)+x,w->frame.y+cui__layout_padding(w)+y,size.width,size.height});
         max_width=maxf(max_width,x+size.width);x+=size.width+w->gap;row_height=maxf(row_height,size.height);++count;
     }return(cui_size){max_width,y+row_height};
 }
@@ -34,7 +34,7 @@ cui_size cui__layout_measure(cui_widget *w)
         for(unsigned i=0;i<w->grid_columns;++i)size.width+=widths[i]+(i?w->gap:0);
         for(unsigned i=0;i<rows;++i)size.height+=heights[i]+(i?w->gap:0);
     }else if(w->kind==CUI_WRAP){
-        float width=w->frame.width>0?w->frame.width-2*w->padding:320;
+        float width=w->frame.width>0?w->frame.width-2*cui__layout_padding(w):320;
         size=wrap_items(w,width,0);size.width=0;
         for(cui_widget *c=w->first;c;c=c->next)if(!c->hidden)size.width=maxf(size.width,c->minimum.width);
     }else if(w->first&&w->first->next){cui_size a=cui__measure(w->first),b=cui__measure(w->last);
@@ -42,11 +42,14 @@ cui_size cui__layout_measure(cui_widget *w)
         else if(w->last->hidden) size=a;
         else size=w->axis==CUI_HORIZONTAL?(cui_size){a.width+b.width+w->gap,maxf(a.height,b.height)}:(cui_size){maxf(a.width,b.width),a.height+b.height+w->gap};
     }
-    size.width+=2*w->padding;size.height+=2*w->padding;return size;
+    size.width+=2*cui__layout_padding(w);size.height+=2*cui__layout_padding(w);return size;
 }
 void cui__layout_arrange(cui_widget *w,cui_rect rect)
 {
     if(w->kind==CUI_STACK){
+        float padding=(float)cui__layout_padding(w);
+        rect.x+=padding;rect.y+=padding;
+        rect.width=maxf(0,rect.width-2*padding);rect.height=maxf(0,rect.height-2*padding);
         for(cui_widget *c=w->first;c;c=c->next){
             if(c->hidden)continue;
             float margin=(float)c->layer_margin;
@@ -63,12 +66,12 @@ void cui__layout_arrange(cui_widget *w,cui_rect rect)
             cui__arrange(c,item);
         }return;
     }
-    if(w->kind==CUI_WRAP){wrap_items(w,maxf(0,rect.width-2*w->padding),1);return;}
+    if(w->kind==CUI_WRAP){wrap_items(w,maxf(0,rect.width-2*cui__layout_padding(w)),1);return;}
     if(w->kind==CUI_GRID){float widths[64],heights[256];unsigned rows=grid_sizes(w,widths,heights);
         float extra=w->grid_columns?maxf(0,rect.width-w->minimum.width)/w->grid_columns:0;
         for(unsigned i=0;i<w->grid_columns;++i)widths[i]+=extra;
         for(cui_widget *c=w->first;c;c=c->next){if(c->hidden||c->grid_row+c->grid_row_span>rows||c->grid_column+c->grid_column_span>w->grid_columns)continue;
-            cui_rect cell={rect.x+w->padding,rect.y+w->padding,0,0};
+            cui_rect cell={rect.x+cui__layout_padding(w),rect.y+cui__layout_padding(w),0,0};
             for(unsigned i=0;i<c->grid_column;++i)cell.x+=widths[i]+w->gap;
             for(unsigned i=0;i<c->grid_row;++i)cell.y+=heights[i]+w->gap;
             for(unsigned i=0;i<c->grid_column_span;++i)cell.width+=widths[c->grid_column+i]+(i?w->gap:0);
@@ -77,7 +80,7 @@ void cui__layout_arrange(cui_widget *w,cui_rect rect)
         }return;
     }
     if(!w->first||!w->first->next)return;
-    cui_rect a={rect.x+w->padding,rect.y+w->padding,maxf(0,rect.width-2*w->padding),maxf(0,rect.height-2*w->padding)},b=a;
+    cui_rect a={rect.x+cui__layout_padding(w),rect.y+cui__layout_padding(w),maxf(0,rect.width-2*cui__layout_padding(w)),maxf(0,rect.height-2*cui__layout_padding(w))},b=a;
     if(w->first->hidden || w->last->hidden) {
         if(!w->first->hidden) cui__arrange(w->first,a);
         if(!w->last->hidden) cui__arrange(w->last,a);
