@@ -591,7 +591,9 @@ void cui__backend_window_hide(cui_window *window) { [(NSWindow *)window->native 
 
 void cui__backend_refresh(cui_window *window)
 {
-    if (!window->root || window->laying_out) return;
+    /* Construction can temporarily expose large panels before they are hidden.
+     * Lay out once at show time instead of permanently growing the window. */
+    if (!window->root || !window->visible || window->laying_out) return;
     NSWindow *native = (NSWindow *)window->native;
     cui_size minimum = cui__measure(window->root);
     NSSize size = window->scrollable ? [(NSScrollView *)[native contentView] contentSize] : [(NSView *)window->content frame].size;
@@ -617,6 +619,7 @@ static NSView *scroll_control(cui_widget *w, NSView *document)
 {
     NSScrollView *scroll = [[NSScrollView alloc] initWithFrame:NSZeroRect];
     [scroll setHasVerticalScroller:YES];
+    [scroll setAutohidesScrollers:YES];
     [scroll setHasHorizontalScroller:w->kind == CUI_CODE || w->kind == CUI_TABLE];
     [scroll setBorderType:NSBezelBorder];
     [scroll setDocumentView:document];
