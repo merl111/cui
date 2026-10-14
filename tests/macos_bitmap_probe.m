@@ -7,10 +7,11 @@ static unsigned pixels(NSBitmapImageRep *rep) {
 }
 int main(void) { @autoreleasepool {
  [NSApplication sharedApplication];
- for(int premult=0;premult<2;premult++) for(int flipped=0;flipped<2;flipped++) {
+ for(int premult=0;premult<2;premult++) for(int flipped=0;flipped<3;flipped++) {
   NSBitmapImageRep *rep=[[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL pixelsWide:200 pixelsHigh:50 bitsPerSample:8 samplesPerPixel:4 hasAlpha:YES isPlanar:NO colorSpaceName:NSDeviceRGBColorSpace bitmapFormat:premult?0:NSBitmapFormatAlphaNonpremultiplied bytesPerRow:800 bitsPerPixel:32];
   [NSGraphicsContext saveGraphicsState];
   NSGraphicsContext *ctx=[NSGraphicsContext graphicsContextWithBitmapImageRep:rep];
+  if(flipped==2 && ctx) ctx=[NSGraphicsContext graphicsContextWithCGContext:[ctx CGContext] flipped:YES];
   [NSGraphicsContext setCurrentContext:ctx];
   if(flipped){ NSAffineTransform *flip=[NSAffineTransform transform]; [flip translateXBy:0 yBy:50]; [flip scaleXBy:1 yBy:-1]; [flip concat]; }
   [@"Visible text" drawInRect:NSMakeRect(0,0,160,24) withAttributes:@{NSFontAttributeName:[NSFont systemFontOfSize:16],NSForegroundColorAttributeName:[NSColor redColor]}];
