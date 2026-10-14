@@ -7,6 +7,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __APPLE__
+#import <AppKit/AppKit.h>
+#include "../src/cui_internal.h"
+static cui_widget *backdrop;
+#endif
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -61,6 +66,14 @@ static void tick(void *data) {
         assert(cui_widget_get_size(header, &width, &height));
         printf("canvas header_height=%d expected=42\n", height);
         if (verify) assert(height == 42);
+#ifdef __APPLE__
+        cui_set_visible(backdrop, 1);
+        NSRect native_frame = [(NSView *)backdrop->native frame];
+        assert(native_frame.size.height > 100);
+        assert(native_frame.size.height == backdrop->frame.height);
+        assert(native_frame.size.width == backdrop->frame.width);
+        cui_set_visible(backdrop, 0);
+#endif
     }
     double start = now();
     refresh();
@@ -106,6 +119,13 @@ int main(int argc, char **argv) {
     cui_set_visible(temporary_panel, 0);
     assert(cui_window_get_size(window, &hidden_width, &hidden_height));
     assert(initial_width == hidden_width && initial_height == hidden_height);
+    cui_widget *stack = cui_stack(root);
+    assert(stack);
+    root = cui_box(stack, CUI_VERTICAL, 0);
+    assert(root);
+    backdrop = cui_stack_backdrop(stack, "Close dialog");
+    assert(backdrop);
+    cui_set_visible(backdrop, 0);
 #endif
     header = cui_canvas(root);
     assert(header);

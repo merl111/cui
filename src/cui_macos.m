@@ -886,7 +886,10 @@ void cui__backend_place(cui_widget *widget)
     cui_rect r = widget->frame;
     if(cui__in_layer(widget) && widget->native) {
         [(NSView *)widget->window->content addSubview:(NSView *)widget->native positioned:NSWindowAbove relativeTo:nil];
-        if(cui__container(widget) && widget->kind!=CUI_SPLIT) {
+        /* A fill-layer button is the modal backdrop, not an intrinsic-height row control. */
+        BOOL fill_layer=widget->parent && widget->parent->kind==CUI_STACK &&
+            widget->layer_alignment==CUI_LAYER_FILL;
+        if(widget->kind!=CUI_SPLIT && (cui__container(widget) || fill_layer)) {
             [(NSView *)widget->native setFrame:NSMakeRect(r.x,r.y,r.width,r.height)];return;
         }
     }
