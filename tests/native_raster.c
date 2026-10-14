@@ -41,6 +41,10 @@ int main(void)
     };
     assert(cui_surface_render(surface, commands, 2));
     visible_pixels(surface, 1);
+    double one_width, one_height, multiline_width, multiline_height;
+    assert(cui_text_measure("Reply preview", "sans", 20, 400, &one_width, &one_height));
+    assert(cui_text_measure("Reply\npreview", "sans", 20, 400, &multiline_width, &multiline_height));
+    assert(multiline_height == one_height);
     cui_icon_asset *icon = cui_icon_symbol(CUI_SYMBOL_HOME);
     assert(icon);
     commands[1] = (cui_draw_command){.op = CUI_DRAW_ICON,

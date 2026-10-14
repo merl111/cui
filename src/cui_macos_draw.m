@@ -26,6 +26,9 @@ static unsigned char *text_bitmap(const char *text, const char *family, double s
     NSString *value = [NSString stringWithUTF8String:text];
     if (!value)
       return NULL;
+    /* DRAW_TEXT is single-line on every backend. Chat lays out body lines
+     * separately, while previews may contain the original message's breaks. */
+    value = [[value componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]] componentsJoinedByString:@" "];
     NSFont *font =
         family ? [NSFont fontWithName:[NSString stringWithUTF8String:family]
                                  size:size]

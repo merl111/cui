@@ -379,12 +379,6 @@ void cui__backend_style(cui_widget *w)
             [button setBordered:!w->styled && w->role!=CUI_ROLE_FLAT];
             [button setContentTintColor:w->styled?custom_color(w->style.foreground):nil];
         }
-        if(w->kind==CUI_ENTRY || w->kind==CUI_PASSWORD || w->kind==CUI_SEARCH) {
-            /* The styled layer supplies the rounded field surface; a native
-             * bezel would paint a second, differently colored box over it. */
-            [(NSTextField *)v setBezeled:!w->styled];
-            [(NSTextField *)v setDrawsBackground:!w->styled];
-        }
         if(w->kind==CUI_TEXTAREA || w->kind==CUI_CODE) {
             [(NSScrollView *)v setBorderType:w->styled?NSNoBorder:NSBezelBorder];
             [(NSTextView *)w->aux setInsertionPointColor:w->styled?custom_color(w->style.foreground):[NSColor textColor]];
@@ -753,7 +747,7 @@ static NSView *text_control(cui_widget *widget, const char *text)
         [field setDrawsBackground:editable];
         [[field cell] setWraps:NO];
         [[field cell] setScrollable:editable];
-        if (widget->kind == CUI_ENTRY) [field setBezelStyle:NSTextFieldRoundedBezel];
+        if (widget->kind == CUI_ENTRY || widget->kind == CUI_PASSWORD) [field setBezelStyle:NSTextFieldRoundedBezel];
         if (widget->kind == CUI_ENTRY && widget->parent && widget->parent->last && widget->parent->last->kind == CUI_LABEL)
             [field setAccessibilityLabel:[(NSTextField *)widget->parent->last->native stringValue]];
         return field;
