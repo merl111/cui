@@ -31,6 +31,7 @@ int cui_set_icon_only(cui_widget *w,int only)
 {
     if(!w||(w->kind!=CUI_BUTTON&&w->kind!=CUI_TOGGLE))return 0;
     if(only&&!cui_get_text(w,NULL,0))return 0;
+    if(w->icon_only==!!only)return 1;
     w->icon_only=!!only;cui__backend_icon(w);cui__backend_refresh(w->window);return 1;
 }
 int cui_set_icon_trailing(cui_widget *w,int trailing)

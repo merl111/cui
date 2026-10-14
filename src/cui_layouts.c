@@ -34,7 +34,9 @@ cui_widget *cui_split_pane(cui_widget *w,unsigned index)
 void cui_split_set_position(cui_widget *w,double fraction)
 {
     if(!w||w->kind!=CUI_SPLIT||!isfinite(fraction))return;
-    w->value=fraction<0?0:fraction>1?1:fraction;
+    fraction=fraction<0?0:fraction>1?1:fraction;
+    if(w->value==fraction)return;
+    w->value=fraction;
     ++w->updating;cui__backend_split_position(w);--w->updating;cui__backend_refresh(w->window);
 }
 double cui_split_get_position(const cui_widget *w){return w&&w->kind==CUI_SPLIT?w->value:0;}

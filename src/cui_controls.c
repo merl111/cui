@@ -175,7 +175,7 @@ void cui_set_tooltip(cui_widget *w, const char *text)
 { if (w) cui__backend_tooltip(w, text ? text : ""); }
 void cui_set_min_size(cui_widget *w, int width, int height)
 {
-    if (!w || width < 0 || height < 0) return;
+    if (!w || width < 0 || height < 0 || (w->min_width == width && w->min_height == height)) return;
     w->min_width = width; w->min_height = height;
     cui__backend_min_size(w);
     cui__backend_refresh(w->window);
@@ -191,7 +191,7 @@ void cui_set_visible(cui_widget *w, int visible)
 {
     cui_widget *parent;
     int ancestor_visible = 1;
-    if (!w) return;
+    if (!w || w->hidden == !visible) return;
     w->hidden = !visible;
     for (parent = w->parent; parent; parent = parent->parent) ancestor_visible &= !parent->hidden;
     update_visible(w, ancestor_visible);
