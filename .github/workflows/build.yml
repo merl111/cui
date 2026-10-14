@@ -1,63 +1,14 @@
-name: Build and test
-on: [push, pull_request, workflow_dispatch]
+name: macOS bitmap diagnosis
+on: [workflow_dispatch]
+permissions:
+  contents: read
 jobs:
-  native:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-2022, macos-latest]
-    runs-on: ${{ matrix.os }}
+  probe:
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
-      - name: Linux system development packages
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libxext-dev xvfb fonts-dejavu-core fonts-dejavu-extra
-      - uses: microsoft/setup-msbuild@v2
-        if: runner.os == 'Windows'
-      - uses: NuGet/setup-nuget@v2
-        if: runner.os == 'Windows'
-      - name: Windows App SDK 1.8 runtime
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Invoke-WebRequest 'https://aka.ms/windowsappsdk/1.8/1.8.260921001/windowsappruntimeinstall-x64.exe' -OutFile "$env:RUNNER_TEMP/WindowsAppRuntimeInstall.exe"
-          $process = Start-Process "$env:RUNNER_TEMP/WindowsAppRuntimeInstall.exe" -ArgumentList '--quiet' -Wait -PassThru
-          if ($process.ExitCode -ne 0) { throw "Windows App Runtime installation failed: $($process.ExitCode)" }
-          python tools/generate_windows_exports.py --check
-      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCUI_BUILD_TESTS=ON
-      - run: cmake --build build --config Release --parallel
-      - run: ctest --test-dir build -C Release --output-on-failure
-      - name: Diagnose native Windows failures
-        if: failure() && runner.os == 'Windows'
-        timeout-minutes: 10
-        shell: pwsh
-        run: |
-          $cdb = "${env:ProgramFiles(x86)}\Windows Kits\10\Debuggers\x64\cdb.exe"
-          if (!(Test-Path $cdb)) {
-            Invoke-WebRequest 'https://go.microsoft.com/fwlink/?linkid=2272610' -OutFile "$env:RUNNER_TEMP/winsdksetup.exe"
-            $installer = Start-Process "$env:RUNNER_TEMP/winsdksetup.exe" -ArgumentList '/features OptionId.WindowsDesktopDebuggers /quiet /norestart' -Wait -PassThru
-            if ($installer.ExitCode -ne 0) { throw "Debugger installation failed: $($installer.ExitCode)" }
-          }
-          & $cdb -g -G -y "build/Release;srv*$env:RUNNER_TEMP/symbols*https://msdl.microsoft.com/download/symbols" -lines -c '.exr -1; kP 80; q' build/Release/cui_winui_test.exe
-      - name: Retain Windows test diagnostics
-        if: always() && runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
+      - run: clang -fno-objc-arc -framework AppKit tests/macos_bitmap_probe.m -o /tmp/probe && /tmp/probe
+      - uses: actions/upload-artifact@v4
         with:
-          name: winui-test-results
-          path: build/Testing/Temporary/
-      - name: Check binding coverage
-        if: runner.os == 'Linux'
-        run: |
-          python3 tools/check_bindings.py
-      - name: Rust bindings and native examples (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          python3 tools/check_rust_abi.py
-          cargo fmt --manifest-path bindings/rust/Cargo.toml --check
-          cargo clippy --offline --manifest-path bindings/rust/Cargo.toml --all-targets -- -D warnings
-          cargo test --offline --manifest-path bindings/rust/Cargo.toml
-          cargo build --offline --manifest-path bindings/rust/Cargo.toml --examples
-          for demo in hello gallery contracts; do
-            xvfb-run -a env GSK_RENDERER=cairo GTK_A11Y=none CUI_SMOKE_TEST=1 bindings/rust/target/debug/examples/$demo
-            xvfb-run -a -s "-screen 0 3840x2160x24" env GSK_RENDERER=cairo GTK_A11Y=none CUI_SMOKE_TEST=1 GDK_SCALE=2 CUI_LARGE_TEXT=1 bindings/rust/target/debug/examples/$demo
-          done
+          name: bitmap-probe
+          path: probe-*.png
