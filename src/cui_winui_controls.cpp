@@ -31,7 +31,7 @@ void text_palette(cui_widget *w, controls::Control const &control) {
                           {L"PlaceholderForeground", (w->style.foreground & 0xffffff00u) | 0x99u}};
     for (const auto &tone : tones) {
         for (const wchar_t *state : {L"", L"PointerOver", L"Focused", L"Disabled"}) {
-            auto key = winrt::box_value(std::wstring(L"TextControl") + tone.name + state);
+            auto key = winrt::box_value(hstring(std::wstring(L"TextControl") + tone.name + state));
             if (w->styled) resources.Insert(key, brush(tone.color));
             else if (resources.HasKey(key)) resources.Remove(key);
         }
