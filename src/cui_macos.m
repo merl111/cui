@@ -1,5 +1,6 @@
 #import <QuartzCore/QuartzCore.h>
 #include "cui_draw_internal.h"
+#include "cui_layouts.h"
 #include "cui_tables_internal.h"
 #include "cui_inputs_internal.h"
 #include <math.h>
