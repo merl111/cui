@@ -38,7 +38,9 @@ cui_size cui__layout_measure(cui_widget *w)
         size=wrap_items(w,width,0);size.width=0;
         for(cui_widget *c=w->first;c;c=c->next)if(!c->hidden)size.width=maxf(size.width,c->minimum.width);
     }else if(w->first&&w->first->next){cui_size a=cui__measure(w->first),b=cui__measure(w->last);
-        size=w->axis==CUI_HORIZONTAL?(cui_size){a.width+b.width+w->gap,maxf(a.height,b.height)}:(cui_size){maxf(a.width,b.width),a.height+b.height+w->gap};
+        if(w->first->hidden) size=b;
+        else if(w->last->hidden) size=a;
+        else size=w->axis==CUI_HORIZONTAL?(cui_size){a.width+b.width+w->gap,maxf(a.height,b.height)}:(cui_size){maxf(a.width,b.width),a.height+b.height+w->gap};
     }
     size.width+=2*w->padding;size.height+=2*w->padding;return size;
 }
@@ -76,6 +78,12 @@ void cui__layout_arrange(cui_widget *w,cui_rect rect)
     }
     if(!w->first||!w->first->next)return;
     cui_rect a={rect.x+w->padding,rect.y+w->padding,maxf(0,rect.width-2*w->padding),maxf(0,rect.height-2*w->padding)},b=a;
+    if(w->first->hidden || w->last->hidden) {
+        if(!w->first->hidden) cui__arrange(w->first,a);
+        if(!w->last->hidden) cui__arrange(w->last,a);
+        cui__backend_place(w);
+        return;
+    }
     float total=maxf(0,(w->axis==CUI_HORIZONTAL?a.width:a.height)-w->gap);
     float minimum=w->axis==CUI_HORIZONTAL?w->first->minimum.width:w->first->minimum.height;
     float other=w->axis==CUI_HORIZONTAL?w->last->minimum.width:w->last->minimum.height;

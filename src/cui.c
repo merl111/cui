@@ -314,16 +314,15 @@ void cui_set_text(cui_widget *widget, const char *text)
     if (!text) text = "";
     /* Preserve selection and avoid native relayout when a render repeats text. */
     size_t length = strlen(text);
-    if (length == cui_get_text(widget, NULL, 0)) {
-        if (!length) return;
-        char *current = malloc(length + 1);
-        if (current) {
-            cui_get_text(widget, current, length + 1);
-            int same = !strcmp(current, text);
-            free(current);
-            if (same) return;
-        }
+    if (!length && !cui_get_text(widget, NULL, 0)) return;
+    char *current = length == cui_get_text(widget, NULL, 0) ? malloc(length + 1) : NULL;
+    int same = 0;
+    if (current) {
+        cui_get_text(widget, current, length + 1);
+        same = !strcmp(current, text);
+        free(current);
     }
+    if (same) return;
     ++widget->updating;
     cui__backend_set_text(widget, text ? text : "");
     if(widget->icon_only){cui_set_tooltip(widget,text);cui_accessibility(widget,text,text);}

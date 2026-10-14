@@ -389,6 +389,8 @@ extern "C" void cui__backend_place(cui_widget *w) {
         s.element.Width(std::max(0.f, r.width));
         s.element.Height(std::max(0.f, r.height));
         if (s.splitter && w->first) {
+            s.splitter.Visibility(!w->first->hidden && !w->last->hidden
+                                      ? xaml::Visibility::Visible : xaml::Visibility::Collapsed);
             auto a = w->first->frame;
             controls::Canvas::SetLeft(s.splitter,
                                       w->axis == CUI_HORIZONTAL ? a.x + a.width - w->frame.x : 0);

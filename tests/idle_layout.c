@@ -16,7 +16,8 @@
 static cui_app *app;
 static cui_widget *root, *login, *settings, *buttons[5], *account, *entry, *split;
 static cui_widget *composers[2];
-static int ticks, actions;
+static int ticks, actions, verify;
+static cui_widget *header;
 static double total, maximum;
 
 static double now(void) {
@@ -55,6 +56,12 @@ static void refresh(void) {
 }
 static void tick(void *data) {
     (void)data;
+    if (ticks == 5) {
+        int width = 0, height = 0;
+        assert(cui_widget_get_size(header, &width, &height));
+        printf("canvas header_height=%d expected=42\n", height);
+        if (verify) assert(height == 42);
+    }
     double start = now();
     refresh();
     double elapsed = (now() - start) * 1000;
@@ -84,19 +91,15 @@ static void tick(void *data) {
     }
 }
 int main(int argc, char **argv) {
-    int verify = argc > 1 && !strcmp(argv[1], "--verify-layout");
+    verify = argc > 1 && !strcmp(argv[1], "--verify-layout");
     app = cui_app_create();
     assert(app);
     cui_window *window = cui_window_create(app, "Archaic idle layout benchmark", 1440, 900);
     assert(window);
     root = cui_window_root(window);
-    cui_widget *header = cui_canvas(root);
+    header = cui_canvas(root);
     assert(header);
     cui_set_min_size(header, 110, 42);
-    int width = 0, height = 0;
-    assert(cui_widget_get_size(header, &width, &height));
-    printf("canvas header_height=%d expected=42\n", height);
-    if (verify) assert(height == 42);
     login = cui_box(root, CUI_VERTICAL, 12);
     assert(login);
     assert(cui_label(login, "Welcome to Archaic"));

@@ -54,6 +54,23 @@ int main(void)
     grid.kind=CUI_SPLIT;grid.axis=CUI_HORIZONTAL;grid.value=0.25;grid.last=&b;b.next=NULL;
     size=cui__measure(&grid);cui__arrange(&grid,(cui_rect){0,0,500,100});
     CHECK(a.frame.width>=100&&b.frame.width>=200&&b.frame.x==a.frame.width+10);
+    /* Hidden split panes reclaim their fraction and the divider gap. */
+    b.hidden=1;
+    size=cui__measure(&grid);CHECK(size.width==100&&size.height==30);
+    cui__arrange(&grid,(cui_rect){20,30,500,100});
+    CHECK(a.frame.x==20&&a.frame.y==30&&a.frame.width==500&&a.frame.height==100);
+    a.hidden=1;b.hidden=0;b.minimum=(cui_size){200,40};
+    size=cui__measure(&grid);CHECK(size.width==200&&size.height==40);
+    cui__arrange(&grid,(cui_rect){20,30,500,100});
+    CHECK(b.frame.x==20&&b.frame.width==500);
+    grid.axis=CUI_VERTICAL;
+    size=cui__measure(&grid);cui__arrange(&grid,(cui_rect){20,30,500,100});
+    CHECK(b.frame.y==30&&b.frame.height==100);
+    b.hidden=1;size=cui__measure(&grid);CHECK(size.width==0&&size.height==0);
+    a.hidden=b.hidden=0;a.minimum=(cui_size){100,30};b.minimum=(cui_size){200,40};
+    grid.axis=CUI_HORIZONTAL;size=cui__measure(&grid);
+    cui__arrange(&grid,(cui_rect){0,0,500,100});
+    CHECK(a.frame.width>=100&&b.frame.width>=200&&b.frame.x==a.frame.width+10);
     cui_widget stack={0}, base={0}, overlay={0};
     stack.kind=CUI_STACK;stack.first=&base;base.next=&overlay;
     base.kind=overlay.kind=CUI_BUTTON;base.minimum=(cui_size){300,200};
