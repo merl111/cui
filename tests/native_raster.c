@@ -16,6 +16,8 @@ static void visible_pixels(cui_surface *surface, int translucent)
         if (p[3] > 64) {
             ++visible;
             if (translucent) {
+                if (!(p[0] > 220 && p[1] < 8 && p[2] < 8))
+                    fprintf(stderr, "Unexpected translucent red pixel at %d: %u %u %u %u\n", i, p[0], p[1], p[2], p[3]);
                 assert(p[0] > 220 && p[1] < 8 && p[2] < 8);
                 assert(p[3] <= 129);
             }

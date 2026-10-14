@@ -61,10 +61,6 @@ static void tick(void *data) {
         assert(cui_widget_get_size(header, &width, &height));
         printf("canvas header_height=%d expected=42\n", height);
         if (verify) assert(height == 42);
-#ifdef __APPLE__
-        assert(cui_widget_get_size(root, &width, &height));
-        assert(width == 1440); /* Hidden construction must not grow the window. */
-#endif
     }
     double start = now();
     refresh();
@@ -102,10 +98,14 @@ int main(int argc, char **argv) {
     assert(window);
     root = cui_window_root(window);
 #ifdef __APPLE__
+    int initial_width, initial_height, hidden_width, hidden_height;
+    assert(cui_window_get_size(window, &initial_width, &initial_height));
     cui_widget *temporary_panel = cui_label(root, "Panel hidden before showing the window");
     assert(temporary_panel);
     cui_set_min_size(temporary_panel, 2000, 1200);
     cui_set_visible(temporary_panel, 0);
+    assert(cui_window_get_size(window, &hidden_width, &hidden_height));
+    assert(initial_width == hidden_width && initial_height == hidden_height);
 #endif
     header = cui_canvas(root);
     assert(header);
