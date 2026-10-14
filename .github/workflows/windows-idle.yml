@@ -1,0 +1,60 @@
+name: Windows idle layout validation
+on: [workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+      - uses: NuGet/setup-nuget@v2
+      - name: Install Windows App Runtime 1.8
+        run: |
+          Invoke-WebRequest 'https://aka.ms/windowsappsdk/1.8/1.8.260921001/windowsappruntimeinstall-x64.exe' -OutFile "$env:RUNNER_TEMP/runtime.exe"
+          $p = Start-Process "$env:RUNNER_TEMP/runtime.exe" -ArgumentList '--quiet' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Runtime installer: $($p.ExitCode)" }
+      - name: Build CUI and native tests
+        id: native_build
+        run: |
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCUI_BUILD_TESTS=ON -DCUI_BUILD_EXAMPLES=OFF
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --build build --config Release --parallel
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Native regression tests
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Set desktop size
+        run: Set-DisplayResolution -Width 1920 -Height 1080 -Force
+      - name: Compare released and fixed Windows builds
+        if: ${{ !cancelled() && steps.native_build.outcome == 'success' }}
+        run: |
+          New-Item evidence -ItemType Directory
+          Invoke-WebRequest 'https://github.com/merl111/archaic/releases/download/v0.1.0/archaic-0.1.0-windows-AMD64.zip' -OutFile "$env:RUNNER_TEMP/archaic.zip"
+          Expand-Archive "$env:RUNNER_TEMP/archaic.zip" baseline
+          $baseline = (Get-ChildItem baseline -Directory | Select-Object -First 1).FullName
+          Copy-Item $baseline fixed -Recurse
+          Copy-Item build/Release/cui_idle_layout_test.exe "$baseline/"
+          & "$baseline/cui_idle_layout_test.exe" | Tee-Object evidence/baseline-benchmark.txt
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          & build/Release/cui_idle_layout_test.exe --verify-layout | Tee-Object evidence/fixed-benchmark.txt
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Copy-Item build/Release/cui.dll fixed/cui.dll -Force
+          Copy-Item build/Release/Microsoft.WindowsAppRuntime.Bootstrap.dll fixed/ -Force
+          & tests/windows_idle_capture.ps1 -Directory $baseline -Prefix "$PWD/evidence/baseline-login"
+          & tests/windows_idle_capture.ps1 -Directory "$PWD/fixed" -Prefix "$PWD/evidence/fixed-login"
+          & tests/windows_idle_capture.ps1 -Directory "$PWD/fixed" -Prefix "$PWD/evidence/fixed-chat-light" -Fixture
+          & tests/windows_idle_capture.ps1 -Directory "$PWD/fixed" -Prefix "$PWD/evidence/fixed-chat-dark" -Fixture -Theme dark
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-idle-layout
+          path: |
+            evidence/
+            build/Testing/Temporary/
+            build/Release/cui.dll
+            build/Release/Microsoft.WindowsAppRuntime.Bootstrap.dll
+          if-no-files-found: error

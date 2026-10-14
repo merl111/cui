@@ -389,6 +389,8 @@ extern "C" void cui__backend_place(cui_widget *w) {
         s.element.Width(std::max(0.f, r.width));
         s.element.Height(std::max(0.f, r.height));
         if (s.splitter && w->first) {
+            s.splitter.Visibility(!w->first->hidden && !w->last->hidden
+                                      ? xaml::Visibility::Visible : xaml::Visibility::Collapsed);
             auto a = w->first->frame;
             controls::Canvas::SetLeft(s.splitter,
                                       w->axis == CUI_HORIZONTAL ? a.x + a.width - w->frame.x : 0);
@@ -405,6 +407,11 @@ extern "C" void cui__backend_place(cui_widget *w) {
 }
 extern "C" cui_size cui__backend_measure(cui_widget *w) {
     return protect(w->window->app, cui_size{0, 0}, [&] {
+        // A canvas has no intrinsic size: its last bitmap/accessibility overlay
+        // must not become a minimum for the next layout. The shared layout adds
+        // the caller's min_width/min_height (e.g. 42 px chat navigation).
+        if (w->kind == CUI_CANVAS)
+            return cui_size{0, 0};
         auto e = state(w).element;
         double width = e.Width(), height = e.Height();
         e.Width(NAN);
@@ -433,7 +440,6 @@ extern "C" cui_size cui__backend_measure(cui_widget *w) {
             result = {240, 180};
             break;
         case CUI_IMAGE:
-        case CUI_CANVAS:
         case CUI_CHART:
             result = {260, 160};
             break;

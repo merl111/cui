@@ -374,6 +374,16 @@ void cui__backend_style(cui_widget *w)
         id text=w->kind==CUI_TEXTAREA?w->aux:w->native;
         if([text respondsToSelector:@selector(setTextColor:)])[text setTextColor:w->styled?custom_color(w->style.foreground):[NSColor textColor]];
         if([text respondsToSelector:@selector(setBackgroundColor:)])[text setBackgroundColor:w->styled?custom_color(w->style.background):[NSColor textBackgroundColor]];
+        if(w->kind==CUI_BUTTON || w->kind==CUI_TOGGLE) {
+            NSButton *button=(NSButton *)v;
+            [button setBordered:!w->styled && w->role!=CUI_ROLE_FLAT];
+            [button setContentTintColor:w->styled?custom_color(w->style.foreground):nil];
+        }
+        if(w->kind==CUI_TEXTAREA || w->kind==CUI_CODE) {
+            [(NSScrollView *)v setBorderType:w->styled?NSNoBorder:NSBezelBorder];
+            [(NSTextView *)w->aux setInsertionPointColor:w->styled?custom_color(w->style.foreground):[NSColor textColor]];
+            [(NSTextView *)w->aux setTextContainerInset:NSMakeSize(w->styled?6:10,10)];
+        }
     }
 }
 static void draw_cards(cui_widget *widget)
@@ -581,7 +591,9 @@ void cui__backend_window_hide(cui_window *window) { [(NSWindow *)window->native 
 
 void cui__backend_refresh(cui_window *window)
 {
-    if (!window->root || window->laying_out) return;
+    /* Construction can temporarily expose large panels before they are hidden.
+     * Lay out once at show time instead of permanently growing the window. */
+    if (!window->root || !window->visible || window->laying_out) return;
     NSWindow *native = (NSWindow *)window->native;
     cui_size minimum = cui__measure(window->root);
     NSSize size = window->scrollable ? [(NSScrollView *)[native contentView] contentSize] : [(NSView *)window->content frame].size;
@@ -607,6 +619,7 @@ static NSView *scroll_control(cui_widget *w, NSView *document)
 {
     NSScrollView *scroll = [[NSScrollView alloc] initWithFrame:NSZeroRect];
     [scroll setHasVerticalScroller:YES];
+    [scroll setAutohidesScrollers:YES];
     [scroll setHasHorizontalScroller:w->kind == CUI_CODE || w->kind == CUI_TABLE];
     [scroll setBorderType:NSBezelBorder];
     [scroll setDocumentView:document];
@@ -734,7 +747,7 @@ static NSView *text_control(cui_widget *widget, const char *text)
         [field setDrawsBackground:editable];
         [[field cell] setWraps:NO];
         [[field cell] setScrollable:editable];
-        if (widget->kind == CUI_ENTRY) [field setBezelStyle:NSTextFieldRoundedBezel];
+        if (widget->kind == CUI_ENTRY || widget->kind == CUI_PASSWORD) [field setBezelStyle:NSTextFieldRoundedBezel];
         if (widget->kind == CUI_ENTRY && widget->parent && widget->parent->last && widget->parent->last->kind == CUI_LABEL)
             [field setAccessibilityLabel:[(NSTextField *)widget->parent->last->native stringValue]];
         return field;
@@ -795,7 +808,7 @@ void cui__backend_role(cui_widget *widget)
         [(NSTextField *)widget->native setTextColor:widget->role == CUI_ROLE_CAPTION ?
             [NSColor secondaryLabelColor] : widget->role == CUI_ROLE_DANGER ? [NSColor systemRedColor] : [NSColor labelColor]];
     }
-    if(widget->kind==CUI_BUTTON || widget->kind==CUI_TOGGLE)[(NSButton *)widget->native setBordered:widget->role!=CUI_ROLE_FLAT];
+    if(widget->kind==CUI_BUTTON || widget->kind==CUI_TOGGLE)[(NSButton *)widget->native setBordered:!widget->styled && widget->role!=CUI_ROLE_FLAT];
     if (widget->kind == CUI_BUTTON)
         [(NSButton *)widget->native setBezelColor:widget->role == CUI_ROLE_PRIMARY ? [NSColor controlAccentColor] : nil];
 }
@@ -847,7 +860,8 @@ cui_size cui__backend_measure(cui_widget *widget)
     case CUI_NUMBER: return (cui_size){200, (float)MAX(30,[(NSTextField *)widget->aux font].pointSize+16)};
     case CUI_TREE: return (cui_size){240, 180};
     case CUI_LIST: return (cui_size){240, 160};
-    case CUI_CHART: case CUI_IMAGE: case CUI_CANVAS: return (cui_size){260, 160};
+    case CUI_CANVAS: return (cui_size){0, 0};
+    case CUI_CHART: case CUI_IMAGE: return (cui_size){260, 160};
     case CUI_TABLE: return (cui_size){360, 180};
     case CUI_SELECT: return (cui_size){160, (float)MAX(32, [[(NSControl *)widget->native font] pointSize] + 20)};
     case CUI_SLIDER: return (cui_size){160, 28};

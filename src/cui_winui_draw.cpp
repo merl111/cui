@@ -138,12 +138,18 @@ static controls::Control region_control(cui_widget *w, const cui_canvas_region &
                           L"</ControlTemplate></Button.Template></Button>")
                           .as<controls::Button>();
         button.Click(
-            [w, id = r.id](auto const &, auto const &) { cui_canvas_activate_region(w, id); });
+            [w, app = w->window->app, id = r.id](auto const &, auto const &) {
+                if (!app->destroying) cui_canvas_activate_region(w, id);
+            });
         b = button;
     }
     b.IsHitTestVisible(false);
     b.IsTabStop(true);
-    b.GotFocus([w, id = r.id](auto const &, auto const &) { cui__canvas_focus(w, id); });
+    // WinUI may deliver queued focus events while its dispatcher shuts down,
+    // after C widget/model storage has been released. The app outlives the queue.
+    b.GotFocus([w, app = w->window->app, id = r.id](auto const &, auto const &) {
+        if (!app->destroying) cui__canvas_focus(w, id);
+    });
     return b;
 }
 extern "C" void cui__canvas_regions(cui_widget *w) {

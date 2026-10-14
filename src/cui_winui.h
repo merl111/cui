@@ -52,6 +52,7 @@ struct widget_state {
     xaml::FrameworkElement element{nullptr};
     controls::Canvas children{nullptr};
     controls::Border border{nullptr};
+    controls::TextBlock label{nullptr};
     controls::Image image{nullptr};
     controls::Canvas regions{nullptr};
     controls::ListView rows{nullptr};

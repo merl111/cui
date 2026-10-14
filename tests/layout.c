@@ -54,6 +54,23 @@ int main(void)
     grid.kind=CUI_SPLIT;grid.axis=CUI_HORIZONTAL;grid.value=0.25;grid.last=&b;b.next=NULL;
     size=cui__measure(&grid);cui__arrange(&grid,(cui_rect){0,0,500,100});
     CHECK(a.frame.width>=100&&b.frame.width>=200&&b.frame.x==a.frame.width+10);
+    /* Hidden split panes reclaim their fraction and the divider gap. */
+    b.hidden=1;
+    size=cui__measure(&grid);CHECK(size.width==100&&size.height==30);
+    cui__arrange(&grid,(cui_rect){20,30,500,100});
+    CHECK(a.frame.x==20&&a.frame.y==30&&a.frame.width==500&&a.frame.height==100);
+    a.hidden=1;b.hidden=0;b.minimum=(cui_size){200,40};
+    size=cui__measure(&grid);CHECK(size.width==200&&size.height==40);
+    cui__arrange(&grid,(cui_rect){20,30,500,100});
+    CHECK(b.frame.x==20&&b.frame.width==500);
+    grid.axis=CUI_VERTICAL;
+    size=cui__measure(&grid);cui__arrange(&grid,(cui_rect){20,30,500,100});
+    CHECK(b.frame.y==30&&b.frame.height==100);
+    b.hidden=1;size=cui__measure(&grid);CHECK(size.width==0&&size.height==0);
+    a.hidden=b.hidden=0;a.minimum=(cui_size){100,30};b.minimum=(cui_size){200,40};
+    grid.axis=CUI_HORIZONTAL;size=cui__measure(&grid);
+    cui__arrange(&grid,(cui_rect){0,0,500,100});
+    CHECK(a.frame.width>=100&&b.frame.width>=200&&b.frame.x==a.frame.width+10);
     cui_widget stack={0}, base={0}, overlay={0};
     stack.kind=CUI_STACK;stack.first=&base;base.next=&overlay;
     base.kind=overlay.kind=CUI_BUTTON;base.minimum=(cui_size){300,200};
@@ -69,6 +86,19 @@ int main(void)
     cui__arrange(&stack,(cui_rect){0,0,90,80});
     CHECK(overlay.frame.width==70&&overlay.frame.height==60);
     overlay.hidden=1;size=cui__measure(&stack);CHECK(size.width==300);
+#if defined(CUI_WINUI) || defined(__APPLE__)
+    /* CSS padding has to be represented in native's absolute child layout. */
+    cui_widget padded={0}, child={0};
+    padded.kind=CUI_BOX;padded.axis=CUI_HORIZONTAL;padded.padding=4;
+    padded.styled=1;padded.style.padding=6;padded.first=&child;
+    child.kind=CUI_LABEL;child.minimum=(cui_size){30,20};
+    size=cui__measure(&padded);CHECK(size.width==42&&size.height==32);
+    cui__arrange(&padded,(cui_rect){0,0,42,32});
+    CHECK(child.frame.x==6&&child.frame.y==6);
+    padded.styled=0;size=cui__measure(&padded);CHECK(size.width==38&&size.height==28);
+    cui__arrange(&padded,(cui_rect){0,0,38,28});
+    CHECK(child.frame.x==4&&child.frame.y==4);
+#endif
     puts("layout: nested boxes, expansion, padding and minimum sizes passed");
     return 0;
 }

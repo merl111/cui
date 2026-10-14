@@ -15,7 +15,7 @@ static NSBitmapImageRep *bitmap(int w, int h) {
                       hasAlpha:YES
                       isPlanar:NO
                 colorSpaceName:NSDeviceRGBColorSpace
-                  bitmapFormat:NSBitmapFormatAlphaNonpremultiplied
+                  bitmapFormat:0 /* AppKit drawing contexts require premultiplied alpha. */
                    bytesPerRow:w * 4
                   bitsPerPixel:32];
 }
@@ -26,6 +26,9 @@ static unsigned char *text_bitmap(const char *text, const char *family, double s
     NSString *value = [NSString stringWithUTF8String:text];
     if (!value)
       return NULL;
+    /* DRAW_TEXT is single-line on every backend. Chat lays out body lines
+     * separately, while previews may contain the original message's breaks. */
+    value = [[value componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]] componentsJoinedByString:@" "];
     NSFont *font =
         family ? [NSFont fontWithName:[NSString stringWithUTF8String:family]
                                  size:size]
@@ -51,6 +54,10 @@ static unsigned char *text_bitmap(const char *text, const char *family, double s
     [NSGraphicsContext saveGraphicsState];
     NSGraphicsContext *ctx =
         [NSGraphicsContext graphicsContextWithBitmapImageRep:rep];
+    if (!ctx) { [NSGraphicsContext restoreGraphicsState]; [rep release]; return NULL; }
+    /* The raster uses top-left coordinates; tell AppKit as well as flipping
+     * the CTM so glyphs remain upright in that coordinate system. */
+    ctx = [NSGraphicsContext graphicsContextWithCGContext:[ctx CGContext] flipped:YES];
     [NSGraphicsContext setCurrentContext:ctx];
     NSAffineTransform *flip = [NSAffineTransform transform];
     [flip translateXBy:0 yBy:*height];
@@ -62,7 +69,7 @@ static unsigned char *text_bitmap(const char *text, const char *family, double s
     if (result) {
       unsigned char *pixels = [rep bitmapData];
       for (size_t i = 0; i < (size_t)*width * *height; ++i)
-        if(colored){const unsigned char *v=pixels+i*4;((uint32_t*)result)[i]=(unsigned)v[3]<<24|((unsigned)v[0]*v[3]/255)<<16|((unsigned)v[1]*v[3]/255)<<8|((unsigned)v[2]*v[3]/255);}else result[i] = pixels[i * 4 + 3];
+        if(colored){const unsigned char *v=pixels+i*4;((uint32_t*)result)[i]=(unsigned)v[3]<<24|(unsigned)v[0]<<16|(unsigned)v[1]<<8|(unsigned)v[2];}else result[i] = pixels[i * 4 + 3];
     }
     [rep release];
     return result;
@@ -97,9 +104,9 @@ uint32_t *cui__draw_asset(const cui_icon_asset *source, int width, int height,
       return NULL;
     }
     [NSGraphicsContext saveGraphicsState];
-    [NSGraphicsContext
-        setCurrentContext:[NSGraphicsContext
-                              graphicsContextWithBitmapImageRep:rep]];
+    NSGraphicsContext *ctx = [NSGraphicsContext graphicsContextWithBitmapImageRep:rep];
+    if (!ctx) { [NSGraphicsContext restoreGraphicsState]; [rep release]; free(commands); return NULL; }
+    [NSGraphicsContext setCurrentContext:ctx];
     NSAffineTransform *flip = [NSAffineTransform transform];
     [flip translateXBy:0 yBy:height];
     [flip scaleXBy:1 yBy:-1];
@@ -111,9 +118,8 @@ uint32_t *cui__draw_asset(const cui_icon_asset *source, int width, int height,
       const unsigned char *v = [rep bitmapData];
       for (size_t i = 0; i < (size_t)width * height; ++i) {
         const unsigned char *p = v + i * 4;
-        out[i] = (unsigned)p[3] << 24 | ((unsigned)p[0] * p[3] / 255) << 16 |
-                 ((unsigned)p[1] * p[3] / 255) << 8 |
-                 ((unsigned)p[2] * p[3] / 255);
+        out[i] = (unsigned)p[3] << 24 | (unsigned)p[0] << 16 |
+                 (unsigned)p[1] << 8 | (unsigned)p[2];
       }
     }
     [rep release];
