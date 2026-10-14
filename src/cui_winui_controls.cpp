@@ -18,6 +18,29 @@ controls::TextBox text_box(cui_widget *w, hstring const &text) {
     box.TextCompositionEnded([w](auto const &, auto const &) { w->composing = 0; });
     return box;
 }
+// WinUI text fields select separate theme brushes for hover, focus and disabled
+// states. Keep an application's palette consistent across those native states.
+void text_palette(cui_widget *w, controls::Control const &control) {
+    if (w->kind != CUI_ENTRY && w->kind != CUI_SEARCH && w->kind != CUI_PASSWORD &&
+        w->kind != CUI_TEXTAREA && w->kind != CUI_CODE) return;
+    auto resources = control.Resources();
+    struct tone { const wchar_t *name; unsigned color; };
+    const tone tones[] = {{L"Background", w->style.background},
+                          {L"Foreground", w->style.foreground},
+                          {L"BorderBrush", w->style.border},
+                          {L"PlaceholderForeground", (w->style.foreground & 0xffffff00u) | 0x99u}};
+    for (const auto &tone : tones) {
+        for (const wchar_t *state : {L"", L"PointerOver", L"Focused", L"Disabled"}) {
+            auto key = winrt::box_value(hstring(std::wstring(L"TextControl") + tone.name + state));
+            if (w->styled) resources.Insert(key, brush(tone.color));
+            else if (resources.HasKey(key)) resources.Remove(key);
+        }
+    }
+    auto key = winrt::box_value(L"TextControlBorderThemeThicknessFocused");
+    double width = w->style.border_width;
+    if (w->styled) resources.Insert(key, winrt::box_value(xaml::Thickness{width, width, width, width}));
+    else if (resources.HasKey(key)) resources.Remove(key);
+}
 void create_container(cui_widget *w, widget_state &s) {
     s.children = controls::Canvas();
     s.border = xaml::Markup::XamlReader::Load(
@@ -575,6 +598,7 @@ extern "C" void cui__backend_style(cui_widget *w) {
                 c.ClearValue(controls::Control::BorderThicknessProperty());
                 c.ClearValue(controls::Control::CornerRadiusProperty());
                 c.ClearValue(controls::Control::PaddingProperty());
+                text_palette(w, c);
             } else if (s.border) {
                 s.border.ClearValue(controls::Border::BackgroundProperty());
                 s.border.ClearValue(controls::Border::BorderBrushProperty());
@@ -598,7 +622,9 @@ extern "C" void cui__backend_style(cui_widget *w) {
             c.BorderThickness({st.border_width, st.border_width, st.border_width, st.border_width});
             c.CornerRadius({st.radius, st.radius, st.radius, st.radius});
             double padding = st.padding;
-            c.Padding({padding, padding, padding, padding});
+            c.Padding(w->kind == CUI_TEXTAREA ? xaml::Thickness{6, 10, 6, 10}
+                                              : xaml::Thickness{padding, padding, padding, padding});
+            text_palette(w, c);
         } else if (s.border) {
             s.border.Background(brush(st.background));
             s.border.BorderBrush(brush(st.border));
