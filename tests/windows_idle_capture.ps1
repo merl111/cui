@@ -18,11 +18,15 @@ $arguments = @('--temporary-session', '--theme', $Theme)
 if ($Fixture) { $arguments += '--fixture' }
 $process = Start-Process (Join-Path $Directory 'archaic.exe') -ArgumentList $arguments -NoNewWindow -PassThru -RedirectStandardError "$Prefix-stderr.txt" -RedirectStandardOutput "$Prefix-stdout.txt"
 try {
-  [void]$process.WaitForInputIdle(30000)
-  Start-Sleep -Seconds 4
-  $process.Refresh()
-  if ($process.HasExited) { throw "Archaic exited: $($process.ExitCode)" }
-  $window = $process.MainWindowHandle
+  # Archaic is a console-subsystem executable that creates a native GUI.
+  # WaitForInputIdle is not supported for that subsystem; await its window.
+  $deadline = [DateTime]::UtcNow.AddSeconds(30)
+  do {
+    Start-Sleep -Milliseconds 250
+    $process.Refresh()
+    if ($process.HasExited) { throw "Archaic exited: $($process.ExitCode)" }
+    $window = $process.MainWindowHandle
+  } while ($window -eq [IntPtr]::Zero -and [DateTime]::UtcNow -lt $deadline)
   if ($window -eq [IntPtr]::Zero) { throw 'No Archaic window' }
   $bounds = [Windows.Forms.Screen]::PrimaryScreen.Bounds
   $width = [Math]::Min(1440, $bounds.Width - 40)
