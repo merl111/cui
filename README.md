@@ -2,7 +2,7 @@
 
 A small C99 GUI framework with native controls, automatic layout, and a deliberate visual design. Applications use a C API; macOS has a private Objective-C implementation and Windows uses C++/WinRT internally. Windows builds restore pinned WinUI 3 dependencies; Linux uses GTK and macOS uses AppKit. No bundled fonts or browser UI.
 
-**Early prototype, not production-ready.** Framework development, documentation and the showcase proceed together. Windows/macOS native verification is deferred to a later phase. Linux is compiled, tested, and visually inspected here. The Windows backend is being migrated to WinUI 3; its native build and visual checks and macOS compilation/runtime checks remain. The CI workflow builds all three; it has not been run remotely from this workspace.
+**Early prototype, not production-ready.** Framework development, documentation and the showcase proceed together. Native CI builds and tests Linux, Windows and macOS. Archaic application captures additionally exercise login, chat and themes on real Windows and macOS runners. This is focused validation, not complete platform acceptance for every control or desktop integration.
 
 ## Appearance is part of the API
 
@@ -14,7 +14,7 @@ UI code describes semantic roles—title, heading, caption, primary action, card
 | Windows | WinUI 3 controls hosted in desktop XAML islands | Fluent buttons, inputs, menus and dialogs, system theme resources and native keyboard/accessibility support |
 | macOS | AppKit controls | Aqua/Dark Aqua, system accent and semantic colors, native text fields/buttons, standard Edit menu |
 
-The Windows backend uses **WinUI 3**, with the Windows App SDK 1.8 runtime as a deployment requirement. Win32 still handles the top-level window and operating-system integration; widgets use Fluent XAML controls. Mica/Acrylic window backdrops are not enabled by this change. Linux keeps its own style and macOS uses AppKit styling. Native Windows visual review is still required.
+The Windows backend uses **WinUI 3**, with the Windows App SDK 1.8 runtime as a deployment requirement. Win32 still handles the top-level window and operating-system integration; widgets use Fluent XAML controls. Mica/Acrylic window backdrops are not enabled by this change. Linux keeps its own style and macOS uses AppKit styling. Use the native validation workflow and `tests/windows_idle_capture.ps1` to check application appearance and window responsiveness on Windows.
 
 Actual Linux renders, captured from the settings example:
 
